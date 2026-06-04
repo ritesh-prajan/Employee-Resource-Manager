@@ -1,6 +1,18 @@
 import React from 'react';
+import SingleSearchSelect from '../ui/SingleSearchSelect';
+import MultiSearchSelect from '../ui/MultiSearchSelect';
 
-export default function TeamForm({ formData, onChange, users }) {
+/**
+ * TeamForm — used by both Create and Edit team modals.
+ * Props:
+ *   formData   { name, leadId, members[] }
+ *   onChange   (formData) => void
+ *   users      array of all users
+ *   hideLeadField  bool — Team Lead role can't change their own lead
+ */
+export default function TeamForm({ formData, onChange, users, hideLeadField = false }) {
+  const userOptions = users.map(u => ({ value: u.id, label: `${u.name} (${u.role})` }));
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
@@ -10,48 +22,41 @@ export default function TeamForm({ formData, onChange, users }) {
         <input
           type="text"
           className="input-control"
-          placeholder="E.g. Engineering Core"
+          placeholder="E.g. Engineering Core, Design Team"
           value={formData.name}
-          onChange={(e) => onChange({ ...formData, name: e.target.value })}
+          onChange={e => onChange({ ...formData, name: e.target.value })}
           required
         />
       </div>
 
       {/* Team Lead */}
-      <div className="form-group">
-        <label className="form-label">TEAM LEAD</label>
-        <select
-          className="input-control"
-          value={formData.leadId}
-          onChange={(e) => onChange({ ...formData, leadId: e.target.value })}
-        >
-          <option value="">Select a lead...</option>
-          {users.map(u => (
-            <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-          ))}
-        </select>
-      </div>
+      {!hideLeadField && (
+        <div className="form-group">
+          <label className="form-label">TEAM LEAD</label>
+          <SingleSearchSelect
+            options={userOptions}
+            value={formData.leadId}
+            onChange={selectedLeadId => {
+              const newMembers = [...formData.members];
+              if (selectedLeadId && !newMembers.includes(selectedLeadId)) {
+                newMembers.push(selectedLeadId);
+              }
+              onChange({ ...formData, leadId: selectedLeadId, members: newMembers });
+            }}
+            placeholder="Search and select team lead..."
+          />
+        </div>
+      )}
 
       {/* Team Members */}
       <div className="form-group">
         <label className="form-label">TEAM MEMBERS</label>
-        <select
-          multiple
-          className="input-control"
-          value={formData.members}
-          onChange={(e) => {
-            const selected = Array.from(e.target.selectedOptions).map(o => o.value);
-            onChange({ ...formData, members: selected });
-          }}
-          style={{ height: '120px' }}
-        >
-          {users.map(u => (
-            <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-          ))}
-        </select>
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          Hold Ctrl/Cmd to select multiple
-        </span>
+        <MultiSearchSelect
+          options={userOptions}
+          selectedValues={formData.members}
+          onChange={vals => onChange({ ...formData, members: vals })}
+          placeholder="Search and select team members..."
+        />
       </div>
 
     </div>

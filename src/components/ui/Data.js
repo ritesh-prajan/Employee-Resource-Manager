@@ -9,6 +9,7 @@ export const Data = [
     activeTasks: "1 task",
     role: "Admin",
     status: "Active",
+    action:"",
   },
   {
     staffMember: "Alex Rivera",
@@ -20,6 +21,7 @@ export const Data = [
     activeTasks: "1 task",
     role: "Team Lead",
     status: "Active",
+    action:"",
   },
   {
     staffMember: "Vikram Mehta",
@@ -31,6 +33,7 @@ export const Data = [
     activeTasks: "1 task",
     role: "Team Lead",
     status: "Active",
+    action:"",
   },
   {
     staffMember: "Marcus Chen",
@@ -42,6 +45,7 @@ export const Data = [
     activeTasks: "2 tasks",
     role: "Employee",
     status: "Active",
+    action:"",
   },
   {
     staffMember: "Elena Rostova",
@@ -53,6 +57,7 @@ export const Data = [
     activeTasks: "3 tasks",
     role: "Employee",
     status: "Active",
+    action:"",
   },
   {
     staffMember: "Liam O'Connor",
@@ -64,6 +69,7 @@ export const Data = [
     activeTasks: "1 task",
     role: "Employee",
     status: "Active",
+    action:"",
   },
   {
     staffMember: "David Miller",
@@ -75,5 +81,6 @@ export const Data = [
     activeTasks: "3 tasks",
     role: "Employee",
     status: "Active",
+    action:"",
   },
 ];

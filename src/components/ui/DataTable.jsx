@@ -1,59 +1,66 @@
-import React from 'react'
-import { useState } from 'react'
-import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table'
+import React, { useState } from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+} from "@tanstack/react-table";
 
+export default function DataTable({ Data = [], columns = [] }) {
+  const [data] = useState(Data);
 
-
-
-
-export default function DataTable({Data,columns}) {
-  const [data, setData] = useState(Data)
-  console.log("data:",data)
-  console.log(columns)
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-  })
+  });
 
   return (
-    <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr
+                key={headerGroup.id}
+                className="border-b border-slate-200 bg-slate-50"
+              >
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    className="px-6 py-5 text-left text-sm font-bold uppercase tracking-wide text-slate-700"
+                  >
+                    {flexRender(
+                      header.column.columnDef.header,
+                      header.getContext()
+                    )}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
 
-      {table.getHeaderGroups().map((headerGroup) => (
-        <div
-          key={headerGroup.id}
-          className="grid grid-cols-9 bg-slate-800 text-white"
-        >
-          {headerGroup.headers.map((header) => (
-            <div
-              key={header.id}
-              className="px-4 py-3 text-sm font-semibold border-r border-slate-700 last:border-r-0"
-            >
-              {header.column.columnDef.header}
-            </div>
-          ))}
-        </div>
-      ))}
-
-      {table.getRowModel().rows.map((row) => (
-        <div
-          key={row.id}
-          className="grid grid-cols-9 border-t border-gray-200 hover:bg-gray-50"
-        >
-          {row.getVisibleCells().map((cell) => (
-            <div
-              key={cell.id}
-              className="px-4 py-3 text-sm border-r border-gray-200 last:border-r-0"
-            >
-              {flexRender(
-                cell.column.columnDef.cell,
-                cell.getContext()
-              )}
-            </div>
-          ))}
-        </div>
-      ))}
-
+          <tbody>
+            {table.getRowModel().rows.map((row) => (
+              <tr
+                key={row.id}
+                className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <td
+                    key={cell.id}
+                    className="px-6 py-5 text-sm text-slate-700 align-middle"
+                  >
+                    {flexRender(
+                      cell.column.columnDef.cell,
+                      cell.getContext()
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
-  )
+  );
 }

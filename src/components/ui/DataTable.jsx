@@ -27,7 +27,7 @@ export default function DataTable({ Data = [], columns = [] }) {
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-6 py-5 text-left text-sm font-bold uppercase tracking-wide text-slate-700"
+                    className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wide text-slate-700"
                   >
                     {flexRender(
                       header.column.columnDef.header,
@@ -48,7 +48,7 @@ export default function DataTable({ Data = [], columns = [] }) {
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
-                    className="px-6 py-5 text-sm text-slate-700 align-middle"
+                    className="px-6 py-4 text-sm text-slate-700 align-middle"
                   >
                     {flexRender(
                       cell.column.columnDef.cell,

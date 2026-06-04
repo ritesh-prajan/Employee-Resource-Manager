@@ -1,4 +1,4 @@
-import { Data } from "../../components/ui/data";
+import { Data } from "../../components/mock dataset/Data_admin_emp";
 import DataTable from "../../components/ui/DataTable";
 import UserAvatar from "../../components/ui/UserAvatar";
 
@@ -139,7 +139,7 @@ export default function EmployeesPage() {
           </div>
         </div>
 
-        {/* Table */}
+   
         <DataTable Data={Data} columns={columns} />
       </div>
     </div>

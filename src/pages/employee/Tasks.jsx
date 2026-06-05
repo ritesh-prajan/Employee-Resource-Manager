@@ -1,0 +1,593 @@
+import React, { useState, useMemo } from 'react';
+import { Plus, Search, AlertTriangle } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
+import ETAExtensionModal from '../../components/forms/tasks/ETAExtensionModal';
+import CreateBacklogTaskModal from '../../components/forms/tasks/CreateBacklogTaskModal';
+import CreateTaskModal from '../../components/forms/tasks/CreateTaskModal';
+import EditTaskModal from '../../components/forms/tasks/EditTaskModal';
+import TaskDetailPanel from '../../components/forms/tasks/TaskDetailPanel';
+import TransferModal from '../../components/forms/tasks/TransferModal';
+import DataTable from '../../components/ui/DataTable';
+import SearchableSelect from '../../components/ui/SearchableSelect';
+import UserAvatar from '../../components/ui/UserAvatar';
+
+export default function Tasks({ setCurrentPage, initialScope }) {
+  const {
+    currentUser, tasks, projects, users, timerState,
+    clockIn, clockOut, taskComments, addTaskComment,
+    updateTaskProgress, submitTaskForReview, requestETAExtension,
+    requestTaskTransfer, reviewETAExtension, reviewTaskTransfer,
+    createTask, deleteTask, editTask, setTasks, teams,
+    etaExtensions, taskTransfers, claimBacklogTask
+  } = useApp();
+
+  const isLeader = currentUser.role === 'Admin' || currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead';
+  const isAdmin = currentUser.role === 'Admin';
+  const ledTeams = teams ? teams.filter(t => t.leadId === currentUser.id) : [];
+  const ledMemberIds = new Set(ledTeams.flatMap(t => t.members));
+  const ledTeamIds = ledTeams.map(t => t.id);
+  const ledProjectIds = projects ? projects.filter(p => (p.teams || []).some(tId => ledTeamIds.includes(tId))).map(p => p.id) : [];
+
+  const [scope, setScope] = useState(initialScope || (isLeader ? 'all' : 'my'));
+  React.useEffect(() => { if (initialScope) setScope(initialScope); }, [initialScope]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProject, setSelectedProject] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedPriority, setSelectedPriority] = useState('');
+  const [expandedTaskId, setExpandedTaskId] = useState(null);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showEditTaskModal, setShowEditTaskModal] = useState(false);
+  const [showBacklogCreateModal, setShowBacklogCreateModal] = useState(false);
+  const [showETAModal, setShowETAModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [activeTaskId, setActiveTaskId] = useState(null);
+  const [editingTask, setEditingTask] = useState(null);
+  const [etaDate, setEtaDate] = useState('');
+  const [etaReason, setEtaReason] = useState('');
+  const [transferTarget, setTransferTarget] = useState('');
+  const [transferReason, setTransferReason] = useState('');
+  const [showOverrunPrompt, setShowOverrunPrompt] = useState(false);
+  const [overrunActionType, setOverrunActionType] = useState('pause');
+  const [overrunComments, setOverrunComments] = useState('');
+  const [overrunTaskId, setOverrunTaskId] = useState(null);
+  const [newComment, setNewComment] = useState({});
+  const [progressValue, setProgressValue] = useState({});
+  const [progressNote, setProgressNote] = useState({});
+  const [taskData, setTaskData] = useState({ name: '', projectId: '', assignedTo: '', eta: '', type: 'Story', epic: 'Backlog', priority: 'Medium' });
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
+  const [stagedTasks, setStagedTasks] = useState([]);
+  const [showAssignForm, setShowAssignForm] = useState(false);
+  const [showBacklogDropdown, setShowBacklogDropdown] = useState(false);
+  const [assignForm, setAssignForm] = useState({ name: '', backlogTaskId: '', eta: '8', type: 'Story', priority: 'Medium', assignedTo: '' });
+  const [backlogCreateData, setBacklogCreateData] = useState({ name: '', projectId: '', eta: '8', type: 'Story', priority: 'Medium' });
+
+  const getProjectInfo = (projectId) => projects.find(p => p.id === projectId);
+  const getUserInfo = (userId) => users.find(u => u.id === userId);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Completed': return '#4ade80';
+      case 'Pending Review': return '#f472b6';
+      case 'In Progress': return '#60a5fa';
+      case 'ETA Extended': return '#fbbf24';
+      case 'Transferred': return '#c084fc';
+      case 'Paused': return '#e28743';
+      case 'Rejected': return '#eab308';
+      default: return '#94a3b8';
+    }
+  };
+
+  const getActiveSessionHours = () => {
+    if (!timerState.isClockedIn || !timerState.startTime) return 0;
+    const start = new Date(timerState.startTime);
+    const diffMs = new Date() - start;
+    const breakMs = (timerState.totalBreakSeconds || 0) * 1000;
+    const netMs = Math.max(0, diffMs - breakMs);
+    let durationHours = netMs / (1000 * 60 * 60);
+    if (durationHours < 0.05) durationHours = 0.5;
+    return parseFloat(durationHours.toFixed(2));
+  };
+
+  const checkTaskExceedsETA = (task) => {
+    const isActive = timerState.isClockedIn && timerState.taskId === task.id;
+    const sessionHours = isActive ? getActiveSessionHours() : 0;
+    return (task.logged + sessionHours) > task.eta;
+  };
+
+  const getDatetimeInputValue = (isoString) => {
+    if (!isoString) return '';
+    try {
+      const date = new Date(isoString);
+      const tzoffset = date.getTimezoneOffset() * 60000;
+      return (new Date(date.getTime() - tzoffset)).toISOString().slice(0, 16);
+    } catch { return ''; }
+  };
+
+  const handleETASubmit = () => {
+    if (!activeTaskId || !etaDate || !etaReason) return;
+    requestETAExtension(activeTaskId, etaDate, etaReason);
+    setShowETAModal(false);
+  };
+
+  const handleTransferSubmit = (e) => {
+    e.preventDefault();
+    if (!activeTaskId || !transferTarget || !transferReason) return;
+    requestTaskTransfer(activeTaskId, transferTarget, transferReason);
+    setShowTransferModal(false);
+  };
+
+  const handleDirectReassign = (taskId, newAssigneeId) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, assignedTo: newAssigneeId || '' } : t));
+  };
+
+  const handleDirectUpdateETA = (taskId, newEtaDate, newEtaHours) => {
+    setTasks(prev => prev.map(t => {
+      if (t.id !== taskId) return t;
+      const updated = { ...t };
+      if (newEtaDate !== undefined) updated.etaDate = newEtaDate ? new Date(newEtaDate).toISOString() : null;
+      if (newEtaHours !== undefined) updated.eta = parseFloat(newEtaHours) || 0;
+      return updated;
+    }));
+  };
+
+  const resolveETARequest = (taskId, approve) => {
+    const req = etaExtensions.find(e => e.taskId === taskId && e.status === 'Pending');
+    if (!req) return;
+    reviewETAExtension(req.id, approve ? 'Approved' : 'Rejected', approve ? 'Approved directly' : 'Declined directly');
+  };
+
+  const resolveTransferRequest = (taskId, approve) => {
+    const req = taskTransfers.find(t => t.taskId === taskId && t.status === 'Pending');
+    if (!req) return;
+    reviewTaskTransfer(req.id, approve ? 'Approved' : 'Rejected', approve ? 'Approved directly' : 'Declined directly');
+  };
+
+  const handleStartTask = (task) => {
+    if (timerState.isClockedIn) { alert("You are currently tracking another task. Please pause or finish it first."); return; }
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'In Progress' } : t));
+    clockIn(task.id, task.projectId, task.name, task.type);
+    addTaskComment(task.id, `[Started task tracking]`);
+  };
+
+  const triggerPauseTask = (task) => { setOverrunTaskId(task.id); setOverrunActionType('pause'); setOverrunComments(''); setShowOverrunPrompt(true); };
+  const triggerFinishTask = (task) => { setOverrunTaskId(task.id); setOverrunActionType('finish'); setOverrunComments(''); setShowOverrunPrompt(true); };
+
+  const handleSubmitExecutionAction = () => {
+    const task = tasks.find(t => t.id === overrunTaskId);
+    if (!task) return;
+    const isOverrun = checkTaskExceedsETA(task);
+    if (isOverrun && !overrunComments.trim()) { alert("Please provide comments/justification for exceeding the estimated task time."); return; }
+    const commentsText = overrunComments.trim();
+    if (overrunActionType === 'pause') {
+      if (timerState.isClockedIn && timerState.taskId === task.id) clockOut(commentsText);
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'Paused', etaExceededComment: commentsText || t.etaExceededComment } : t));
+      addTaskComment(task.id, commentsText ? `[Paused task - Overrun Comment]: ${commentsText}` : `[Paused task]`);
+    } else {
+      if (timerState.isClockedIn && timerState.taskId === task.id) clockOut(commentsText);
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'Pending Review', etaExceededComment: commentsText || t.etaExceededComment } : t));
+      addTaskComment(task.id, commentsText ? `[Submitted for Review - Comment]: ${commentsText}` : `[Submitted for Review]`);
+      submitTaskForReview(task.id);
+    }
+    setShowOverrunPrompt(false); setOverrunComments(''); setOverrunTaskId(null); setExpandedTaskId(null);
+  };
+
+  const handleAddCommentSubmit = (taskId) => {
+    const commentText = newComment[taskId];
+    if (!commentText || !commentText.trim()) return;
+    addTaskComment(taskId, commentText);
+    setNewComment(prev => ({ ...prev, [taskId]: '' }));
+  };
+
+  const handleProgressUpdateSubmit = (taskId) => {
+    const value = progressValue[taskId] ?? 50;
+    const note = progressNote[taskId] || '';
+    updateTaskProgress(taskId, parseInt(value), note);
+    setProgressNote(prev => ({ ...prev, [taskId]: '' }));
+  };
+
+  const handleEditTaskSubmit = (e) => {
+    e.preventDefault();
+    if (!editingTask.name || !editingTask.projectId) { alert("Please fill in task name and select a project."); return; }
+    editTask(editingTask.id, { name: editingTask.name, projectId: editingTask.projectId, assignedTo: editingTask.assignedTo || '', eta: parseFloat(editingTask.eta) || 0, type: editingTask.type, epic: editingTask.epic || 'Backlog', priority: editingTask.priority, status: editingTask.status });
+    setShowEditTaskModal(false); setEditingTask(null);
+  };
+
+  const handlePublishTasks = (e) => {
+    if (e) e.preventDefault();
+    if (!taskData.projectId) { alert("Please select a project."); return; }
+    if (stagedTasks.length === 0) { alert("Please stage at least one task."); return; }
+    stagedTasks.forEach(staged => {
+      if (staged.isNew) {
+        createTask({ name: staged.name, projectId: taskData.projectId, assignedTo: staged.assignedTo, eta: parseFloat(staged.eta) || 8, type: staged.type || 'Story', priority: staged.priority || 'Medium', epic: 'Backlog' });
+      } else {
+        setTasks(prev => prev.map(t => t.id === staged.backlogTaskId ? { ...t, assignedTo: staged.assignedTo, status: 'Open' } : t));
+      }
+    });
+    setShowTaskModal(false); setSelectedEmployeeIds([]); setStagedTasks([]); setShowAssignForm(false);
+    setTaskData({ name: '', projectId: '', assignedTo: '', eta: '', type: 'Story', epic: 'Backlog', priority: 'Medium' });
+  };
+
+  const handleBacklogCreate = (e) => {
+    e.preventDefault();
+    if (!backlogCreateData.projectId) { alert("Please select a project."); return; }
+    if (!backlogCreateData.name.trim()) { alert("Please enter a task summary."); return; }
+    createTask({ name: backlogCreateData.name, projectId: backlogCreateData.projectId, assignedTo: '', eta: parseFloat(backlogCreateData.eta) || 8, type: backlogCreateData.type, priority: backlogCreateData.priority, epic: 'Backlog' });
+    setShowBacklogCreateModal(false);
+    setBacklogCreateData({ name: '', projectId: '', eta: '8', type: 'Story', priority: 'Medium' });
+  };
+
+  // Filter options for SearchableSelect
+  const projectOptions = [
+    { value: '', label: 'All Projects' },
+    ...projects
+      .filter(p => isAdmin || ledProjectIds.includes(p.id))
+      .map(p => ({ value: p.id, label: p.name.split(' (')[0], color: p.color }))
+  ];
+  const statusOptions = [
+    { value: '', label: 'All Statuses' },
+    ...['Open', 'In Progress', 'Pending Review', 'Completed', 'ETA Extended', 'Transferred', 'Rejected'].map(s => ({ value: s, label: s }))
+  ];
+  const priorityOptions = [
+    { value: '', label: 'All Priorities' },
+    ...['Low', 'Medium', 'High', 'Critical'].map(p => ({ value: p, label: p }))
+  ];
+
+  const filteredTasks = tasks.filter(t => {
+    if (!isAdmin && currentUser.role === 'Team Lead') {
+      if (!ledMemberIds.has(t.assignedTo) && !ledProjectIds.includes(t.projectId)) return false;
+    }
+    if (scope === 'my' && t.assignedTo !== currentUser.id) return false;
+    if (scope === 'backlog' && t.assignedTo && t.assignedTo !== '') return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const assignee = getUserInfo(t.assignedTo);
+      if (!t.name.toLowerCase().includes(q) && !t.taskNumber.toLowerCase().includes(q) && !(assignee && assignee.name.toLowerCase().includes(q))) return false;
+    }
+    if (selectedProject && t.projectId !== selectedProject) return false;
+    if (selectedStatus && t.status !== selectedStatus) return false;
+    if (selectedPriority && t.priority !== selectedPriority) return false;
+    return true;
+  });
+
+  const columns = useMemo(() => [
+    {
+      accessorKey: 'taskNumber',
+      header: 'TASK ID',
+      cell: ({ getValue }) => (
+        <span className="font-mono text-xs px-2 py-1 rounded border border-slate-200 bg-slate-50 text-slate-500 whitespace-nowrap">
+          {getValue()}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'name',
+      header: 'TASK NAME',
+      cell: ({ getValue }) => (
+        <span className="font-semibold text-sm text-slate-700">{getValue()}</span>
+      ),
+    },
+    {
+      accessorKey: 'projectId',
+      header: 'PROJECT',
+      cell: ({ getValue }) => {
+        const proj = getProjectInfo(getValue());
+        return (
+          <span className="text-sm font-semibold" style={{ color: proj?.color || '#94a3b8' }}>
+            {proj ? proj.name.split(' (')[0] : 'General'}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: 'assignedTo',
+      header: 'ASSIGNEE',
+      cell: ({ getValue }) => {
+        const assignee = getUserInfo(getValue());
+        if (!assignee) return <span className="text-xs text-slate-400 italic">Unassigned</span>;
+        return (
+          <div className="flex items-center gap-2">
+            <UserAvatar name={assignee.name} size={28} />
+            <span className="text-sm text-slate-700">{assignee.name}</span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'priority',
+      header: 'PRIORITY',
+      cell: ({ getValue }) => {
+        const p = getValue();
+        const color = p === 'Critical' ? '#ef4444' : p === 'High' ? '#f59e0b' : p === 'Medium' ? '#3b82f6' : '#94a3b8';
+        const bg = p === 'Critical' ? 'rgba(239,68,68,0.1)' : p === 'High' ? 'rgba(245,158,11,0.1)' : p === 'Medium' ? 'rgba(59,130,246,0.1)' : 'rgba(148,163,184,0.1)';
+        return (
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', padding: '3px 8px', borderRadius: '4px', backgroundColor: bg, color }}>
+            {p}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: 'eta',
+      header: 'ESTIMATE / LOGGED',
+      cell: ({ row }) => {
+        const task = row.original;
+        const proj = getProjectInfo(task.projectId);
+        const pct = Math.min(100, Math.round((task.logged / task.eta) * 100)) || 0;
+        const isOver = task.logged > task.eta;
+        return (
+          <div className="flex flex-col gap-1" style={{ minWidth: '130px' }}>
+            <span className="text-xs" style={{ color: isOver ? '#ef4444' : '#64748b', fontWeight: isOver ? 700 : 400 }}>
+              {task.logged}h / {task.eta}h ({pct}%)
+            </span>
+            <div style={{ height: '4px', width: '100%', backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ width: `${pct}%`, height: '100%', backgroundColor: isOver ? '#ef4444' : (proj?.color || '#2998ff'), borderRadius: '2px', transition: 'width 0.3s ease' }} />
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'etaDate',
+      header: 'DUE DATE',
+      cell: ({ getValue, row }) => {
+        const val = getValue();
+        if (!val) return <span className="text-xs text-slate-400">—</span>;
+        const due = new Date(val);
+        const now = new Date();
+        const isOverdue = due < now && !['Completed', 'Pending Review'].includes(row.original.status);
+        const formatted = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return (
+          <div className="flex items-center gap-1">
+            {isOverdue && <AlertTriangle size={12} color="#ef4444" />}
+            <span className="text-xs font-semibold" style={{ color: isOverdue ? '#ef4444' : '#64748b', whiteSpace: 'nowrap' }}>
+              {formatted}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'status',
+      header: 'STATUS',
+      cell: ({ row }) => {
+        const task = row.original;
+        return (
+          <div className="flex items-center gap-1">
+            {task.status === 'Rejected' && <AlertTriangle size={13} color="#eab308" />}
+            <span className="text-xs font-bold uppercase" style={{ color: getStatusColor(task.status) }}>
+              {task.status}
+            </span>
+          </div>
+        );
+      },
+    },
+  ], [projects, users]);
+
+  return (
+    <div className="min-h-screen bg-slate-100 p-8" style={{ zoom: 0.8 }}>
+      <div className="mx-auto" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+        {/* Toolbar */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div>
+              <h3 className="text-base font-semibold text-slate-800">Task Center</h3>
+              <span className="text-xs text-slate-500">
+                {isLeader ? 'Manage team backlog, delegate items, and review delivery targets' : 'Track and execute your assigned tickets and roadmap timelines'}
+              </span>
+            </div>
+            <div className="flex gap-3 items-center flex-wrap">
+              {/* Scope Toggle */}
+              <div style={{ display: 'inline-flex', backgroundColor: 'rgba(0,0,0,0.04)', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                {isLeader && (
+                  <button onClick={() => setScope('all')} style={{ padding: '0.35rem 0.85rem', fontSize: '0.7rem', fontWeight: 650, borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: scope === 'all' ? '#1d4ed8' : 'transparent', color: scope === 'all' ? '#fff' : '#64748b', transition: 'all 0.2s ease' }}>
+                    All Team Tasks
+                  </button>
+                )}
+                {!isAdmin && (
+                  <button onClick={() => setScope('my')} style={{ padding: '0.35rem 0.85rem', fontSize: '0.7rem', fontWeight: 650, borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: scope === 'my' ? '#1d4ed8' : 'transparent', color: scope === 'my' ? '#fff' : '#64748b', transition: 'all 0.2s ease' }}>
+                    My Tasks
+                  </button>
+                )}
+                <button onClick={() => setScope('backlog')} style={{ padding: '0.35rem 0.85rem', fontSize: '0.7rem', fontWeight: 650, borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: scope === 'backlog' ? '#1d4ed8' : 'transparent', color: scope === 'backlog' ? '#fff' : '#64748b', transition: 'all 0.2s ease' }}>
+                  Backlog Tasks
+                </button>
+              </div>
+
+              {scope === 'backlog' ? (
+                isLeader && (
+                  <button
+                    className="rounded-xl px-5 py-2 text-sm font-semibold text-white transition"
+                    style={{ backgroundColor: '#32bf90', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => { setBacklogCreateData({ name: '', projectId: projects[0]?.id || '', eta: '8', type: 'Story', priority: 'Medium' }); setShowBacklogCreateModal(true); }}
+                  >
+                    <Plus size={14} /> Create Backlog Task
+                  </button>
+                )
+              ) : (
+                isLeader && (
+                  <button
+                    className="rounded-xl bg-blue-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+                    style={{ border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => setShowTaskModal(true)}
+                  >
+                    <Plus size={14} /> Create Task
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex gap-4 flex-wrap items-center">
+            {/* Search */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.5rem 0.85rem', width: '280px' }}>
+              <Search size={14} style={{ color: '#94a3b8', flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Search by summary, ticket, assignee..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontSize: '0.85rem', color: '#1e293b' }}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500">PROJECT:</span>
+              <SearchableSelect
+                options={projectOptions}
+                value={selectedProject}
+                onChange={setSelectedProject}
+                placeholder="All Projects"
+                style={{ width: '180px' }}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500">STATUS:</span>
+              <SearchableSelect
+                options={statusOptions}
+                value={selectedStatus}
+                onChange={setSelectedStatus}
+                placeholder="All Statuses"
+                style={{ width: '160px' }}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500">PRIORITY:</span>
+              <SearchableSelect
+                options={priorityOptions}
+                value={selectedPriority}
+                onChange={setSelectedPriority}
+                placeholder="All Priorities"
+                style={{ width: '150px' }}
+              />
+            </div>
+
+            {(searchQuery || selectedProject || selectedStatus || selectedPriority) && (
+              <button
+                onClick={() => { setSearchQuery(''); setSelectedProject(''); setSelectedStatus(''); setSelectedPriority(''); }}
+                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Table */}
+        <DataTable
+          Data={filteredTasks}
+          columns={columns}
+          onRowClick={(task) => setExpandedTaskId(task.id)}
+        />
+
+        {/* Modals */}
+        <ETAExtensionModal
+          show={showETAModal}
+          onClose={() => setShowETAModal(false)}
+          onSubmit={handleETASubmit}
+          etaDate={etaDate}
+          setEtaDate={setEtaDate}
+          etaReason={etaReason}
+          setEtaReason={setEtaReason}
+        />
+        <TransferModal
+          show={showTransferModal}
+          onClose={() => setShowTransferModal(false)}
+          onSubmit={handleTransferSubmit}
+          users={users}
+          currentUser={currentUser}
+          transferTarget={transferTarget}
+          setTransferTarget={setTransferTarget}
+          transferReason={transferReason}
+          setTransferReason={setTransferReason}
+        />
+        <CreateBacklogTaskModal
+          show={showBacklogCreateModal}
+          onClose={() => setShowBacklogCreateModal(false)}
+          onSubmit={handleBacklogCreate}
+          projects={projects}
+          isAdmin={isAdmin}
+          ledProjectIds={ledProjectIds}
+          backlogCreateData={backlogCreateData}
+          setBacklogCreateData={setBacklogCreateData}
+        />
+        <EditTaskModal
+          show={showEditTaskModal}
+          onClose={() => { setShowEditTaskModal(false); setEditingTask(null); }}
+          onSubmit={handleEditTaskSubmit}
+          editingTask={editingTask}
+          setEditingTask={setEditingTask}
+          projects={projects}
+          users={users}
+          isAdmin={isAdmin}
+          ledProjectIds={ledProjectIds}
+        />
+        <CreateTaskModal
+          show={showTaskModal}
+          onClose={() => { setShowTaskModal(false); setStagedTasks([]); setShowAssignForm(false); }}
+          onSubmit={handlePublishTasks}
+          projects={projects}
+          tasks={tasks}
+          users={users}
+          isAdmin={isAdmin}
+          ledProjectIds={ledProjectIds}
+          taskData={taskData}
+          setTaskData={setTaskData}
+          stagedTasks={stagedTasks}
+          setStagedTasks={setStagedTasks}
+          assignForm={assignForm}
+          setAssignForm={setAssignForm}
+          showAssignForm={showAssignForm}
+          setShowAssignForm={setShowAssignForm}
+          showBacklogDropdown={showBacklogDropdown}
+          setShowBacklogDropdown={setShowBacklogDropdown}
+        />
+        <TaskDetailPanel
+          show={!!expandedTaskId}
+          onClose={() => setExpandedTaskId(null)}
+          task={tasks.find(t => t.id === expandedTaskId)}
+          currentUser={currentUser}
+          users={users}
+          projects={projects}
+          timerState={timerState}
+          taskComments={taskComments}
+          isAdmin={isAdmin}
+          isLeader={isLeader}
+          ledProjectIds={ledProjectIds}
+          ledMemberIds={ledMemberIds}
+          etaExtensions={etaExtensions}
+          taskTransfers={taskTransfers}
+          newComment={newComment}
+          setNewComment={setNewComment}
+          progressValue={progressValue}
+          setProgressValue={setProgressValue}
+          progressNote={progressNote}
+          setProgressNote={setProgressNote}
+          onStartTask={handleStartTask}
+          onTriggerPause={triggerPauseTask}
+          onTriggerFinish={triggerFinishTask}
+          onAddComment={handleAddCommentSubmit}
+          onProgressUpdate={handleProgressUpdateSubmit}
+          onOpenETA={(id) => { setActiveTaskId(id); setShowETAModal(true); }}
+          onOpenTransfer={(id) => { setActiveTaskId(id); setShowTransferModal(true); }}
+          onResolveETA={resolveETARequest}
+          onResolveTransfer={resolveTransferRequest}
+          onDirectReassign={handleDirectReassign}
+          onDirectUpdateETA={handleDirectUpdateETA}
+          onEditTask={(task) => { setEditingTask(task); setShowEditTaskModal(true); }}
+          onDeleteTask={deleteTask}
+          claimBacklogTask={claimBacklogTask}
+          getStatusColor={getStatusColor}
+          checkTaskExceedsETA={checkTaskExceedsETA}
+          getDatetimeInputValue={getDatetimeInputValue}
+        />
+      </div>
+    </div>
+  );
+}

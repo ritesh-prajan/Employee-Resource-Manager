@@ -1,17 +1,17 @@
 import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
-import Employees from './pages/admin/Employees';
+import Tasks from './pages/employee/Tasks';
 
 function Inner() {
   const { changeUser, currentUser } = useApp();
   
   React.useEffect(() => {
-    changeUser('user-admin');  // directly sets currentUser by ID
+    changeUser('user-admin');
   }, []);
 
   if (!currentUser) return <div>loading...</div>;
   
-  return <Employees />;
+  return <Tasks />;
 }
 
 function App() {

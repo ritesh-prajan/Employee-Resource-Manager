@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../../../ui/Modal';
-import MultiSearchSelect from '../../../ui/MultiSelectDropdown';
-import { useApp } from '../../../../context/AppContext';
+import Modal from "../../../../components/ui/Modal";
+import MultiSearchSelect from "../../../../components/ui/MultiSelectDropdown";
+import { useApp } from "../../../../context/AppContext";
 
 export default function EditProjectModal({ show, onClose, project }) {
   const { users, teams, editProject, getAdjustedProjectColor, theme } = useApp();

@@ -1,5 +1,5 @@
 import React from 'react';
-import UserAvatar from '../ui/UserAvatar';
+import UserAvatar from '../../../ui/UserAvatar';
 
 export default function ViewProfileModal({ show, onClose, user, teams, projects, getUserTasksCount }) {
   if (!show || !user) return null;

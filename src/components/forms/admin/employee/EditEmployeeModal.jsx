@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Eye, EyeOff } from 'lucide-react';
-import MultiSearchSelect from '../ui/MultiSelectDropdown';
+import MultiSearchSelect from '../../../ui/MultiSelectDropdown';
 
 export default function EditEmployeeModal({ show, onClose, user, users, teams, projects, onSubmit }) {
   const [editingUser, setEditingUser] = useState(null);

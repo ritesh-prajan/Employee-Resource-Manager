@@ -6,10 +6,10 @@ import UserAvatar from '../../components/ui/UserAvatar';
 import { Plus, ShieldAlert, Eye, EyeOff, CheckSquare, Pencil, Trash } from 'lucide-react';
 import MultiSearchSelect from '../../components/ui/MultiSelectDropdown';
 import DataTable from '../../components/ui/DataTable';
-import AddEmployeeModal from '../../components/forms/AddEmployeeModal';
-import EditEmployeeModal from '../../components/forms/EditEmployeeModal';
-import AssignTaskModal from '../../components/forms/AssignTaskModal';
-import viewProfileModal from '../../components/forms/ViewProfileModal';
+import AddEmployeeModal from '../../components/forms/admin/employee/AddEmployeeModal';
+import EditEmployeeModal from '../../components/forms/admin/employee/EditEmployeeModal';
+import AssignTaskModal from '../../components/forms/admin/employee/AssignTaskModal';
+import viewProfileModal from '../../components/forms/admin/employee/ViewProfileModal';
 
 export default function EmployeesPage() {
   const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee, currentUser, createTask, editTask } = useApp();

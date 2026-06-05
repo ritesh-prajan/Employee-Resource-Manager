@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldAlert, Eye, EyeOff } from 'lucide-react';
-import MultiSearchSelect from '../ui/MultiSelectDropdown';
+import MultiSearchSelect from '../../../ui/MultiSelectDropdown';
 
 export default function AddEmployeeModal({ show, onClose, users, teams, projects, onSubmit }) {
   const [empData, setEmpData] = useState({

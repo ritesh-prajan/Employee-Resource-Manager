@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
-import Projects from './pages/admin/Projects';
+import Employees from './pages/admin/Employees';
 
 function Inner() {
   const { changeUser, currentUser } = useApp();
@@ -11,7 +11,7 @@ function Inner() {
 
   if (!currentUser) return <div>loading...</div>;
   
-  return <Projects />;
+  return <Employees />;
 }
 
 function App() {

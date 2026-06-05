@@ -1278,7 +1278,7 @@ export const AppProvider = ({ children }) => {
   // Delete Employee Action
   const deleteEmployee = (userId) => {
     // Safeguard: cannot delete logged in user or admin Sarah
-    if (userId === currentUser.id || userId === 'user-admin') return;
+    if (userId === currentUser?.id || userId === 'user-admin') return;
     setUsers(prev => prev.filter(u => u.id !== userId));
     // Also remove from teams members lists
     setTeams(prev => 

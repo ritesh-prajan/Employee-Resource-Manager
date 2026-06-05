@@ -1,13 +1,30 @@
-import react from 'react';
+export default function UserAvatar({ name }) {
+  const initials = name
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
-export default function UserAvatar({name, size=32,title}){
-
-    const parts=name.trim().split(/\s+/);
-    const initials = parts.length > 1 ? (parts[0][0] + parts[parts.length-1][0]).toUpperCase(): parts[0].substring(0,2).toUpperCase();
-    
-    return(
-        <div className="user-initials-badge" title={title} style={{width: size,height: size,fontSize: size * 0.35}}>
-            {initials}
-        </div>
-    );
+  return (
+    <div
+      className="
+        flex
+        h-8
+        w-8
+        items-center
+        justify-center
+        rounded-full
+        border
+        border-indigo-200
+        bg-indigo-50
+        text-[12px]
+        font-semibold
+        text-indigo-700
+        shrink-0
+      "
+    >
+      {initials}
+    </div>
+  );
 }

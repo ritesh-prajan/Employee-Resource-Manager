@@ -98,7 +98,7 @@ export default function Teams() {
       {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">
+          <h1 className="text-3xl text-left font-bold text-slate-800">
             Organizational Teams
           </h1>
 

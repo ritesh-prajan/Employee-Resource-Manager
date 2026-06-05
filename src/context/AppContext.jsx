@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { 
   MOCK_USERS, 
   MOCK_PROJECTS, 
@@ -1544,19 +1544,19 @@ export const AppProvider = ({ children }) => {
   };
 
   // Adjust project colors dynamically based on active theme
-  const adjustedProjects = projects.map(proj => ({
-    ...proj,
-    color: getAdjustedProjectColor(proj.color, theme)
-  }));
+  const adjustedProjects = useMemo(() => projects.map(proj => ({
+  ...proj,
+  color: getAdjustedProjectColor(proj.color, theme)
+})), [projects, theme]);
 
   // Adjust tasks to dynamically calculate their actual logged hours from non-rejected time entries
-  const tasksWithLoggedHours = tasks.map(t => {
-    const taskEntries = timeEntries.filter(e => e.taskId === t.id);
-    const logged = taskEntries.length > 0
-      ? taskEntries.filter(e => e.status !== 'Rejected').reduce((sum, e) => sum + parseFloat(e.duration || 0), 0)
-      : (t.logged || 0);
-    return { ...t, logged: parseFloat(logged.toFixed(2)) };
-  });
+ const tasksWithLoggedHours = useMemo(() => tasks.map(t => {
+  const taskEntries = timeEntries.filter(e => e.taskId === t.id);
+  const logged = taskEntries.length > 0
+    ? taskEntries.filter(e => e.status !== 'Rejected').reduce((sum, e) => sum + parseFloat(e.duration || 0), 0)
+    : (t.logged || 0);
+  return { ...t, logged: parseFloat(logged.toFixed(2)) };
+}), [tasks, timeEntries]);
 
   return (
     <AppContext.Provider

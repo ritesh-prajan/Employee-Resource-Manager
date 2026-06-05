@@ -1,6 +1,6 @@
 import React from 'react';
-import SingleSearchSelect from '../ui/SearchableSelect';
-import MultiSearchSelect from '../ui/MultiSelectDropdown';
+import SearchableSelect from '../ui/SearchableSelect';
+import MultiSelectDropdown from '../ui/MultiSelectDropdown';
 
 /**
  * TeamForm — used by both Create and Edit team modals.

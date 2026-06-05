@@ -16,12 +16,11 @@ export default function UserAvatar({ name }) {
         justify-center
         rounded-full
         border
-        border-indigo-200
-        bg-indigo-50
+        border-[#C9D0F3]
+        bg-[#E4E7F7]
         text-[12px]
-        font-semibold
-        text-indigo-700
-        shrink-0
+        font-bold
+        text-[#0010AE]
       "
     >
       {initials}

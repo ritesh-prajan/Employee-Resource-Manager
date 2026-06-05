@@ -1,229 +1,210 @@
 export const TeamData = [
   {
+    id: 1,
     teamName: "Engineering Core",
-    teamLead: "Alex Rivera",
-    membersCount: "8 members",
-    teamMembers: ["AR", "VM", "MC", "LO", "DM", "PS"],
-    extraMembers: 2,
+
+    teamLead: {
+      id: 101,
+      name: "Alex Rivera",
+      role: "Engineering Lead",
+      department: "Engineering",
+      email: "alex.rivera@company.com",
+      activeTasks: 2,
+    },
+
+    members: [
+      {
+        id: 101,
+        name: "Alex Rivera",
+        role: "Engineering Lead",
+        department: "Engineering",
+        email: "alex.rivera@company.com",
+        activeTasks: 2,
+      },
+      {
+        id: 102,
+        name: "Vikram Mehta",
+        role: "Senior Engineer",
+        department: "Engineering",
+        email: "vikram.mehta@company.com",
+        activeTasks: 1,
+      },
+      {
+        id: 103,
+        name: "Marcus Chen",
+        role: "Software Engineer",
+        department: "Engineering",
+        email: "marcus.chen@company.com",
+        activeTasks: 3,
+      },
+      {
+        id: 104,
+        name: "Liam O'Brien",
+        role: "Software Engineer",
+        department: "Engineering",
+        email: "liam.obrien@company.com",
+        activeTasks: 1,
+      },
+      {
+        id: 105,
+        name: "Daniel Murphy",
+        role: "Frontend Engineer",
+        department: "Engineering",
+        email: "daniel.murphy@company.com",
+        activeTasks: 2,
+      },
+      {
+        id: 106,
+        name: "Priya Sharma",
+        role: "Backend Engineer",
+        department: "Engineering",
+        email: "priya.sharma@company.com",
+        activeTasks: 4,
+      },
+      {
+        id: 107,
+        name: "Ananya Nair",
+        role: "QA Engineer",
+        department: "Engineering",
+        email: "ananya.nair@company.com",
+        activeTasks: 1,
+      },
+      {
+        id: 108,
+        name: "Fahad Zaman",
+        role: "DevOps Engineer",
+        department: "Engineering",
+        email: "fahad.zaman@company.com",
+        activeTasks: 2,
+      },
+    ],
+
     createdDate: "May 1, 2026",
-    action:" "
   },
+
   {
+    id: 2,
     teamName: "UX Design & QA",
-    teamLead: "Vikram Mehta",
-    membersCount: "6 members",
-    teamMembers: ["VM", "ER", "SW", "JO", "AN", "NP"],
-    extraMembers: 0,
+
+    teamLead: {
+      id: 201,
+      name: "Emma Roberts",
+      role: "Design Lead",
+      department: "Design",
+      email: "emma.roberts@company.com",
+      activeTasks: 3,
+    },
+
+    members: [
+      {
+        id: 201,
+        name: "Emma Roberts",
+        role: "Design Lead",
+        department: "Design",
+        email: "emma.roberts@company.com",
+        activeTasks: 3,
+      },
+      {
+        id: 202,
+        name: "John Oliver",
+        role: "UX Designer",
+        department: "Design",
+        email: "john.oliver@company.com",
+        activeTasks: 2,
+      },
+      {
+        id: 203,
+        name: "Sarah Williams",
+        role: "UI Designer",
+        department: "Design",
+        email: "sarah.williams@company.com",
+        activeTasks: 1,
+      },
+      {
+        id: 204,
+        name: "Nathan Price",
+        role: "QA Engineer",
+        department: "Quality Assurance",
+        email: "nathan.price@company.com",
+        activeTasks: 4,
+      },
+      {
+        id: 205,
+        name: "Ava Nelson",
+        role: "QA Engineer",
+        department: "Quality Assurance",
+        email: "ava.nelson@company.com",
+        activeTasks: 2,
+      },
+      {
+        id: 206,
+        name: "Ryan Cooper",
+        role: "Product Designer",
+        department: "Design",
+        email: "ryan.cooper@company.com",
+        activeTasks: 1,
+      },
+    ],
+
     createdDate: "May 1, 2026",
-    action:" "
   },
+
   {
+    id: 3,
     teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
+
+    teamLead: {
+      id: 301,
+      name: "Rania Al-Hassan",
+      role: "Product Manager",
+      department: "Product",
+      email: "rania.alhassan@company.com",
+      activeTasks: 5,
+    },
+
+    members: [
+      {
+        id: 301,
+        name: "Rania Al-Hassan",
+        role: "Product Manager",
+        department: "Product",
+        email: "rania.alhassan@company.com",
+        activeTasks: 5,
+      },
+      {
+        id: 302,
+        name: "Chris Martin",
+        role: "Growth Analyst",
+        department: "Growth",
+        email: "chris.martin@company.com",
+        activeTasks: 2,
+      },
+      {
+        id: 303,
+        name: "Tina Nguyen",
+        role: "Product Analyst",
+        department: "Product",
+        email: "tina.nguyen@company.com",
+        activeTasks: 1,
+      },
+      {
+        id: 304,
+        name: "Fahad Zaman",
+        role: "Growth Specialist",
+        department: "Growth",
+        email: "fahad.zaman@company.com",
+        activeTasks: 3,
+      },
+      {
+        id: 305,
+        name: "Priya Sharma",
+        role: "Product Associate",
+        department: "Product",
+        email: "priya.sharma@company.com",
+        activeTasks: 2,
+      },
+    ],
+
     createdDate: "May 15, 2026",
-    action:" "
   },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  {
-    teamName: "Product & Growth",
-    teamLead: "Rania Al-Hassan",
-    membersCount: "5 members",
-    teamMembers: ["PS", "CM", "RA", "TN", "FZ"],
-    extraMembers: 0,
-    createdDate: "May 15, 2026",
-    action:" "
-  },
-  
-  
 ];

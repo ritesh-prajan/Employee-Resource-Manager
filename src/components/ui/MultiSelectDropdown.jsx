@@ -1,114 +1,201 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
+import { ChevronDown, Check } from "lucide-react";
 
-/**
- * MultiSearchSelect — searchable multi-value dropdown with badge pills.
- * Props:
- *   options        [{ value, label, color? }]
- *   selectedValues [value, ...]
- *   onChange       (values[]) => void
- *   placeholder    string
- */
-export default function MultiSearchSelect({ options, selectedValues, onChange, placeholder }) {
-  const [search, setSearch] = useState('');
+export default function MultiSearchSelect({
+  options = [],
+  selectedValues = [],
+  onChange,
+  placeholder = "Search and select...",
+  width = "w-full",
+  height = "h-[52px]",
+  singleSelect = false,
+}) {
   const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
   const containerRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
-    function handleClickOutside(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+    const handleOutsideClick = (e) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target)
+      ) {
         setIsOpen(false);
-        setSearch('');
+        setSearch("");
       }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+
+    return () =>
+      document.removeEventListener(
+        "mousedown",
+        handleOutsideClick
+      );
   }, []);
 
-  const filtered = options.filter(opt =>
-    opt.label.toLowerCase().includes(search.toLowerCase())
+  const filteredOptions = options.filter((option) =>
+    option.label
+      .toLowerCase()
+      .includes(search.toLowerCase())
   );
 
-  const toggle = val => {
-    if (selectedValues.includes(val)) {
-      onChange(selectedValues.filter(v => v !== val));
+  const toggleOption = (value) => {
+    if (singleSelect) {
+      onChange([value]);
+      setIsOpen(false);
+      setSearch("");
+      return;
+    }
+
+    if (selectedValues.includes(value)) {
+      onChange(
+        selectedValues.filter((v) => v !== value)
+      );
     } else {
-      onChange([...selectedValues, val]);
+      onChange([...selectedValues, value]);
     }
   };
 
+  const displayValue = () => {
+    if (search) return search;
+
+    if (selectedValues.length === 0)
+      return "";
+
+    if (singleSelect) {
+      return (
+        options.find(
+          (o) => o.value === selectedValues[0]
+        )?.label || ""
+      );
+    }
+
+    if (selectedValues.length === 1) {
+      return (
+        options.find(
+          (o) => o.value === selectedValues[0]
+        )?.label || ""
+      );
+    }
+
+    return `${selectedValues.length} selected`;
+  };
+
   return (
-    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', position: 'relative' }}>
-      {/* Selected pills */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', minHeight: '24px' }}>
-        {selectedValues.length === 0
-          ? <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontStyle: 'italic' }}>None selected</span>
-          : selectedValues.map(val => {
-              const opt = options.find(o => o.value === val);
-              const bg = opt?.color || '#e6e8ff';
-              const fg = opt?.color ? '#ffffff' : '#0010AE';
-              return (
-                <span
-                  key={val}
-                  onClick={() => toggle(val)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '4px',
-                    backgroundColor: bg, color: fg,
-                    padding: '2px 8px', borderRadius: '4px',
-                    fontSize: '0.72rem', fontWeight: 500, cursor: 'pointer'
-                  }}
-                >
-                  {opt ? opt.label : val}
-                  <span style={{ fontWeight: 'bold', marginLeft: '2px' }}>&times;</span>
-                </span>
-              );
-            })
-        }
+    <div
+      ref={containerRef}
+      className={`relative ${width}`}
+    >
+      {/* Search Input */}
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type="text"
+          value={displayValue()}
+          placeholder={placeholder}
+          onFocus={() => setIsOpen(true)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setIsOpen(true);
+          }}
+          className={`
+            ${height}
+            w-full
+            rounded-[14px]
+            border
+            border-[#D6DCE8]
+            bg-white
+            px-5
+            pr-10
+            text-[15px]
+            text-slate-700
+            outline-none
+            transition-all
+            placeholder:text-slate-400
+            focus:border-[#0010AE]
+          `}
+        />
+
+        <ChevronDown
+          size={18}
+          className={`
+            absolute
+            right-4
+            top-1/2
+            -translate-y-1/2
+            text-slate-400
+            transition-transform
+            ${isOpen ? "rotate-180" : ""}
+          `}
+        />
       </div>
 
-      <input
-        type="text"
-        className="input-control"
-        placeholder={placeholder}
-        value={search}
-        onChange={e => { setSearch(e.target.value); setIsOpen(true); }}
-        onFocus={() => setIsOpen(true)}
-        style={{ fontSize: '0.85rem', padding: '10px 14px' }}
-      />
+      {/* Dropdown */}
+      {isOpen && (
+        <div
+          className="
+            absolute
+            z-50
+            mt-2
+            w-full
+            overflow-hidden
+            rounded-[14px]
+            border
+            border-[#D6DCE8]
+            bg-white
+            shadow-lg
+          "
+        >
+          <div className="max-h-60 overflow-y-auto py-2">
+            {filteredOptions.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-slate-400">
+                No results found
+              </div>
+            ) : (
+              filteredOptions.map((option) => {
+                const selected =
+                  selectedValues.includes(
+                    option.value
+                  );
 
-      {isOpen && search.trim() !== '' && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000,
-          border: '1px solid var(--border-color)', borderRadius: '8px',
-          backgroundColor: 'var(--bg-surface, #ffffff)', maxHeight: '180px',
-          overflowY: 'auto', padding: '6px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: '4px'
-        }}>
-          {filtered.length === 0
-            ? <div style={{ padding: '6px 8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>No results found</div>
-            : filtered.map(opt => {
-                const checked = selectedValues.includes(opt.value);
                 return (
-                  <label
-                    key={opt.value}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '8px',
-                      padding: '6px 10px', borderRadius: '6px', cursor: 'pointer',
-                      fontSize: '0.85rem', userSelect: 'none',
-                      backgroundColor: checked ? 'rgba(0,16,174,0.05)' : 'transparent',
-                      transition: 'background-color 0.15s'
-                    }}
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() =>
+                      toggleOption(option.value)
+                    }
+                    className={`
+                      flex
+                      w-full
+                      items-center
+                      justify-between
+                      px-4
+                      py-3
+                      text-left
+                      text-[15px]
+                      transition-colors
+                      hover:bg-slate-50
+                    `}
                   >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggle(opt.value)}
-                      style={{ accentColor: '#0010AE' }}
-                    />
-                    <span>{opt.label}</span>
-                  </label>
+                    <span>
+                      {option.label}
+                    </span>
+
+                    {selected && (
+                      <Check
+                        size={16}
+                        className="text-[#0010AE]"
+                      />
+                    )}
+                  </button>
                 );
               })
-          }
+            )}
+          </div>
         </div>
       )}
     </div>

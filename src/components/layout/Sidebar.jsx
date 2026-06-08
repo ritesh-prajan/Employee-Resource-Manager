@@ -191,8 +191,8 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
       className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}
       style={{
         width: isCollapsed ? '64px' : '240px',
-        backgroundColor: 'var(--bg-surface)',
-        borderRight: '1px solid var(--border-color)',
+        backgroundColor: 'var(--background)',
+        borderRight: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
@@ -209,7 +209,7 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
           style={{
             background: 'none', border: 'none', outline: 'none', cursor: 'pointer',
             padding: '6px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', borderRadius: '50%', backgroundColor: 'var(--bg-canvas)'
+            justifyContent: 'center', borderRadius: '50%', backgroundColor: 'var(--secondary)'
           }}
           title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
         >
@@ -225,7 +225,7 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
       <div style={{
         marginTop: 'auto',
         padding: isCollapsed ? '12px 0' : '12px 8px',
-        borderTop: '1px solid var(--border-color)',
+        borderTop: '1px solid var(--border)',
         display: 'flex', alignItems: 'center',
         justifyContent: isCollapsed ? 'center' : 'flex-start',
         gap: '8px'
@@ -235,10 +235,10 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
         </div>
         {!isCollapsed && (
           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {currentUser.name}
             </span>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: '0.65rem', color: 'var(--muted-foreground)' }}>
               {isEmployeeMode ? 'Employee view' : `${currentUser.role} mode`}
             </span>
           </div>

@@ -1,4 +1,3 @@
+// pages/employee/Attendance.jsx
 import React from 'react';
-export default function PageName() {
-  return <div>PageName</div>;
-}
+export default function Attendance() { return <div>Attendance</div>; }

@@ -1,4 +1,3 @@
+// pages/employee/Meetings.jsx
 import React from 'react';
-export default function PageName() {
-  return <div>PageName</div>;
-}
+export default function Meetings() { return <div>Meetings</div>; }

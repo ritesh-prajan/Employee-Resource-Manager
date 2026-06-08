@@ -1,21 +1,21 @@
 /* ==========================================
-   OVERALL TIMELINE - add outer border
+   OVERALL TIMELINE
 ========================================== */
 .react-calendar-timeline {
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 10px !important;
+  border: none !important;        /* border is on the parent card already */
+  border-radius: 0 !important;
   overflow: hidden !important;
   background: #ffffff !important;
-  font-family: Inter, sans-serif;
+  font-family: inherit !important; /* inherit from Tailwind instead of hardcoding */
 }
 
 /* ==========================================
    HEADER
 ========================================== */
 .rct-header-root {
-  background: #ffffff !important;
+  background: #f8fafc !important;  /* subtle off-white, separates header from rows */
   border-bottom: 1px solid #e2e8f0 !important;
-  height: 38px !important;
+  height: 44px !important;
 }
 
 .rct-calendar-header {
@@ -23,17 +23,21 @@
 }
 
 .rct-dateHeader {
-  background: #ffffff !important;
+  background: transparent !important;
   color: #94a3b8 !important;
   font-size: 11px !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
   border-left: none !important;
   border-bottom: none !important;
-  padding-top: 6px !important;
+  padding-top: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .rct-dateHeader-primary {
-  display: none !important; /* hides the top-level date label row if present */
+  display: none !important;
 }
 
 /* ==========================================
@@ -45,23 +49,29 @@
 }
 
 .rct-sidebar-header {
-  background: #ffffff !important;
+  background: #f8fafc !important;  /* match header row bg */
   border-bottom: 1px solid #e2e8f0 !important;
-  /* left-align "Staff Member" text */
   display: flex !important;
   align-items: center !important;
   padding-left: 16px !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  color: #475569 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  color: #94a3b8 !important;       /* matches time labels */
 }
 
 .rct-sidebar-row {
   background: #ffffff !important;
   overflow: visible !important;
   white-space: normal !important;
-  border-bottom: 1px solid #e2e8f0 !important; /* stronger separator */
+  border-bottom: 1px solid #f1f5f9 !important; /* lighter — less heavy than e2e8f0 */
   padding: 0 !important;
+  transition: background 0.15s ease !important;
+}
+
+.rct-sidebar-row:hover {
+  background: #f8fafc !important;
 }
 
 .rct-sidebar-row-even,
@@ -75,14 +85,19 @@
 .rct-horizontal-lines .rct-hl-even,
 .rct-horizontal-lines .rct-hl-odd {
   background: #ffffff !important;
-  border-bottom: 1px solid #e2e8f0 !important; /* match stronger separator */
+  border-bottom: 1px solid #f1f5f9 !important; /* same as sidebar row */
+  transition: background 0.15s ease !important;
+}
+
+.rct-horizontal-lines .rct-hl-even:hover,
+.rct-horizontal-lines .rct-hl-odd:hover {
+  background: #f8fafc !important;
 }
 
 .rct-vertical-lines .rct-vl {
   display: none !important;
 }
 
-/* Remove weekend shading */
 .rct-day-0,
 .rct-day-6 {
   background: transparent !important;
@@ -93,25 +108,36 @@
 ========================================== */
 .rct-item {
   box-shadow: none !important;
+  transition: filter 0.15s ease !important;
+}
+
+.rct-item:hover {
+  filter: brightness(0.96) !important;
+  cursor: default !important;
 }
 
 .rct-item-content {
   font-weight: 600 !important;
   font-size: 12px !important;
+  padding: 0 10px !important;
 }
 
 /* ==========================================
    SCROLLBAR
 ========================================== */
 .rct-scroll::-webkit-scrollbar {
-  height: 8px;
+  height: 6px !important;          /* slimmer */
 }
 
 .rct-scroll::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 999px;
+  background: #e2e8f0 !important;  /* lighter thumb */
+  border-radius: 999px !important;
+}
+
+.rct-scroll::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1 !important;
 }
 
 .rct-scroll::-webkit-scrollbar-track {
-  background: transparent;
+  background: transparent !important;
 }

@@ -6,6 +6,7 @@ import "../../../timeline.css";
 import TimelineData from "../../../components/mock dataset/Data_admin_moderntimesheet";
 import ModernWeeklyTimesheets from "./ModernWeeklyTimesheets";
 import {Coffee} from 'lucide-react'
+import ModernMonthlyTimesheets from "./ModernMonthlyTimesheets";
 const keys = {
   groupIdKey: "id",
   groupTitleKey: "title",
@@ -218,7 +219,14 @@ export default function Timesheets() {
     items={items}
     currentDate={currentDate}
   />
-) : (
+
+) : viewMode=== VIEW_MODES.MONTH ?(
+  <ModernMonthlyTimesheets 
+  groups={paginatedGroups}
+  items={items}
+  currentDate={currentDate}
+  />
+):(
   <Timeline
     groups={paginatedGroups}
     items={paginatedItems}

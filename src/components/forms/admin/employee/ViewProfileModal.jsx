@@ -1,87 +1,310 @@
 import React from 'react';
-import UserAvatar from '../../../ui/UserAvatar';
 
-export default function ViewProfileModal({ show, onClose, user, teams, projects, getUserTasksCount }) {
+export default function ViewProfileModal({ show, onClose, user, users, teams, projects }) {
   if (!show || !user) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: '550px' }}>
-        <div className="modal-header">
-          <h3 className="modal-title">Employee Profile</h3>
-          <button className="modal-close" onClick={onClose}>×</button>
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="modal-content"
+        style={{
+          maxWidth: '780px',
+          width: '90%',
+          maxHeight: '85vh',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '1.75rem 2rem'
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid var(--border-color)',
+          paddingBottom: '1rem',
+          marginBottom: '1.25rem',
+          flexShrink: 0
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {(() => {
+              if (user.avatar) {
+                return (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: '2px solid var(--border-color)',
+                      marginRight: '0.75rem',
+                      flexShrink: 0
+                    }}
+                  />
+                );
+              }
+              const parts = user.name.trim().split(/\s+/);
+              const initials = parts.length > 1
+                ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                : parts[0].substring(0, 2).toUpperCase();
+              return (
+                <div
+                  className="user-initials-badge"
+                  style={{
+                    width: '52px',
+                    height: '52px',
+                    fontSize: '1.1rem',
+                    border: '2px solid var(--border-color)',
+                    marginRight: '0.75rem',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--bg-canvas, #f6f6f6)',
+                    color: 'var(--text-primary)',
+                    fontWeight: 600
+                  }}
+                >
+                  {initials}
+                </div>
+              );
+            })()}
+            <div>
+              <h3 className="modal-title" style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)' }}>
+                {user.name}
+              </h3>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '2px' }}>
+                <span className="user-role-badge" style={{ fontSize: '0.68rem', margin: 0 }}>{user.role}</span>
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  color: user.status === 'Active'
+                    ? 'var(--color-success, #10b981)'
+                    : user.status === 'On Break'
+                    ? 'var(--color-warning, #f59e0b)'
+                    : 'var(--text-muted)'
+                }}>
+                  {user.status}
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            className="modal-close"
+            onClick={onClose}
+            style={{ fontSize: '1.5rem', padding: '4px', cursor: 'pointer', border: 'none', background: 'none' }}
+          >
+            ×
+          </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Avatar + Name */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '12px' }}>
-            <UserAvatar name={user.name} size={52} />
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>{user.name}</div>
-              <div style={{ fontSize: '0.82rem', color: '#64748b' }}>{user.designation || user.department || 'General'}</div>
-              <span style={{ fontSize: '0.72rem', fontWeight: 600, backgroundColor: '#e2e8f0', padding: '2px 8px', borderRadius: '4px', color: '#475569' }}>{user.role}</span>
-            </div>
-            <div style={{ marginLeft: 'auto' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: user.status === 'Active' ? '#10b981' : user.status === 'On Break' ? '#f59e0b' : '#94a3b8' }}>
-                ● {user.status}
-              </span>
-            </div>
-          </div>
+        {/* Modal Body (Scrollable) */}
+        <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-          {/* Details Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            {[
-              { label: 'EMPLOYEE ID', value: user.employee_code || '-' },
-              { label: 'PHONE', value: user.phone || '-' },
-              { label: 'WORK EMAIL', value: user.email },
-              { label: 'PERSONAL EMAIL', value: user.personalEmail || '-' },
-            ].map(({ label, value }) => (
-              <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.05em' }}>{label}</span>
-                <span style={{ fontSize: '0.85rem', color: '#1e293b' }}>{value}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Teams */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.05em' }}>TEAMS</span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {teams.filter(t => t.members.includes(user.id) || t.leadId === user.id).length === 0
-                ? <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Not assigned to any team</span>
-                : teams.filter(t => t.members.includes(user.id) || t.leadId === user.id).map(t => (
-                  <span key={t.id} style={{ fontSize: '0.75rem', fontWeight: 600, backgroundColor: '#e6e8ff', color: '#0010AE', padding: '3px 10px', borderRadius: '6px' }}>
-                    {t.name} {t.leadId === user.id ? '(Lead)' : ''}
-                  </span>
-                ))
-              }
-            </div>
-          </div>
-
-          {/* Projects */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.05em' }}>PROJECTS</span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {projects.filter(p => p.members.includes(user.id)).length === 0
-                ? <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Not assigned to any project</span>
-                : projects.filter(p => p.members.includes(user.id)).map(p => (
-                  <span key={p.id} style={{ fontSize: '0.75rem', fontWeight: 600, backgroundColor: p.color + '22', color: p.color, padding: '3px 10px', borderRadius: '6px', border: `1px solid ${p.color}44` }}>
-                    {p.name.split(' (')[0]}
-                  </span>
-                ))
-              }
+          {/* Profile Details Grid */}
+          <div>
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+              Employee Profile
+            </h4>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '1rem',
+              backgroundColor: 'var(--bg-canvas, #f6f6f6)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              padding: '1.25rem'
+            }}>
+              {[
+                { label: 'EMPLOYEE NUMBER', value: user.employee_code || '-', mono: true },
+                { label: 'DESIGNATION', value: user.designation || user.department || 'General' },
+                { label: 'WORK EMAIL', value: user.email, isEmail: true, emailHref: `mailto:${user.email}`, emailStyle: { color: 'var(--pastel-blue, #0010AE)' } },
+                { label: 'PERSONAL EMAIL', value: user.personalEmail || null, isEmail: !!user.personalEmail, emailHref: user.personalEmail ? `mailto:${user.personalEmail}` : null },
+                { label: 'PHONE NUMBER', value: user.phone || '-' },
+                { label: 'PASSWORD LAST UPDATED', value: user.passwordLastUpdated ? new Date(user.passwordLastUpdated).toLocaleString() : 'Never', small: true },
+              ].map(({ label, value, mono, isEmail, emailHref, emailStyle, small }) => (
+                <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.02em' }}>{label}</span>
+                  {isEmail && emailHref ? (
+                    <a href={emailHref} style={{ fontSize: '0.85rem', fontWeight: 500, textDecoration: 'none', color: 'var(--text-primary)', ...emailStyle }}>
+                      {value}
+                    </a>
+                  ) : (
+                    <span style={{
+                      fontSize: small ? '0.82rem' : '0.85rem',
+                      fontWeight: small ? 400 : (mono ? 600 : 500),
+                      color: small ? 'var(--text-secondary)' : 'var(--text-primary)',
+                      fontFamily: mono ? 'var(--font-mono, monospace)' : undefined
+                    }}>
+                      {value ?? '-'}
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Active Tasks */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', backgroundColor: '#f8fafc', borderRadius: '10px' }}>
-            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#64748b' }}>Active Tasks</span>
-            <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0010AE' }}>{getUserTasksCount(user.id)}</span>
-          </div>
+          {/* Memberships Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
-            <button className="btn btn-secondary" onClick={onClose}>Close</button>
+            {/* Teams Block */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                Team Membership
+              </h4>
+              {(() => {
+                const userTeams = teams.filter(t => t.members.includes(user.id) || t.leadId === user.id);
+                if (userTeams.length === 0) {
+                  return <span style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>Not assigned to any teams</span>;
+                }
+                return userTeams.map(t => {
+                  const isLead = t.leadId === user.id;
+                  const teamLeadUser = users.find(u => u.id === t.leadId);
+                  return (
+                    <div key={t.id} style={{
+                      backgroundColor: 'var(--bg-canvas, #f6f6f6)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '10px',
+                      padding: '0.75rem 1rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>{t.name}</span>
+                        {isLead && (
+                          <span style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            backgroundColor: 'rgba(0, 16, 174, 0.1)',
+                            color: '#0010AE',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            textTransform: 'uppercase'
+                          }}>
+                            Lead
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <div>
+                          <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Lead: </span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                            {isLead ? 'Self' : (teamLeadUser ? teamLeadUser.name : 'Unknown')}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Members ({t.members.length}):</span>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+                            {t.members.map(mId => {
+                              const mUser = users.find(u => u.id === mId);
+                              if (!mUser) return null;
+                              const isCurrent = mUser.id === user.id;
+                              return (
+                                <span key={mId} style={{
+                                  fontSize: '0.7rem',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  backgroundColor: isCurrent ? 'rgba(0, 16, 174, 0.05)' : 'var(--bg-surface)',
+                                  border: '1px solid var(--border-color)',
+                                  color: isCurrent ? '#0010AE' : 'var(--text-primary)',
+                                  fontWeight: isCurrent ? 600 : 400
+                                }}>
+                                  {mUser.name} {mUser.id === t.leadId ? '👑' : ''}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Projects Block */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                Assigned Projects
+              </h4>
+              {(() => {
+                const userProjects = projects.filter(p => p.members.includes(user.id));
+                if (userProjects.length === 0) {
+                  return <span style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>Not assigned to any projects</span>;
+                }
+                return userProjects.map(p => (
+                  <div key={p.id} style={{
+                    backgroundColor: 'var(--bg-canvas, #f6f6f6)',
+                    border: '1px solid var(--border-color)',
+                    borderLeft: `4px solid ${p.color || '#0010AE'}`,
+                    borderRadius: '10px',
+                    padding: '0.75rem 1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>{p.name}</span>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        color: p.status === 'Active' ? 'var(--color-success)' : 'var(--text-muted)'
+                      }}>
+                        {p.status}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Client: </span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{p.client}</span>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Members ({p.members.length}):</span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+                          {p.members.map(mId => {
+                            const mUser = users.find(u => u.id === mId);
+                            if (!mUser) return null;
+                            const isCurrent = mUser.id === user.id;
+                            return (
+                              <span key={mId} style={{
+                                fontSize: '0.7rem',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                backgroundColor: isCurrent ? 'rgba(0, 16, 174, 0.05)' : 'var(--bg-surface)',
+                                border: '1px solid var(--border-color)',
+                                color: isCurrent ? '#0010AE' : 'var(--text-primary)',
+                                fontWeight: isCurrent ? 600 : 400
+                              }}>
+                                {mUser.name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+
           </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '1.25rem', marginBottom: 0, flexShrink: 0 }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            style={{ padding: '0.55rem 1.5rem', borderRadius: '9999px', fontSize: '0.85rem' }}
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>

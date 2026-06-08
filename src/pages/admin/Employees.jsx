@@ -314,7 +314,7 @@ export default function EmployeesPage() {
       <AddEmployeeModal show={showAddModal} onClose={() => setShowAddModal(false)} users={users} teams={teams} projects={projects} onSubmit={addEmployee} />
       <EditEmployeeModal show={showEditModal} onClose={() => { setShowEditModal(false); setEditingUser(null); }} user={editingUser} users={users} teams={teams} projects={projects} onSubmit={editEmployee} />
       <AssignTaskModal show={showAssignModal} onClose={() => { setShowAssignModal(false); setAssigneeForTask(null); }} assignee={assigneeForTask} tasks={tasks} projects={projects} onSubmit={createTask} onAssignExisting={editTask} />
-      <ViewProfileModal show={showProfileModal} onClose={() => { setShowProfileModal(false); setProfileUser(null); }} user={profileUser} teams={teams} projects={projects} getUserTasksCount={getUserTasksCount} />
+      <ViewProfileModal show={showProfileModal} onClose={() => { setShowProfileModal(false); setProfileUser(null); }} user={profileUser} users={users} teams={teams} projects={projects} />
     </div>
   );
 }

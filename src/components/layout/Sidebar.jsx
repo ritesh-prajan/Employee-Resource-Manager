@@ -187,21 +187,19 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
   };
 
   return (
-    <aside
-      className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}
-      style={{
-        width: isCollapsed ? '64px' : '240px',
-        backgroundColor: 'var(--background)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        padding: isCollapsed ? '8px 8px 16px 8px' : '8px 12px 16px 12px',
-        overflowY: 'auto',
-        boxSizing: 'border-box',
-        transition: 'width 0.25s ease, padding 0.25s ease'
-      }}
-    >
+<aside
+  style={{
+    width: isCollapsed ? '64px' : '240px',
+    backgroundColor: 'var(--background)',
+    borderRight: '1px solid var(--border)',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    padding: isCollapsed ? '8px 8px 0 8px' : '8px 12px 0 12px',
+    boxSizing: 'border-box',
+    transition: 'width 0.25s ease, padding 0.25s ease'
+  }}
+>
       {/* Collapse toggle */}
       <div style={{ display: 'flex', justifyContent: isCollapsed ? 'center' : 'flex-end', marginBottom: '6px' }}>
         <button
@@ -217,7 +215,14 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
         </button>
       </div>
 
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+      <nav style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+        flex: 1,
+        overflowY: 'auto',
+        minHeight: 0       // ← critical: lets flex child shrink below content size
+      }}>
         {renderNavLinks()}
       </nav>
 

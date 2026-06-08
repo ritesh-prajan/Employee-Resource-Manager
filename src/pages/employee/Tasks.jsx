@@ -365,7 +365,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   ], [projects, users]);
 
   return (
-    <div className="min-h-screen bg-slate-100 p-8" style={{ zoom: 0.8 }}>
+    <div className="min-h-screen bg-slate-100 p-8" style={{ zoom: 0.9 }}>
       <div className="mx-auto" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
         {/* Toolbar */}

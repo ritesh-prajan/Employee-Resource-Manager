@@ -59,9 +59,9 @@ export default function Projects() {
       cell: ({ getValue }) => {
         const status = getValue() || 'Active';
         const styles = {
-          Active: 'bg-blue-50 text-blue-700',
-          Completed: 'bg-green-50 text-green-700',
-          'On Hold': 'bg-orange-50 text-orange-500',
+          Active: '#0010ae bg-blue-50 text-blue-700',
+          Completed: '#16a34a bg-green-50 text-green-700',
+          'On Hold': '#ea580c bg-orange-50 text-orange-500',
         };
         return (
           <span className={`rounded-md px-3 py-1 text-xs font-bold ${styles[status] || styles.Active}`}>
@@ -153,7 +153,7 @@ export default function Projects() {
   ], [users, tasks, currentUser]);
 
   return (
-    <div className="min-h-screen bg-slate-100 p-8" style={{ zoom: 0.9 }}>
+    <div className="min-h-screen  p-9" style={{ zoom: 0.9  }}>
 
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div>

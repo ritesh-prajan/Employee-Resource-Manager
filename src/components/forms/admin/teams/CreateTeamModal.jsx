@@ -1,172 +1,104 @@
-import { useState } from "react";
+import React, { useState } from 'react';
+import Modal from '../../../ui/Modal';
+import SearchableSelect from "../../../ui/SearchableSelect";
 import MultiSearchSelect from "../../../ui/MultiSelectDropdown";
-
-export default function CreateTeamModal({
-  isOpen,
-  onClose,
-  onSubmit,
-  employeeOptions = [],
-}) {
-  const [teamName, setTeamName] = useState("");
-  const [teamLead, setTeamLead] = useState([]);
-  const [teamMembers, setTeamMembers] = useState([]);
+/**
+ * CreateTeamModal
+ * Props:
+ *   isOpen    — bool
+ *   onClose   — fn
+ *   users     — full users array from AppContext
+ *   onSubmit  — fn({ name, leadId, members })
+ */
+export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit }) {
+  const [name, setName] = useState('');
+  const [leadId, setLeadId] = useState('');
+  const [members, setMembers] = useState([]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
-    onSubmit?.({
-      teamName,
-      teamLead,
-      teamMembers,
-    });
+  const userOptions = users.map(u => ({ value: u.id, label: `${u.name} (${u.role})` }));
 
-    setTeamName("");
-    setTeamLead([]);
-    setTeamMembers([]);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name.trim() || !leadId) {
+      alert('Please fill in team name and select a lead.');
+      return;
+    }
+    // Auto-include the lead in members if not already there
+    const finalMembers = members.includes(leadId) ? members : [leadId, ...members];
+    onSubmit({ name: name.trim(), leadId, members: finalMembers });
+    // Reset form
+    setName('');
+    setLeadId('');
+    setMembers([]);
+  };
+
+  const handleClose = () => {
+    setName('');
+    setLeadId('');
+    setMembers([]);
+    onClose();
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[999] flex items-center justify-center bg-black/20 backdrop-blur-sm [zoom:80%]"
-      onClick={onClose}
-    >
-      <div
-        className="
-          w-[580px]
-          rounded-[28px]
-          bg-white
-          px-10
-          py-9
-          shadow-[0_20px_60px_rgba(0,0,0,0.15)]
-        "
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="mb-10 flex items-start justify-between">
-          <h2 className="text-[20px] font-bold text-[#243447]">
-            Create New Team
-          </h2>
+    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="480px">
+      <div className="modal-header">
+        <h3 className="modal-title">Create New Team</h3>
+        <button className="modal-close" onClick={handleClose}>×</button>
+      </div>
 
-          <button
-            onClick={onClose}
-            className="
-              text-[24px]
-              leading-none
-              text-slate-400
-              transition
-              hover:text-slate-600
-            "
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Team Name */}
-        <div className="mb-8">
-          <label className="mb-3 block text-[14px] font-semibold text-[#475569]">
-            TEAM NAME
-          </label>
-
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div className="form-group">
+          <label className="form-label">TEAM NAME</label>
           <input
             type="text"
-            value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
+            className="input-control"
             placeholder="E.g. Engineering Core, Design Team"
-            className="
-              h-[52px]
-              w-full
-              rounded-[14px]
-              border
-              border-[#D8DDE8]
-              px-5
-              text-[16px]
-              text-slate-700
-              outline-none
-              transition
-              focus:border-[#0010AE]
-            "
+            value={name}
+            onChange={e => setName(e.target.value)}
+            required
           />
         </div>
 
-        {/* Team Lead */}
-        <div className="mb-8">
-          <label className="mb-3 block text-[14px] font-semibold text-[#475569]">
-            TEAM LEAD
-          </label>
-
-          <MultiSearchSelect
-            width="w-full"
-            height="h-[52px]"
+        <div className="form-group">
+          <label className="form-label">TEAM LEAD</label>
+          {/* SingleSearchSelect = one pick, searchable */}
+          <SingleSearchSelect
+            options={userOptions}
+            value={leadId}
+            onChange={(val) => {
+              setLeadId(val);
+              // Auto-add lead to members list
+              if (val && !members.includes(val)) {
+                setMembers(prev => [...prev, val]);
+              }
+            }}
             placeholder="Search and select team lead..."
-            selectedValues={teamLead}
-            onChange={setTeamLead}
-            singleSelect={true}
-            options={employeeOptions}
           />
         </div>
 
-        {/* Team Members */}
-        <div className="mb-8">
-          <label className="mb-2 block text-[14px] font-semibold text-[#475569]">
-            TEAM MEMBERS
-          </label>
-
-          <p className="mb-4 text-[15px] italic text-slate-400">
-            {teamMembers.length === 0
-              ? "None selected"
-              : `${teamMembers.length} selected`}
-          </p>
-
+        <div className="form-group">
+          <label className="form-label">TEAM MEMBERS</label>
+          {/* MultiSearchSelect = multi pick, searchable */}
           <MultiSearchSelect
+            options={userOptions}
+            selectedValues={members}
+            onChange={setMembers}
             placeholder="Search and select team members..."
-            selectedValues={teamMembers}
-            onChange={setTeamMembers}
-            options={employeeOptions}
           />
+          {members.length > 0 && (
+            <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>
+              {members.length} selected
+            </span>
+          )}
         </div>
 
-        {/* Divider */}
-        <div className="mb-6 border-t border-[#E5E7EB]" />
-
-        {/* Footer */}
-        <div className="flex justify-end gap-4">
-          <button
-            onClick={onClose}
-            className="
-              h-[52px]
-              min-w-[125px]
-              rounded-full
-              bg-[#EEF2F6]
-              px-8
-              text-[15px]
-              font-semibold
-              text-[#334155]
-              transition
-              hover:bg-[#E2E8F0]
-            "
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={handleSubmit}
-            className="
-              h-[52px]
-              min-w-[175px]
-              rounded-full
-              bg-[#0010AE]
-              px-8
-              text-[15px]
-              font-semibold
-              text-white
-              transition
-              hover:bg-[#000D8F]
-            "
-          >
-            Create Team
-          </button>
+        <div className="modal-footer" style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '0.25rem' }}>
+          <button type="button" className="btn btn-secondary" onClick={handleClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary">Create Team</button>
         </div>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }

@@ -1,231 +1,403 @@
-import DataTable from "../../components/ui/DataTable";
-import { TeamData } from "../../components/mock dataset/Data_admin_team";
-import UserAvatar from "../../components/ui/UserAvatar";
-import MultiSearchSelect from "../../components/ui/MultiSelectDropdown";
-import { useState } from "react";
-import CreateTeamModal from "../../components/forms/admin/teams/CreateTeamModal";
-import TeamDetailsModal from "../../components/forms/admin/teams/TeamsDetailsModal";
-import EditTeamModal from "../../components/forms/admin/teams/EditTeamModal";
+  import React, { useState } from 'react';
+  import { Plus, Pencil, Trash2 } from 'lucide-react';
+  import { motion, AnimatePresence } from 'framer-motion';
+  import { useApp } from '../../context/AppContext';
 
-export default function Teams() {
-  const [projects, setProjects] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState(null);
+  // UI primitives
+  import DataTable from '../../components/ui/DataTable';
+  import AvatarGroup from '../../components/ui/AvatarGroup';
+  import ConfirmDialog from '../../components/ui/ConfirmDialog';
+  import SearchableSelect from '../../components/ui/SearchableSelect';
 
-  const handleRowClick = (team) => {
-    setSelectedTeam(team);
-    setIsDetailsModalOpen(true);
-  };
+  // Team modals
+  import CreateTeamModal from '../../components/forms/admin/teams/CreateTeamModal';
+  import EditTeamModal from '../../components/forms/admin/teams/EditTeamModal';
+  import TeamsDetailsModal from '../../components/forms/admin/teams/TeamsDetailsModal';
+  import TeamTasksModal from '../../components/forms/admin/teams/Teamtasksmodal';
+  import TaskDetailModal from '../../components/forms/admin/teams/TaskDetailModal';
 
-  const handleEditClick = (team) => {
-    setSelectedTeam(team);
-    setIsEditModalOpen(true);
-  };
+  export default function Teams() {
+    const {
+      currentUser,
+      users,
+      projects,
+      tasks,
+      teams,
+      createTeam,
+      editTeam,
+      deleteTeam,
+      createTask,
+    } = useApp();
 
-  const columns = [
-    {
-      accessorKey: "teamName",
-      header: "TEAM NAME",
-      cell: ({ getValue }) => (
-        <span className="cursor-pointer text-[15px] font-semibold text-[#0010AE] hover:underline">
-          {getValue()}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "teamLead",
-      header: "TEAM LEAD",
-      cell: ({ getValue }) => {
-        const lead = getValue();
-        return (
-          <div className="flex items-center gap-3">
-            <UserAvatar name={lead.name} />
-            <span className="whitespace-nowrap font-medium text-slate-700">
-              {lead.name}
-            </span>
-          </div>
-        );
+    // ── Filter state ────────────────────────────────────────────
+    const [teamFilter, setTeamFilter]         = useState('all'); // 'all' | 'my'
+    const [filterProjectBy, setFilterProjectBy] = useState('');
+    const [filterEmployeeBy, setFilterEmployeeBy] = useState('');
+
+    // ── Modal state ────────────────────────────────────────────
+    const [showCreate, setShowCreate]         = useState(false);
+    const [showEdit, setShowEdit]             = useState(false);
+    const [editingTeam, setEditingTeam]       = useState(null);
+    const [detailTeam, setDetailTeam]         = useState(null);   // row click → TeamDetailsModal
+    const [tasksTeam, setTasksTeam]           = useState(null);   // lead "View Tasks" click
+    const [detailTask, setDetailTask]         = useState(null);   // task row click → TaskDetailModal
+    const [deleteTarget, setDeleteTarget]     = useState(null);   // team to delete → ConfirmDialog
+
+    // ── Role helpers ───────────────────────────────────────────
+    const isAdmin    = currentUser.role === 'Admin';
+    const isLeadRole = currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead';
+    const canManage  = isAdmin || isLeadRole;
+
+    // ── Filter logic ───────────────────────────────────────────
+    // 1. Scope: admin sees all or "my"; leads see only their own teams
+    const scopedTeams = teams.filter(t => {
+      if (isAdmin) {
+        if (teamFilter === 'my') return t.leadId === currentUser.id || t.members.includes(currentUser.id);
+        return true;
+      }
+      if (isLeadRole) return t.leadId === currentUser.id;
+      // Regular employee — only teams they're in
+      return t.members.includes(currentUser.id) || t.leadId === currentUser.id;
+    });
+
+    // 2. Project filter — team must be linked to the selected project
+    // 3. Employee filter — team lead or member must match
+    const filteredTeams = scopedTeams.filter(t => {
+      if (filterProjectBy) {
+        const linked = projects.some(p => p.id === filterProjectBy && (p.teams || []).includes(t.id));
+        if (!linked) return false;
+      }
+      if (filterEmployeeBy) {
+        if (t.leadId !== filterEmployeeBy && !t.members.includes(filterEmployeeBy)) return false;
+      }
+      return true;
+    });
+
+    // ── DataTable columns ──────────────────────────────────────
+    // We define columns here because they reference local state setters
+    const columns = [
+      {
+        accessorKey: 'name',
+        header: 'TEAM NAME',
+        cell: ({ getValue }) => (
+          <span style={{ fontWeight: 700, color: 'var(--primary)', cursor: 'pointer' }}>{getValue()}</span>
+        ),
       },
-    },
-    {
-      accessorKey: "membersCount",
-      header: "MEMBERS COUNT",
-      cell: ({ row }) => (
-        <span className="text-slate-700">{row.original.members.length} members</span>
-      ),
-    },
-    {
-      id: "teamMembers",
-      header: "TEAM MEMBERS",
-      cell: ({ row }) => {
-        const members = row.original.members.slice(0, 6);
-        const extra = Math.max(row.original.members.length - 6, 0);
-        return (
-          <div className="flex items-center p-8 [zoom:80%]">
-            {members.map((member, index) => (
-              <div
-                key={index}
-                className="
-                  -ml-1 first:ml-0 flex h-8 w-8 items-center justify-center
-                  rounded-full border border-[#C9D0F3] bg-[#E4E7F7]
-                  text-[11px] font-bold text-[#0010AE]
-                "
-              >
-                {member.name.split(" ").map((word) => word[0]).join("")}
-              </div>
-            ))}
-            {extra > 0 && (
-              <div
-                className="
-                  -ml-1 flex h-8 w-8 items-center justify-center
-                  rounded-full border border-slate-300 bg-slate-200
-                  text-[11px] font-bold text-slate-600
-                "
-              >
-                +{extra}
+      {
+        id: 'lead',
+        header: 'TEAM LEAD',
+        cell: ({ row }) => {
+          const lead = users.find(u => u.id === row.original.leadId);
+          if (!lead) return <span style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>—</span>;
+          const initials = (() => {
+            const parts = lead.name.trim().split(/\s+/);
+            return parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+          })();
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="user-initials-badge" style={{ width: 26, height: 26, fontSize: '0.62rem', flexShrink: 0 }}>{initials}</div>
+              <span style={{ fontSize: '0.85rem', color: 'var(--foreground)' }}>{lead.name}</span>
+            </div>
+          );
+        },
+      },
+      {
+        id: 'memberCount',
+        header: 'MEMBERS',
+        cell: ({ row }) => (
+          <span style={{ fontSize: '0.85rem', color: 'var(--foreground)' }}>
+            {users.filter(u => row.original.members.includes(u.id)).length} members
+          </span>
+        ),
+      },
+      {
+        id: 'avatars',
+        header: 'TEAM MEMBERS',
+        cell: ({ row }) => {
+          const memberUsers = users.filter(u => row.original.members.includes(u.id));
+          return <AvatarGroup users={memberUsers} max={6} size={26} />;
+        },
+      },
+      {
+        accessorKey: 'createdAt',
+        header: 'CREATED',
+        cell: ({ getValue }) => (
+          <span style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)' }}>
+            {new Date(getValue()).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+          </span>
+        ),
+      },
+      ...(canManage ? [{
+        id: 'actions',
+        header: 'ACTIONS',
+        cell: ({ row }) => (
+          <div style={{ display: 'inline-flex', gap: '0.4rem' }} onClick={e => e.stopPropagation()}>
+            <button
+              className="btn btn-secondary"
+              style={{ padding: '0.35rem', borderRadius: '6px', color: 'var(--primary)' }}
+              title="Edit Team"
+              onClick={() => { setEditingTeam({ ...row.original }); setShowEdit(true); }}
+            >
+              <Pencil size={13} />
+            </button>
+            <button
+              className="btn btn-secondary"
+              style={{ padding: '0.35rem', borderRadius: '6px', color: 'var(--destructive)' }}
+              title="Delete Team"
+              onClick={() => setDeleteTarget(row.original)}
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        ),
+      }] : []),
+    ];
+
+    // ── Lead-role simple table (no DataTable pagination needed) ─
+    // Lead teams are usually 1–2 so pagination would be overkill.
+    // We keep the table structure but render inline.
+    if (isLeadRole) {
+      const leadTeams = teams.filter(t => t.leadId === currentUser.id || t.members.includes(currentUser.id));
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem',backgroundColor:'var(--canvas)' }}>
+          <div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>My Team Directory</h2>
+            <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>
+              View the teams you lead or belong to. Click a team name to assign tasks, or click the member badges to edit membership.
+            </p>
+          </div>
+
+          <div style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'var(--card)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                  {['Team Name', 'Team Lead', 'Members', 'Members (click to edit)', 'Actions'].map(h => (
+                    <th key={h} style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted-foreground)', textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {leadTeams.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>
+                      You are not part of any teams.
+                    </td>
+                  </tr>
+                )}
+                {leadTeams.map(team => {
+                  const lead = users.find(u => u.id === team.leadId);
+                  const memberUsers = users.filter(u => team.members.includes(u.id));
+                  return (
+                    <tr key={team.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      {/* Clickable team name → opens TeamTasksModal */}
+                      <td style={{ padding: '0.9rem 1rem' }}>
+                        <button
+                          onClick={() => setTasksTeam(team)}
+                          style={{ background: 'none', border: 'none', fontWeight: 700, fontSize: '0.88rem', color: 'var(--primary)', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                        >
+                          {team.name}
+                        </button>
+                      </td>
+                      <td style={{ padding: '0.9rem 1rem', fontSize: '0.85rem', color: 'var(--foreground)' }}>
+                        {lead?.name || '—'}
+                      </td>
+                      <td style={{ padding: '0.9rem 1rem', fontSize: '0.85rem', color: 'var(--foreground)' }}>
+                        {memberUsers.length} members
+                      </td>
+                      {/* Clicking the badge cluster opens EditTeamModal */}
+                      <td style={{ padding: '0.9rem 1rem' }}>
+                        <div
+                          onClick={() => { setEditingTeam({ ...team }); setShowEdit(true); }}
+                          title="Click to manage team members"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                            padding: '5px 8px', borderRadius: '8px', cursor: 'pointer',
+                            border: '1px dashed var(--border)', backgroundColor: 'var(--secondary)',
+                          }}
+                        >
+                          <AvatarGroup users={memberUsers} max={6} size={24} />
+                          {memberUsers.length === 0 && (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>No members</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.9rem 1rem' }}>
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => setTasksTeam(team)}
+                          style={{ padding: '0.35rem 0.85rem', fontSize: '0.75rem', borderRadius: '6px' }}
+                        >
+                          View Tasks
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Modals for lead view */}
+          <TeamTasksModal
+            isOpen={!!tasksTeam}
+            onClose={() => setTasksTeam(null)}
+            team={tasksTeam}
+            users={users}
+            tasks={tasks}
+            projects={projects}
+            onCreateTask={createTask}
+            onSelectTask={(t) => setDetailTask(t)}
+          />
+          <EditTeamModal
+            isOpen={showEdit}
+            onClose={() => { setShowEdit(false); setEditingTeam(null); }}
+            team={editingTeam}
+            users={users}
+            onSave={(id, data) => { editTeam(id, data); setShowEdit(false); setEditingTeam(null); }}
+          />
+          <TaskDetailModal
+            isOpen={!!detailTask}
+            onClose={() => setDetailTask(null)}
+            task={detailTask}
+            users={users}
+            projects={projects}
+          />
+        </div>
+      );
+    }
+
+    // ── Admin / Employee view ──────────────────────────────────
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem',backgroundColor:'var(--canvas)' }}>
+
+        {/* Page header + controls */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+          borderBottom: '1px solid var(--border)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem',
+        }}>
+          <div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
+              Organizational Teams
+            </h2>
+            <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>
+              Manage and view all department teams, assigned leads, and team members.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* All / My Teams toggle — only for Admin */}
+            {isAdmin && (
+              <div style={{
+                display: 'inline-flex', backgroundColor: 'var(--secondary)',
+                padding: '3px', borderRadius: '8px', border: '1px solid var(--border)',
+              }}>
+                {['all', 'my'].map(v => (
+                  <button
+                    key={v}
+                    onClick={() => setTeamFilter(v)}
+                    style={{
+                      padding: '0.3rem 0.85rem', fontSize: '0.72rem', fontWeight: 600,
+                      borderRadius: '6px', border: 'none', cursor: 'pointer',
+                      backgroundColor: teamFilter === v ? 'var(--primary)' : 'transparent',
+                      color: teamFilter === v ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {v === 'all' ? 'All Teams' : 'My Teams'}
+                  </button>
+                ))}
               </div>
             )}
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "createdDate",
-      header: "CREATED DATE",
-      cell: ({ getValue }) => (
-        <span className="text-slate-500">{getValue()}</span>
-      ),
-    },
-    {
-      id: "actions",
-      header: "ACTIONS",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <button
-            className="
-              flex h-9 w-9 items-center justify-center rounded-lg
-              border border-slate-200 bg-slate-50 text-[#0010AE]
-              transition hover:bg-slate-100
-            "
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEditClick(row.original);
-            }}
-          >
-            ✏️
-          </button>
-          <button
-            className="
-              flex h-9 w-9 items-center justify-center rounded-lg
-              border border-red-200 bg-red-50 text-red-500
-              transition hover:bg-red-100
-            "
-            onClick={(e) => {
-              e.stopPropagation();
-              console.log("Delete", row.original);
-            }}
-          >
-            🗑️
-          </button>
-        </div>
-      ),
-    },
-  ];
 
-  return (
-    <div>
-      <div className="min-h-screen bg-[#F3F4F6] p-8">
-        {/* Header */}
-        <div className="mb-8 border-b border-slate-200 pb-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-[22px] font-bold text-left text-slate-800">
-                Organizational Teams
-              </h1>
-              <p className="mt-1 text-[14px] text-slate-500">
-                Manage and view all department teams, assigned leads, and Team members.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <MultiSearchSelect
-                width="w-[320px]"
-                height="h-[42px]"
-                placeholder="All Projects"
-                selectedValues={projects}
-                onChange={setProjects}
-                options={[
-                  { value: "all", label: "All Projects" },
-                  { value: "alpha", label: "Project Alpha" },
-                  { value: "beta", label: "Project Beta" },
-                  { value: "gamma", label: "Project Gamma" },
-                  { value: "rnd", label: "Internal R&D / Ops" },
-                ]}
-              />
-              <MultiSearchSelect
-                width="w-[320px]"
-                height="h-[42px]"
-                placeholder="All Employees"
-                selectedValues={employees}
-                onChange={setEmployees}
-                options={[
-                  { value: "all", label: "All Employees" },
-                  { value: "alex", label: "Alex" },
-                  { value: "david", label: "David" },
-                  { value: "emma", label: "Emma" },
-                  { value: "john", label: "John Doe" },
-                ]}
-              />
+            {/* Project filter */}
+            <SearchableSelect
+              options={projects.map(p => ({ value: p.id, label: p.name.split(' (')[0] }))}
+              value={filterProjectBy}
+              onChange={setFilterProjectBy}
+              placeholder="All Projects"
+              style={{ width: '160px' }}
+            />
+
+            {/* Employee filter */}
+            <SearchableSelect
+              options={users.map(u => ({ value: u.id, label: u.name }))}
+              value={filterEmployeeBy}
+              onChange={setFilterEmployeeBy}
+              placeholder="All Employees"
+              style={{ width: '160px' }}
+            />
+
+            {/* Create — admin only */}
+            {isAdmin && (
               <button
-                className="
-                  flex h-10 items-center gap-2 rounded-full bg-[#0010AE]
-                  px-6 text-sm font-semibold text-white transition hover:bg-[#000D8F]
-                "
-                onClick={() => setIsCreateModalOpen(true)}
+                className="btn btn-primary"
+                onClick={() => setShowCreate(true)}
+                style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', gap: '0.4rem' }}
               >
-                <span className="text-lg">+</span>
-                Create Team
+                <Plus size={14} />
+                <span>Create Team</span>
               </button>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Table */}
-        <DataTable Data={TeamData} columns={columns} onRowClick={handleRowClick} />
+        {/* Main table */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="teams-table"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+          >
+            <DataTable
+              Data={filteredTeams}
+              columns={columns}
+              onRowClick={(team) => setDetailTeam(team)}
+            />
+          </motion.div>
+        </AnimatePresence>
+
+        {/* ── Modals ── */}
+        <CreateTeamModal
+          isOpen={showCreate}
+          onClose={() => setShowCreate(false)}
+          users={users}
+          onSubmit={(data) => { createTeam(data); setShowCreate(false); }}
+        />
+
+        <EditTeamModal
+          isOpen={showEdit}
+          onClose={() => { setShowEdit(false); setEditingTeam(null); }}
+          team={editingTeam}
+          users={users}
+          onSave={(id, data) => { editTeam(id, data); setShowEdit(false); setEditingTeam(null); }}
+        />
+
+        <TeamsDetailsModal
+          isOpen={!!detailTeam}
+          onClose={() => setDetailTeam(null)}
+          team={detailTeam}
+          users={users}
+          tasks={tasks}
+        />
+
+        <TaskDetailModal
+          isOpen={!!detailTask}
+          onClose={() => setDetailTask(null)}
+          task={detailTask}
+          users={users}
+          projects={projects}
+        />
+
+        {/* ConfirmDialog replaces window.confirm for delete */}
+        <ConfirmDialog
+          isOpen={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => { deleteTeam(deleteTarget.id); setDeleteTarget(null); }}
+          title="Delete Team"
+          message={`Are you sure you want to delete "${deleteTarget?.name}"? This cannot be undone.`}
+        />
       </div>
-
-      <CreateTeamModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        employeeOptions={[
-          { value: "alex", label: "Alex" },
-          { value: "david", label: "David" },
-          { value: "emma", label: "Emma" },
-          { value: "john", label: "John Doe" },
-        ]}
-        onSubmit={(data) => {
-          console.log(data);
-          setIsCreateModalOpen(false);
-        }}
-      />
-
-      <TeamDetailsModal
-        isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
-        team={selectedTeam}
-      />
-
-      <EditTeamModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        team={selectedTeam}
-        onSave={(updatedTeam) => {
-          console.log(updatedTeam);
-          setIsEditModalOpen(false);
-        }}
-      />
-    </div>
-  );
-}
+    );
+  }

@@ -1,9 +1,10 @@
 /* ==========================================
-   OVERALL TIMELINE
+   OVERALL TIMELINE - add outer border
 ========================================== */
-
 .react-calendar-timeline {
-  border: none !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
   background: #ffffff !important;
   font-family: Inter, sans-serif;
 }
@@ -11,10 +12,10 @@
 /* ==========================================
    HEADER
 ========================================== */
-
 .rct-header-root {
   background: #ffffff !important;
-  border-bottom: 1px solid #e5e7eb !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  height: 38px !important;
 }
 
 .rct-calendar-header {
@@ -24,43 +25,42 @@
 .rct-dateHeader {
   background: #ffffff !important;
   color: #94a3b8 !important;
-
-  font-size: 12px !important;
+  font-size: 11px !important;
   font-weight: 600 !important;
-
   border-left: none !important;
-  border-bottom: 1px solid #e5e7eb !important;
+  border-bottom: none !important;
+  padding-top: 6px !important;
 }
 
 .rct-dateHeader-primary {
-  background: #ffffff !important;
-  color: #94a3b8 !important;
-
-  border-left: none !important;
-  border-right: none !important;
+  display: none !important; /* hides the top-level date label row if present */
 }
 
 /* ==========================================
    SIDEBAR
 ========================================== */
-
 .rct-sidebar {
   background: #ffffff !important;
-  border-right: 1px solid #e5e7eb !important;
+  border-right: 1px solid #e2e8f0 !important;
 }
 
 .rct-sidebar-header {
   background: #ffffff !important;
-  border-bottom: 1px solid #e5e7eb !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  /* left-align "Staff Member" text */
+  display: flex !important;
+  align-items: center !important;
+  padding-left: 16px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
 }
 
 .rct-sidebar-row {
   background: #ffffff !important;
-
   overflow: visible !important;
   white-space: normal !important;
-
-  border-bottom: 1px solid #f1f5f9 !important;
+  border-bottom: 1px solid #e2e8f0 !important; /* stronger separator */
   padding: 0 !important;
 }
 
@@ -70,17 +70,16 @@
 }
 
 /* ==========================================
-   GRID
+   GRID ROWS
 ========================================== */
-
-.rct-vertical-lines .rct-vl {
-  border-left: 1px solid #f1f5f9 !important;
-}
-
 .rct-horizontal-lines .rct-hl-even,
 .rct-horizontal-lines .rct-hl-odd {
   background: #ffffff !important;
-  border-bottom: 1px solid #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important; /* match stronger separator */
+}
+
+.rct-vertical-lines .rct-vl {
+  display: none !important;
 }
 
 /* Remove weekend shading */
@@ -92,29 +91,18 @@
 /* ==========================================
    ITEMS
 ========================================== */
-
 .rct-item {
   box-shadow: none !important;
 }
 
 .rct-item-content {
   font-weight: 600 !important;
-  font-size: 13px !important;
-}
-
-/* ==========================================
-   CURSOR LINE
-========================================== */
-
-.rct-cursor-line {
-  background: #3b82f6 !important;
-  width: 1px !important;
+  font-size: 12px !important;
 }
 
 /* ==========================================
    SCROLLBAR
 ========================================== */
-
 .rct-scroll::-webkit-scrollbar {
   height: 8px;
 }

@@ -1,0 +1,129 @@
+/* ==========================================
+   OVERALL TIMELINE
+========================================== */
+
+.react-calendar-timeline {
+  border: none !important;
+  background: #ffffff !important;
+  font-family: Inter, sans-serif;
+}
+
+/* ==========================================
+   HEADER
+========================================== */
+
+.rct-header-root {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.rct-calendar-header {
+  border: none !important;
+}
+
+.rct-dateHeader {
+  background: #ffffff !important;
+  color: #94a3b8 !important;
+
+  font-size: 12px !important;
+  font-weight: 600 !important;
+
+  border-left: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.rct-dateHeader-primary {
+  background: #ffffff !important;
+  color: #94a3b8 !important;
+
+  border-left: none !important;
+  border-right: none !important;
+}
+
+/* ==========================================
+   SIDEBAR
+========================================== */
+
+.rct-sidebar {
+  background: #ffffff !important;
+  border-right: 1px solid #e5e7eb !important;
+}
+
+.rct-sidebar-header {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.rct-sidebar-row {
+  background: #ffffff !important;
+
+  overflow: visible !important;
+  white-space: normal !important;
+
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding: 0 !important;
+}
+
+.rct-sidebar-row-even,
+.rct-sidebar-row-odd {
+  background: #ffffff !important;
+}
+
+/* ==========================================
+   GRID
+========================================== */
+
+.rct-vertical-lines .rct-vl {
+  border-left: 1px solid #f1f5f9 !important;
+}
+
+.rct-horizontal-lines .rct-hl-even,
+.rct-horizontal-lines .rct-hl-odd {
+  background: #ffffff !important;
+  border-bottom: 1px solid #f8fafc !important;
+}
+
+/* Remove weekend shading */
+.rct-day-0,
+.rct-day-6 {
+  background: transparent !important;
+}
+
+/* ==========================================
+   ITEMS
+========================================== */
+
+.rct-item {
+  box-shadow: none !important;
+}
+
+.rct-item-content {
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+/* ==========================================
+   CURSOR LINE
+========================================== */
+
+.rct-cursor-line {
+  background: #3b82f6 !important;
+  width: 1px !important;
+}
+
+/* ==========================================
+   SCROLLBAR
+========================================== */
+
+.rct-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.rct-scroll::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
+}
+
+.rct-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}

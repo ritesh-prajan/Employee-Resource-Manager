@@ -7,6 +7,7 @@ export default function TimelineData() {
       title: "Alex Rivera",
       initials: "AR",
       totalHours: 4.0,
+      subtitle: "4.0 hrs",
       status: "Online",
     },
     {
@@ -14,6 +15,7 @@ export default function TimelineData() {
       title: "Vikram Mehta",
       initials: "VM",
       totalHours: 0,
+      subtitle: "Offline",
       status: "Offline",
     },
     {
@@ -21,6 +23,7 @@ export default function TimelineData() {
       title: "Marcus Chen",
       initials: "MC",
       totalHours: 6.5,
+      subtitle: "6.5 hrs",
       status: "Online",
     },
     {
@@ -28,6 +31,7 @@ export default function TimelineData() {
       title: "Elena Rostova",
       initials: "ER",
       totalHours: 0,
+      subtitle: "Offline",
       status: "Offline",
     },
     {
@@ -35,6 +39,7 @@ export default function TimelineData() {
       title: "Liam O'Connor",
       initials: "LO",
       totalHours: 2.0,
+      subtitle: "2.0 hrs",
       status: "Online",
     },
     {
@@ -42,6 +47,7 @@ export default function TimelineData() {
       title: "Sarah Johnson",
       initials: "SJ",
       totalHours: 5.0,
+      subtitle: "5.0 hrs",
       status: "Online",
     },
     {
@@ -49,6 +55,7 @@ export default function TimelineData() {
       title: "Daniel Brown",
       initials: "DB",
       totalHours: 3.5,
+      subtitle: "3.5 hrs",
       status: "Online",
     },
     {
@@ -56,6 +63,7 @@ export default function TimelineData() {
       title: "Emma Wilson",
       initials: "EW",
       totalHours: 7.0,
+      subtitle: "7.0 hrs",
       status: "Online",
     },
     {
@@ -63,6 +71,7 @@ export default function TimelineData() {
       title: "Michael Lee",
       initials: "ML",
       totalHours: 4.5,
+      subtitle: "4.5 hrs",
       status: "Online",
     },
     {
@@ -70,11 +79,13 @@ export default function TimelineData() {
       title: "Priya Sharma",
       initials: "PS",
       totalHours: 6.0,
+      subtitle: "6.0 hrs",
       status: "Online",
     },
   ];
 
-  const day = moment("2026-05-29");
+  // Use today's date instead of a fixed date
+  const day = moment().startOf("day");
 
   const items = [
     {
@@ -83,7 +94,6 @@ export default function TimelineData() {
       title: "4.0h",
       start: day.clone().hour(10).minute(0).valueOf(),
       end: day.clone().hour(14).minute(0).valueOf(),
-      className: "timeline-task",
     },
 
     {
@@ -92,7 +102,6 @@ export default function TimelineData() {
       title: "4.5h",
       start: day.clone().hour(8).minute(30).valueOf(),
       end: day.clone().hour(13).minute(0).valueOf(),
-      className: "timeline-task",
     },
 
     {
@@ -101,7 +110,6 @@ export default function TimelineData() {
       title: "2.0h",
       start: day.clone().hour(14).minute(0).valueOf(),
       end: day.clone().hour(16).minute(0).valueOf(),
-      className: "timeline-task",
     },
 
     {
@@ -110,7 +118,6 @@ export default function TimelineData() {
       title: "2.0h",
       start: day.clone().hour(9).minute(30).valueOf(),
       end: day.clone().hour(11).minute(30).valueOf(),
-      className: "timeline-task",
     },
 
     {
@@ -119,7 +126,6 @@ export default function TimelineData() {
       title: "5.0h",
       start: day.clone().hour(11).minute(0).valueOf(),
       end: day.clone().hour(16).minute(0).valueOf(),
-      className: "timeline-task",
     },
 
     {
@@ -128,7 +134,6 @@ export default function TimelineData() {
       title: "3.5h",
       start: day.clone().hour(13).minute(0).valueOf(),
       end: day.clone().hour(16).minute(30).valueOf(),
-      className: "timeline-task",
     },
 
     {
@@ -137,7 +142,6 @@ export default function TimelineData() {
       title: "7.0h",
       start: day.clone().hour(8).minute(0).valueOf(),
       end: day.clone().hour(15).minute(0).valueOf(),
-      className: "timeline-task",
     },
 
     {
@@ -146,7 +150,6 @@ export default function TimelineData() {
       title: "4.5h",
       start: day.clone().hour(12).minute(0).valueOf(),
       end: day.clone().hour(16).minute(30).valueOf(),
-      className: "timeline-task",
     },
 
     {
@@ -155,7 +158,6 @@ export default function TimelineData() {
       title: "6.0h",
       start: day.clone().hour(9).minute(0).valueOf(),
       end: day.clone().hour(15).minute(0).valueOf(),
-      className: "timeline-task",
     },
   ];
 

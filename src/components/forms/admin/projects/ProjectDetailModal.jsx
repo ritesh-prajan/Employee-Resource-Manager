@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import Modal from '../../ui/Modal';
-import UserAvatar from '../../ui/UserAvatar';
-import { useApp } from '../../../context/AppContext';
+import Modal from "../../../../components/ui/Modal";
+import UserAvatar from "../../../../components/ui/UserAvatar";
+import { useApp } from "../../../../context/AppContext";
 
 export default function ProjectDetailModal({ show, onClose, project }) {
   const { users, teams, tasks, projects } = useApp();

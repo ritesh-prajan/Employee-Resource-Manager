@@ -31,7 +31,9 @@ export default function DataTable({ Data = [], columns = [], onRowClick }) {
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-6 py-4 text-left text-xs font-bold uppercase tracking-widest text-slate-500"
+                    className={`px-6 py-4 text-left text-xs font-bold uppercase tracking-widest text-slate-500 ${
+                      header.id === 'actions' ? 'sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]' : ''
+                    }`}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
@@ -58,7 +60,9 @@ export default function DataTable({ Data = [], columns = [], onRowClick }) {
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
-                      className="px-6 py-4 text-sm text-slate-600 align-middle"
+                      className={`px-6 py-4 text-sm text-slate-600 align-middle ${
+                        cell.column.id === 'actions' ? 'sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]' : ''
+                      }`}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>

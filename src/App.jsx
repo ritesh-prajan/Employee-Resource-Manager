@@ -142,7 +142,8 @@ function MainAppContent() {
       case 'lead-meetings':
         return 'Link Room';
       case 'admin-dashboard':
-        return 'Dashboard';
+        case 'admin-dashboard':
+        return <AdminDashboard setCurrentPage={setCurrentPage} />;
       case 'admin-timesheets':
         return 'Timesheets';
       case 'admin-teams':
@@ -198,7 +199,7 @@ function MainAppContent() {
       case 'lead-meetings':
         return <Meetings />;
       case 'admin-dashboard':
-        return <AdminDashboard />;
+        return <AdminDashboard setCurrentPage={setCurrentPage} />;
       case 'admin-timesheets':
         return <AdminTimesheets />;
       case 'teams':

@@ -10,8 +10,6 @@ import { useAuth } from './hooks/useAuth';
 import Login from './pages/Login';
 
 // Employee Pages
-import Dashboard from './pages/employee/Dashboard';
-import Timesheet from './pages/employee/Timesheet';
 import Tasks from './pages/employee/Tasks';
 import EmployeeAttendance from './pages/employee/Attendance';
 import Meetings from './pages/employee/Meetings';
@@ -35,12 +33,14 @@ import Alerts from './pages/Alerts';
 import Backlog from './pages/Backlog';
 
 function MainAppContent() {
-    const { currentUser, isAuthenticated } = useAuth();
+  const { currentUser, isAuthenticated, changeUser } = useAuth();
   const [currentPage, setCurrentPage] = useState('');
   const [prevUserId, setPrevUserId] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  
+  useEffect(() => {
+  changeUser('user-admin');
+}, []);
   // Automatically adjust view if changing to a user who doesn't have access to the current page
   useEffect(() => {
     if (!isAuthenticated || !currentUser) {
@@ -182,12 +182,6 @@ function MainAppContent() {
   // Render correct page body
   const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard':
-      case 'lead-dashboard':
-        return <Dashboard />;
-      case 'timesheet':
-      case 'lead-timesheet':
-        return <Timesheet />;
       case 'tasks':
       case 'admin-tasks':
       case 'lead-tasks':
@@ -235,7 +229,7 @@ function MainAppContent() {
       case 'lead-alerts':
         return <Alerts setCurrentPage={setCurrentPage} />;
       default:
-        return <Dashboard />;
+        return <AdminDashboard />;
     }
   }
   return (

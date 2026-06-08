@@ -1,4 +1,3 @@
+// pages/admin/Approvals.jsx
 import React from 'react';
-export default function PageName() {
-  return <div>PageName</div>;
-}
+export default function Approvals() { return <div>Approvals</div>; }

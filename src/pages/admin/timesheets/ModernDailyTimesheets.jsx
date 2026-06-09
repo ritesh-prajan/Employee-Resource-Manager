@@ -220,26 +220,7 @@ export default function Timesheets() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-slate-100 p-6 flex flex-col gap-4 zoom:'0.8">
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Timesheets Console</h1>
-          <p className="text-sm text-slate-500 mt-1">Review employee timesheets, audit hours, and track team compliance</p>
-        </div>
-        <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
-            <Layers size={16} /> Tree View
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
-            <Filter size={16} /> Classic
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-indigo-700 text-white shadow-sm">
-            <Activity size={16} /> Modern
-          </button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-4 w-full">
 
       {/* Filter Bar */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col gap-4">

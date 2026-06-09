@@ -25,7 +25,7 @@ import Projects from './pages/admin/Projects';
 import Employees from './pages/admin/Employees';
 import Approvals from './pages/admin/Approvals';
 import AdminAnnouncements from './pages/admin/Announcements';
-import AdminTimesheets from './pages/admin/timesheets/ModernDailyTimesheets';
+import AdminTimesheets from './pages/admin/Timesheets';
 
 // Shared / Settings Pages
 import Settings from './pages/Settings';

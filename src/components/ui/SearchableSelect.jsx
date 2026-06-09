@@ -26,7 +26,7 @@ export default function SearchableSelect({ options, value, onChange, placeholder
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0.45rem 0.75rem', fontSize: '0.75rem', height: '100%', minHeight: '32px',
-          backgroundColor: 'var(--bg-canvas)', border: '1px solid var(--border-color)', borderRadius: '6px',
+          backgroundColor: 'var(--bg-ring)', border: '1px solid var(--border-color)', borderRadius: '6px',
           cursor: 'pointer'
         }}
       >

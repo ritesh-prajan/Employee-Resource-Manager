@@ -97,6 +97,8 @@ function getAdjustedProjectColor(hex, theme) {
   }
 }
 
+
+
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {

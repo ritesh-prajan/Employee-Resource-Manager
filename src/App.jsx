@@ -39,8 +39,8 @@ function MainAppContent() {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
-  changeUser('user-admin');
-}, []);
+    changeUser('user-admin');
+  }, []);
   // Automatically adjust view if changing to a user who doesn't have access to the current page
   useEffect(() => {
     if (!isAuthenticated || !currentUser) {

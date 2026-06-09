@@ -1,15 +1,8 @@
-import React, { createContext, useContext } from 'react';
+import { useApp } from './AppContext';
 
-const AuthContext = createContext();
+export const AuthProvider = ({ children }) => children;
 
-export const AuthProvider = ({ children }) => {
-  // Auth state lives in AppContext for now
-  // This provider is a passthrough — useAuth hook reads from AppContext
-  return (
-    <AuthContext.Provider value={{}}>
-      {children}
-    </AuthContext.Provider>
-  );
+export const useAuth = () => {
+  const { currentUser, isAuthenticated, login, logout, changeUser } = useApp();
+  return { currentUser, isAuthenticated, login, logout, changeUser };
 };
-
-export const useAuth = () => useContext(AuthContext);

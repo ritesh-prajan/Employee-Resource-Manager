@@ -183,12 +183,16 @@ export default function EmployeesPage() {
     {
       accessorKey: 'email',
       header: 'WORK EMAIL',
-      cell: ({ getValue }) => (
-        <a href={`mailto:${getValue()}`} style={{ fontSize: '0.875rem', color: 'var(--primary)', textDecoration: 'none' }}
-          onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-          onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
-        >{getValue()}</a>
-      ),
+      cell: ({ getValue }) => {
+        const raw = getValue() || '';
+        const email = raw.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+        return (
+          <a href={`mailto:${email}`} style={{ fontSize: '0.875rem', color: 'var(--primary)', textDecoration: 'none' }}
+            onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+            onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+          >{email}</a>
+        );
+      },
     },
     {
       accessorKey: 'personalEmail',
@@ -237,7 +241,7 @@ export default function EmployeesPage() {
       },
     },
     {
-      id: 'action',
+      id: 'actions',
       header: 'ACTION',
       cell: ({ row }) => {
         const user = row.original;
@@ -275,7 +279,7 @@ export default function EmployeesPage() {
   ], []);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--canvas)', padding: '2rem', zoom: 0.8 }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--canvas)', padding: '0', zoom: 0.8 }}>
       <div>
         {/* Toolbar */}
         <div style={{ marginBottom: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem' }}>

@@ -5,6 +5,7 @@ import {
   flexRender,
   getPaginationRowModel,
 } from "@tanstack/react-table";
+import Pagination from "./Pagination";
 
 export default function DataTable({ Data = [], columns = [], onRowClick }) {
   const [pagination, setPagination] = useState({
@@ -72,59 +73,9 @@ export default function DataTable({ Data = [], columns = [], onRowClick }) {
             )}
           </tbody>
         </table>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200">
-          <span className="text-sm text-slate-500">
-            Showing{" "}
-            <strong>{pagination.pageIndex * pagination.pageSize + 1}–{Math.min((pagination.pageIndex + 1) * pagination.pageSize, Data.length)}</strong>{" "}
-            of <strong>{Data.length}</strong>
-          </span>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-500 mr-1">Per page:</span>
-            <select
-              value={pagination.pageSize}
-              onChange={(e) => table.setPageSize(Number(e.target.value))}
-              className="border border-slate-200 rounded-lg px-2 py-1 text-sm text-slate-600 bg-white focus:outline-none"
-            >
-              {[5, 10, 20].map((size) => (
-                <option key={size} value={size}>{size}</option>
-              ))}
-            </select>
-
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="px-3 py-1 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed ml-2"
-            >
-              Prev
-            </button>
-
-            {Array.from({ length: table.getPageCount() }, (_, index) => (
-              <button
-                key={index}
-                onClick={() => table.setPageIndex(index)}
-                className={`w-8 h-8 text-sm rounded-lg font-medium ${
-                  pagination.pageIndex === index
-                    ? "bg-blue-700 text-white"
-                    : "border border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {index + 1}
-              </button>
-            ))}
-
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="px-3 py-1 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        </div>
       </div>
+      {/* Pagination */}
+      <Pagination table={table} pagination={pagination} totalRows={Data.length} />
     </div>
   );
 }

@@ -25,8 +25,8 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
   const userNotifications = notifications.filter(n => n.recipientId === currentUser.id);
   const unreadCount = userNotifications.filter(n => !n.isRead).length;
 
-  const isAdminView = currentPage.startsWith('admin-');
-  const isLeadView = currentPage.startsWith('lead-');
+  const isAdminView = currentUser.role === 'Admin' && !currentPage.startsWith('lead-') && currentPage !== 'dashboard' && currentPage !== 'timesheet';
+  const isLeadView = (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && !currentPage.startsWith('admin-');
   const isEmployeeMode = !isAdminView && !isLeadView;
 
   const getInitials = (name) => {

@@ -14,10 +14,10 @@ employee_code: "EMP-0001",
 notification_preference: "ALL"
 },
 {
-id: "user-purushothaman-saminathan",
+id: "user-admin",
 name: "Purushothaman Saminathan",
 email: "[purushothaman.saminathan@elite.com](mailto:purushothaman.saminathan@elite.com)",
-role: "System-Admin",
+role: "Admin",
 avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150",
 status: "Active",
 department: "Management",

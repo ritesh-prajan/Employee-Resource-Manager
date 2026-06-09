@@ -4135,26 +4135,20 @@ export function generateMockTimeEntries(
 
   const entries = [];
 
-  const activeTasks = tasks.filter(
-    task =>
-      task.assignedTo &&
-      task.status !== "Backlog"
-  );
-
-  activeTasks.forEach(task => {
-
-    const user = users.find(
-      u => u.id === task.assignedTo
+  users.forEach(user => {
+    const userTasks = tasks.filter(
+      task =>
+        task.assignedTo === user.id &&
+        task.status !== "Backlog"
     );
 
-    if (!user) return;
+    if (userTasks.length === 0) return;
 
     const descriptions =
       WORK_DESCRIPTIONS[user.department] ||
       WORK_DESCRIPTIONS.Engineering;
 
     WORKING_DAYS.forEach(day => {
-
       const dailyHours =
         getDailyHours(user);
 
@@ -4163,49 +4157,34 @@ export function generateMockTimeEntries(
 
       let startHour = 9;
 
-      chunks.forEach(chunk => {
+      chunks.forEach((chunk, index) => {
+        const task = userTasks[index % userTasks.length];
 
-        const startTime =
-          `${String(startHour).padStart(2, "0")}:00`;
+        const startH = Math.floor(startHour);
+        const startM = Math.round((startHour - startH) * 60);
+        const startTime = `${String(startH).padStart(2, "0")}:${String(startM).padStart(2, "0")}`;
 
-        const endHour =
-          startHour + chunk;
-
-        const endTime =
-          `${String(Math.floor(endHour))
-            .padStart(2, "0")}:00`;
+        const endHour = startHour + chunk;
+        const endH = Math.floor(endHour);
+        const endM = Math.round((endHour - endH) * 60);
+        const endTime = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
 
         entries.push({
           id: `entry-${entryCounter++}`,
-
           userId: user.id,
-
           taskId: task.id,
-
           projectId: task.projectId,
-
-          description:
-            pick(descriptions),
-
+          description: pick(descriptions),
           date: day,
-
           startTime,
-
           endTime,
-
-          duration:
-            chunk.toString(),
-
+          duration: chunk.toString(),
           status: "Approved",
-
-          workCategory:
-            task.type,
-
+          workCategory: task.type,
           justification: ""
         });
 
-        startHour +=
-          Math.ceil(chunk) + 1;
+        startHour = endHour + 0.5;
       });
     });
   });

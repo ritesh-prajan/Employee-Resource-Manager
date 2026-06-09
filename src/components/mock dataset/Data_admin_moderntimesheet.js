@@ -1,4 +1,80 @@
 import moment from "moment";
+// Add to each item in your schedule array — update makeItem and the schedule:
+function makeItem(groupId, day, startHour, startMin, endHour, endMin, type, label) {
+  const d = day.clone();
+  return {
+    id: String(itemId++),
+    group: groupId,
+    title: label,
+    type,
+    start: d.clone().hour(startHour).minute(startMin).second(0).valueOf(),
+    end:   d.clone().hour(endHour).minute(endMin).second(0).valueOf(),
+    // ── Popup fields ──
+    taskTitle: getTaskTitle(type),       // we'll define this below
+    category: getCategory(groupId),
+    description: getDescription(type),
+  };
+}
+
+// Add these helpers above makeItem:
+const TASK_TITLES = {
+  completed: [
+    "Set up CI/CD pipeline & Staging ENV",
+    "Code review & merge PR #42",
+    "Database schema migration",
+    "Fix authentication bug",
+    "Deploy hotfix to production",
+    "Write unit tests for API layer",
+    "Refactor payment module",
+    "Update documentation",
+  ],
+  pending: [
+    "Implement dashboard analytics",
+    "Design new onboarding flow",
+    "API integration with Stripe",
+    "Performance audit & optimization",
+    "Mobile responsive fixes",
+    "Security vulnerability patch",
+    "Feature flag implementation",
+    "Load testing & benchmarks",
+  ],
+  break: ["Lunch break", "Coffee break", "Short break"],
+};
+
+const CATEGORIES = ["R&D", "Design", "DevOps", "QA", "Backend", "Frontend", "Management"];
+const DESCRIPTIONS = {
+  completed: [
+    "Wrote Github actions and configured AWS ECS task definitions",
+    "Reviewed 3 PRs, left comments, approved and merged to main",
+    "Ran migration scripts across staging and production databases",
+    "Traced and fixed token expiry bug in auth middleware",
+  ],
+  pending: [
+    "Waiting on design assets before implementation can start",
+    "Blocked by API credentials from third-party vendor",
+    "In progress — ~60% complete, targeting end of sprint",
+    "Scheduled for this afternoon after standup",
+  ],
+  break: ["Scheduled break", "Away from desk"],
+};
+
+function getRandom(arr, seed) {
+  return arr[seed % arr.length];
+}
+
+function getTaskTitle(type) {
+  const pool = TASK_TITLES[type] ?? TASK_TITLES.pending;
+  return getRandom(pool, Math.floor(Math.random() * pool.length));
+}
+
+function getCategory(groupId) {
+  return getRandom(CATEGORIES, parseInt(groupId));
+}
+
+function getDescription(type) {
+  const pool = DESCRIPTIONS[type] ?? DESCRIPTIONS.pending;
+  return getRandom(pool, Math.floor(Math.random() * pool.length));
+}
 
 // ─── Staff members ────────────────────────────────────────────────────────────
 const STAFF = [
@@ -30,17 +106,7 @@ const TASK_TYPES = ["completed", "pending", "break"];
 
 // ─── Helper: create one item ──────────────────────────────────────────────────
 let itemId = 1;
-function makeItem(groupId, day, startHour, startMin, endHour, endMin, type, label) {
-  const d = day.clone();
-  return {
-    id: String(itemId++),
-    group: groupId,
-    title: label,
-    type,                                                   // ← NEW field
-    start: d.hour(startHour).minute(startMin).second(0).valueOf(),
-    end:   d.hour(endHour).minute(endMin).second(0).valueOf(),
-  };
-}
+
 
 // ─── Helper: compute label from hours ────────────────────────────────────────
 function hrs(startH, startM, endH, endM) {

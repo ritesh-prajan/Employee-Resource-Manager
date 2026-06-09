@@ -4,7 +4,7 @@
 .react-calendar-timeline {
   border: none !important;        /* border is on the parent card already */
   border-radius: 0 !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   background: #ffffff !important;
   font-family: inherit !important; /* inherit from Tailwind instead of hardcoding */
 }

@@ -4,10 +4,15 @@
     const COLORS = {
     Story: 'var(--chart-1)',
     Bug: '#ef4444',
-    'R&D': 'var(--chart-2)',
+    'R&D': 'var(--chart-2)',    
     COC: 'var(--chart-3)',
     CRC: 'var(--chart-4)',
     Support: '#f59e0b',
+    POC:'#679bac',
+    Feature:'#53984d',
+    Subtask:'#aaaaaa',
+    Epic:'#b677b7'
+
     };
 
     const CustomTooltip = ({ active, payload }) => {

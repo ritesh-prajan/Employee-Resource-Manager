@@ -29,7 +29,7 @@ export default function AssignTaskModal({ show, onClose, assignee, tasks, projec
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: '500px' }}>
+      <div className="modal-content" style={{ maxWidth: '850px' }}>
         <div className="modal-header">
           <h3 className="modal-title">Assign Task to {assignee.name}</h3>
           <button className="modal-close" onClick={onClose}>×</button>

@@ -73,7 +73,7 @@ export default function EditEmployeeModal({ show, onClose, user, users, teams, p
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: '650px' }}>
+      <div className="modal-content" style={{ maxWidth: '=850px' }}>
         <div className="modal-header">
           <h3 className="modal-title">Edit Staff Member</h3>
           <button className="modal-close" onClick={onClose}>×</button>

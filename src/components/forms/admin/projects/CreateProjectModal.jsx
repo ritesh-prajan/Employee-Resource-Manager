@@ -32,7 +32,7 @@ export default function CreateProjectModal({ show, onClose }) {
   };
 
   return (
-    <Modal isOpen={show} onClose={onClose} maxWidth="460px">
+    <Modal isOpen={show} onClose={onClose} maxWidth="850px">
       <div className="modal-header">
         <h3 className="modal-title">Create New Project</h3>
         <button className="modal-close" onClick={onClose}>×</button>

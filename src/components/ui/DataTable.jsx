@@ -47,7 +47,7 @@ export default function DataTable({ Data = [], columns = [], onRowClick }) {
             <tr className="h-2" />
             {table.getRowModel().rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-6 py-12 text-center text-sm text-slate-400">
+                <td colSpan={columns.length} className="px-20 py-12 text-center text-sm text-slate-400">
                   No results found.
                 </td>
               </tr>

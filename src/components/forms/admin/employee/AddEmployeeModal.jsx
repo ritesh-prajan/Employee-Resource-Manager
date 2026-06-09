@@ -49,7 +49,7 @@ export default function AddEmployeeModal({ show, onClose, users, teams, projects
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: '650px' }}>
+      <div className="modal-content" style={{ maxWidth: '850px' }}>
         <div className="modal-header">
           <h3 className="modal-title">Add Staff Member</h3>
           <button className="modal-close" onClick={onClose}>×</button>
@@ -103,11 +103,8 @@ export default function AddEmployeeModal({ show, onClose, users, teams, projects
                 <option value="Employee">Employee</option>
                 <option value="Team Lead">Team Lead</option>
                 <option value="Admin">Administrator</option>
-              </select>
+              </select> 
             </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">PASSWORD</label>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -121,7 +118,6 @@ export default function AddEmployeeModal({ show, onClose, users, teams, projects
               </div>
             </div>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">ASSIGN TEAMS</label>

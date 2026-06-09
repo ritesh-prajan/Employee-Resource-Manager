@@ -8,7 +8,7 @@ export default function ViewProfileModal({ show, onClose, user, users, teams, pr
       <div
         className="modal-content"
         style={{
-          maxWidth: '780px',
+          maxWidth: '850px',
           width: '90%',
           maxHeight: '85vh',
           display: 'flex',
@@ -118,8 +118,10 @@ export default function ViewProfileModal({ show, onClose, user, users, teams, pr
               border: '1px solid var(--border-color)',
               borderRadius: '12px',
               padding: '1.25rem'
+              
             }}>
               {[
+                
                 { label: 'EMPLOYEE NUMBER', value: user.employee_code || '-', mono: true },
                 { label: 'DESIGNATION', value: user.designation || user.department || 'General' },
                 { label: 'WORK EMAIL', value: user.email, isEmail: true, emailHref: `mailto:${user.email}`, emailStyle: { color: 'var(--pastel-blue, #0010AE)' } },

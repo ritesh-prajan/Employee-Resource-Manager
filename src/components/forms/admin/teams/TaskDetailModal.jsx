@@ -22,7 +22,7 @@ export default function TaskDetailModal({ isOpen, onClose, task, users = [], pro
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="480px">
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="850px">
       {/* Header */}
       <div className="modal-header" style={{ borderBottom: `3px solid ${proj?.color || 'var(--border)'}` }}>
         <div>

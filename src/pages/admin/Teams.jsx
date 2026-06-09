@@ -1,5 +1,5 @@
   import React, { useState } from 'react';
-  import { Plus, Pencil, Trash2 } from 'lucide-react';
+  import { Plus, Pencil, Trash2, Search} from 'lucide-react';
   import { motion, AnimatePresence } from 'framer-motion';
   import { useApp } from '../../context/AppContext';
 
@@ -33,6 +33,7 @@
     const [teamFilter, setTeamFilter]         = useState('all'); // 'all' | 'my'
     const [filterProjectBy, setFilterProjectBy] = useState('');
     const [filterEmployeeBy, setFilterEmployeeBy] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // ── Modal state ────────────────────────────────────────────
     const [showCreate, setShowCreate]         = useState(false);
@@ -42,7 +43,7 @@
     const [tasksTeam, setTasksTeam]           = useState(null);   // lead "View Tasks" click
     const [detailTask, setDetailTask]         = useState(null);   // task row click → TaskDetailModal
     const [deleteTarget, setDeleteTarget]     = useState(null);   // team to delete → ConfirmDialog
-
+    
     // ── Role helpers ───────────────────────────────────────────
     const isAdmin    = currentUser.role === 'Admin';
     const isLeadRole = currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead';
@@ -63,15 +64,18 @@
     // 2. Project filter — team must be linked to the selected project
     // 3. Employee filter — team lead or member must match
     const filteredTeams = scopedTeams.filter(t => {
-      if (filterProjectBy) {
-        const linked = projects.some(p => p.id === filterProjectBy && (p.teams || []).includes(t.id));
-        if (!linked) return false;
-      }
-      if (filterEmployeeBy) {
-        if (t.leadId !== filterEmployeeBy && !t.members.includes(filterEmployeeBy)) return false;
-      }
-      return true;
-    });
+    if (filterProjectBy) {
+      const linked = projects.some(p => p.id === filterProjectBy && (p.teams || []).includes(t.id));
+      if (!linked) return false;
+    }
+    if (filterEmployeeBy) {
+      if (t.leadId !== filterEmployeeBy && !t.members.includes(filterEmployeeBy)) return false;
+    }
+    if (searchQuery) {
+      if (!t.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    }
+    return true;
+  });
 
     // ── DataTable columns ──────────────────────────────────────
     // We define columns here because they reference local state setters
@@ -157,16 +161,13 @@
     // Lead teams are usually 1–2 so pagination would be overkill.
     // We keep the table structure but render inline.
     if (isLeadRole) {
-      const leadTeams = teams.filter(t => t.leadId === currentUser.id || t.members.includes(currentUser.id));
+     const leadTeams = teams.filter(t => {
+        if (!(t.leadId === currentUser.id || t.members.includes(currentUser.id))) return false;
+        if (searchQuery && !t.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+      });
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem',backgroundColor:'var(--canvas)' }}>
-          <div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>My Team Directory</h2>
-            <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>
-              View the teams you lead or belong to. Click a team name to assign tasks, or click the member badges to edit membership.
-            </p>
-          </div>
-
           <div style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'var(--card)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -268,74 +269,68 @@
 
     // ── Admin / Employee view ──────────────────────────────────
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem',backgroundColor:'var(--canvas)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem',backgroundColor:'var(--canvas)' ,zoom:'0.8'}}>
 
         {/* Page header + controls */}
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-          borderBottom: '1px solid var(--border)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem',
-        }}>
-          <div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
-              Organizational Teams
-            </h2>
-            <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>
-              Manage and view all department teams, assigned leads, and team members.
-            </p>
-          </div>
+        <div style={{ marginBottom: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
 
-          <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* All / My Teams toggle — only for Admin */}
-            {isAdmin && (
-              <div style={{
-                display: 'inline-flex', backgroundColor: 'var(--secondary)',
-                padding: '3px', borderRadius: '8px', border: '1px solid var(--border)',
-              }}>
-                {['all', 'my'].map(v => (
-                  <button
-                    key={v}
-                    onClick={() => setTeamFilter(v)}
-                    style={{
-                      padding: '0.3rem 0.85rem', fontSize: '0.72rem', fontWeight: 600,
-                      borderRadius: '6px', border: 'none', cursor: 'pointer',
-                      backgroundColor: teamFilter === v ? 'var(--primary)' : 'transparent',
-                      color: teamFilter === v ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    {v === 'all' ? 'All Teams' : 'My Teams'}
-                  </button>
-                ))}
+              {/* Search */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '10px', padding: '0.5rem 0.85rem', width: '280px' }}>
+                <Search size={16} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+                <input
+                  type="text"
+                  placeholder="Search teams..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontSize: '0.85rem', color: 'var(--foreground)' }}
+                />
               </div>
-            )}
+              <SearchableSelect
+                options={projects.map(p => ({ value: p.id, label: p.name.split(' (')[0] }))}
+                value={filterProjectBy}
+                onChange={setFilterProjectBy}
+                placeholder="All Projects"
+                style={{ width: '180px' }}
+              />
 
-            {/* Project filter */}
-            <SearchableSelect
-              options={projects.map(p => ({ value: p.id, label: p.name.split(' (')[0] }))}
-              value={filterProjectBy}
-              onChange={setFilterProjectBy}
-              placeholder="All Projects"
-              style={{ width: '160px' }}
-            />
-
-            {/* Employee filter */}
-            <SearchableSelect
-              options={users.map(u => ({ value: u.id, label: u.name }))}
-              value={filterEmployeeBy}
-              onChange={setFilterEmployeeBy}
-              placeholder="All Employees"
-              style={{ width: '160px' }}
-            />
-
-            {/* Create — admin only */}
+              <SearchableSelect
+                options={users.map(u => ({ value: u.id, label: u.name }))}
+                value={filterEmployeeBy}
+                onChange={setFilterEmployeeBy}
+                placeholder="All Employees"
+                style={{ width: '180px' }}
+              />
+              {/* All / My toggle — admin only */}
+              {isAdmin && (
+                <div style={{ display: 'inline-flex', backgroundColor: 'var(--secondary)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  {['all', 'my'].map(v => (
+                    <button
+                      key={v}
+                      onClick={() => setTeamFilter(v)}
+                      style={{
+                        padding: '0.3rem 0.85rem', fontSize: '0.72rem', fontWeight: 600,
+                        borderRadius: '6px', border: 'none', cursor: 'pointer',
+                        backgroundColor: teamFilter === v ? 'var(--primary)' : 'transparent',
+                        color: teamFilter === v ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {v === 'all' ? 'All Teams' : 'My Teams'}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            
             {isAdmin && (
               <button
                 className="btn btn-primary"
                 onClick={() => setShowCreate(true)}
-                style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', gap: '0.4rem' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '0.75rem', padding: '0.6rem 1.5rem' }}
               >
-                <Plus size={14} />
-                <span>Create Team</span>
+                <Plus size={16} /> Create Team
               </button>
             )}
           </div>

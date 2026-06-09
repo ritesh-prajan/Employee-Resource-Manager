@@ -42,7 +42,7 @@ export default function EditTeamModal({ isOpen, onClose, team, users = [], onSav
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="480px">
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="850px">
       <div className="modal-header">
         <h3 className="modal-title">Edit Team</h3>
         <button className="modal-close" onClick={onClose}>×</button>

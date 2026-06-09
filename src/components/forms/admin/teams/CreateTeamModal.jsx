@@ -42,7 +42,7 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="480px">
+    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="850px">
       <div className="modal-header">
         <h3 className="modal-title">Create New Team</h3>
         <button className="modal-close" onClick={handleClose}>×</button>
@@ -64,12 +64,11 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
         <div className="form-group">
           <label className="form-label">TEAM LEAD</label>
           {/* SingleSearchSelect = one pick, searchable */}
-          <SingleSearchSelect
+          <SearchableSelect
             options={userOptions}
             value={leadId}
             onChange={(val) => {
               setLeadId(val);
-              // Auto-add lead to members list
               if (val && !members.includes(val)) {
                 setMembers(prev => [...prev, val]);
               }
@@ -77,7 +76,6 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
             placeholder="Search and select team lead..."
           />
         </div>
-
         <div className="form-group">
           <label className="form-label">TEAM MEMBERS</label>
           {/* MultiSearchSelect = multi pick, searchable */}

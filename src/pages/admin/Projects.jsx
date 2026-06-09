@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FolderPlus, Pencil, Trash2 } from 'lucide-react';
+import { FolderPlus, Pencil, Trash2, Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import SearchableSelect from '../../components/ui/SearchableSelect';
 import DataTable from '../../components/ui/DataTable';
@@ -23,6 +23,7 @@ export default function Projects() {
   const [showEditProjModal, setShowEditProjModal] = useState(false);
   const [editingProj, setEditingProj] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const isAllowedToManage = currentUser?.role === 'Admin' || currentUser?.role === 'Team Lead';
 
@@ -37,10 +38,11 @@ export default function Projects() {
   });
 
   const filteredProjects = baseProjects.filter(p => {
-    if (filterTeamBy && !(p.teams || []).includes(filterTeamBy)) return false;
-    if (filterEmployeeBy && !p.members.includes(filterEmployeeBy)) return false;
-    return true;
-  });
+  if (filterTeamBy && !(p.teams || []).includes(filterTeamBy)) return false;
+  if (filterEmployeeBy && !p.members.includes(filterEmployeeBy)) return false;
+  if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+  return true;
+});
 
   const columns = useMemo(() => [
     {
@@ -153,46 +155,55 @@ export default function Projects() {
   ], [users, tasks, currentUser]);
 
   return (
-    <div className="min-h-screen  p-9" style={{ zoom: 0.9  }}>
+    <div className="min-h-screen  " style={{ zoom: 0.8  }}>
+      <div style={{ marginBottom: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
 
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-slate-800">Active Projects</h2>
-          <p className="text-sm text-slate-500">Track client projects, assign staff, and monitor task completion.</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <SearchableSelect
-            options={teams.map(t => ({ value: t.id, label: t.name }))}
-            value={filterTeamBy}
-            onChange={setFilterTeamBy}
-            placeholder="All Teams"
-            style={{ width: '160px' }}
-          />
-          <SearchableSelect
-            options={users.map(u => ({ value: u.id, label: u.name }))}
-            value={filterEmployeeBy}
-            onChange={setFilterEmployeeBy}
-            placeholder="All Employees"
-            style={{ width: '160px' }}
-          />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '10px', padding: '0.5rem 0.85rem', width: '280px' }}>
+              <Search size={16} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Search projects..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontSize: '0.85rem', color: 'var(--foreground)' }}
+              />
+            </div>
+
+            <SearchableSelect
+              options={teams.map(t => ({ value: t.id, label: t.name }))}
+              value={filterTeamBy}
+              onChange={setFilterTeamBy}
+              placeholder="All Teams"
+              style={{ width: '180px' }}
+            />
+
+            <SearchableSelect
+              options={users.map(u => ({ value: u.id, label: u.name }))}
+              value={filterEmployeeBy}
+              onChange={setFilterEmployeeBy}
+              placeholder="All Members"
+              style={{ width: '180px' }}
+            />
+          </div>
+
           {isAllowedToManage && (
             <button
-              className="btn btn-primary flex items-center gap-2"
               onClick={() => setShowProjModal(true)}
+              className="btn btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '0.75rem', padding: '0.6rem 1.5rem' }}
             >
-              <FolderPlus size={14} />
-              Create Project
+              <FolderPlus size={16} /> New Project
             </button>
           )}
         </div>
       </div>
-
       <DataTable
         Data={filteredProjects}
         columns={columns}
         onRowClick={(row) => setSelectedProject(row)}
       />
-
       <CreateProjectModal
         show={showProjModal}
         onClose={() => setShowProjModal(false)}

@@ -61,7 +61,7 @@ export default function TeamTasksModal({ isOpen, onClose, team, users = [], task
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="600px">
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="850px">
       {/* Header */}
       <div className="modal-header" style={{ borderBottom: '3px solid var(--primary)' }}>
         <div>

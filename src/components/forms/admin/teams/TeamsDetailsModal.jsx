@@ -26,7 +26,7 @@ export default function TeamsDetailsModal({ isOpen, onClose, team, users = [], t
     tasks.filter(t => t.assignedTo === userId && t.status !== 'Completed' && t.status !== 'Cancelled').length;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="520px">
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="850px">
       {/* Header */}
       <div className="modal-header" style={{ borderBottom: '3px solid var(--primary)', paddingBottom: '1rem' }}>
         <div>

@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
 import { ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
 
-const TODAY = '2026-05-29';
-const WEEK_START = new Date('2026-05-25');
-const WEEK_END = new Date('2026-05-31');
-
 export default function HourRankings({ users, tasks, projects, timeEntries }) {
   const [sortOrder, setSortOrder] = useState('desc');
   const [expandedUser, setExpandedUser] = useState(null);
   const [period, setPeriod] = useState('week');
+  const [selectedDate, setSelectedDate] = useState('2026-05-29');
 
   const getInitials = (name) => {
     const parts = name.trim().split(/\s+/);
@@ -17,14 +14,25 @@ export default function HourRankings({ users, tasks, projects, timeEntries }) {
       : name.substring(0, 2).toUpperCase();
   };
 
+  const getWeekRange = (dateStr) => {
+    const d = new Date(dateStr);
+    const day = d.getDay();
+    const start = new Date(d);
+    start.setDate(d.getDate() - day);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { start, end };
+  };
+
   const filterByPeriod = (entries) => entries.filter(e => {
     if (period === 'all') return true;
-    if (period === 'day') return e.date === TODAY;
+    if (period === 'day') return e.date === selectedDate;
     if (period === 'week') {
+      const { start, end } = getWeekRange(selectedDate);
       const d = new Date(e.date);
-      return d >= WEEK_START && d <= WEEK_END;
+      return d >= start && d <= end;
     }
-    if (period === 'month') return e.date.startsWith('2026-05');
+    if (period === 'month') return e.date.startsWith(selectedDate.substring(0, 7));
     return true;
   });
 
@@ -68,34 +76,84 @@ export default function HourRankings({ users, tasks, projects, timeEntries }) {
       boxShadow: 'var(--shadow-sm)',
     }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', flexShrink: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', flexShrink: 0 }}>
         <div>
           <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)' }}>Hour Rankings</h3>
           <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>By project & task</span>
+            
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {/* Period toggle */}
-          <div style={{
-            display: 'inline-flex', backgroundColor: 'var(--secondary)',
-            padding: '2px', borderRadius: '7px', border: '1px solid var(--border)',
-          }}>
-            {['day', 'week', 'month', 'all'].map(p => (
-              <button key={p} onClick={() => setPeriod(p)} style={{
-                padding: '0.2rem 0.55rem', fontSize: '0.65rem', fontWeight: 650,
-                borderRadius: '5px', border: 'none', cursor: 'pointer',
-                backgroundColor: period === p ? 'var(--primary)' : 'transparent',
-                color: period === p ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
-                textTransform: 'capitalize', transition: 'all 0.15s',
-              }}>
-                {p === 'all' ? 'All' : p}
-              </button>
-            ))}
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
+          {/* Controls row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {/* Period toggle */}
+            <div style={{
+              display: 'inline-flex', backgroundColor: 'var(--secondary)',
+              padding: '2px', borderRadius: '7px', border: '1px solid var(--border)',
+            }}>
+              {['day', 'week', 'month', 'all'].map(p => (
+                <button key={p} onClick={() => setPeriod(p)} style={{
+                  padding: '0.2rem 0.55rem', fontSize: '0.65rem', fontWeight: 650,
+                  borderRadius: '5px', border: 'none', cursor: 'pointer',
+                  backgroundColor: period === p ? 'var(--primary)' : 'transparent',
+                  color: period === p ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
+                  textTransform: 'capitalize', transition: 'all 0.15s',
+                }}>
+                  {p === 'all' ? 'All' : p}
+                </button>
+              ))}
+            </div>
+
+            {/* Date picker — between toggle and sort button */}
+            {period !== 'all' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <input
+                  type={period === 'month' ? 'month' : 'date'}
+                  value={period === 'month' ? selectedDate.substring(0, 7) : selectedDate}
+                  onChange={e => {
+                    if (period === 'month') {
+                      setSelectedDate(e.target.value + '-01');
+                    } else {
+                      setSelectedDate(e.target.value);
+                    }
+                  }}
+                  style={{
+                    fontSize: '0.7rem',
+                    padding: '0.2rem 0.5rem',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--background)',
+                    color: 'var(--foreground)',
+                    outline: 'none',
+                    cursor: 'pointer',
+                  }}
+                />
+                {period === 'week' && (() => {
+                  const { start, end } = getWeekRange(selectedDate);
+                  return (
+                    <span style={{ fontSize: '0.62rem', color: 'var(--muted-foreground)' }}>
+                      {start.toLocaleDateString([], { month: 'short', day: 'numeric' })} – {end.toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </span>
+                  );
+                })()}
+              </div>
+            )}
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => setSortOrder(o => o === 'desc' ? 'asc' : 'desc')}
+              style={{ padding: '0.25rem 0.6rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+            >
+              <ArrowUpDown size={11} />
+              {sortOrder === 'desc' ? 'Most' : 'Least'}
+            </button>
           </div>
-          <button className="btn btn-secondary" onClick={() => setSortOrder(o => o === 'desc' ? 'asc' : 'desc')}
-            style={{ padding: '0.25rem 0.6rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <ArrowUpDown size={11} />
-            {sortOrder === 'desc' ? 'Most' : 'Least'}
-          </button>
+
+          {/* Date picker row — remove the old one below */}
+          {false && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            </div>
+          )}
         </div>
       </div>
 

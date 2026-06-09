@@ -30,7 +30,7 @@ export default function SearchableSelect({ options, value, onChange, placeholder
           cursor: 'pointer'
         }}
       >
-        <span style={{ color: selectedOption ? 'var(--text-primary)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ color: selectedOption ? 'var(--text-primary)' : 'var(--text-muted)', overflow: 'visible', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>

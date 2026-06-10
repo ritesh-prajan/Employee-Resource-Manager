@@ -2,24 +2,8 @@ import React, { useState } from 'react';
 import { Layers, Filter, Activity } from 'lucide-react';
 import ModernDailyTimesheets from './timesheets/ModernDailyTimesheets';
 
-// Placeholder components for future implementation
-const ClassicTimesheets = () => (
-  <div className="bg-white rounded-2xl border border-slate-200 p-8 flex items-center justify-center shadow-sm h-64">
-    <div className="text-center">
-      <h3 className="text-lg font-bold text-slate-800">Classic View Coming Soon</h3>
-      <p className="text-sm text-slate-500 mt-2">The standard grid view is currently under development.</p>
-    </div>
-  </div>
-);
-
-const TreeTimesheets = () => (
-  <div className="bg-white rounded-2xl border border-slate-200 p-8 flex items-center justify-center shadow-sm h-64">
-    <div className="text-center">
-      <h3 className="text-lg font-bold text-slate-800">Tree View Coming Soon</h3>
-      <p className="text-sm text-slate-500 mt-2">The hierarchical layout is currently under development.</p>
-    </div>
-  </div>
-);
+import ClassicTimesheets from './timesheets/ClassicTimesheets';
+import TreeTimesheets from './timesheets/TreeTimesheets';
 
 export default function Timesheets() {
   const [activeTab, setActiveTab] = useState('modern');

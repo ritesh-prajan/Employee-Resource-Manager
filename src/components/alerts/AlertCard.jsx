@@ -147,6 +147,6 @@ function actionBtn(accent) {
     width: 30, height: 30, borderRadius: 6,
     border: `1px solid color-mix(in srgb, ${accent} 30%, transparent)`,
     backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`,
-    color: accent, cursor: 'pointer',
+    color: accent, cursor: 'pointerr',
   };
 }

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 const TYPE_META = {
-  TASK_ASSIGNED:      { icon: CheckSquare, color: 'var(--primary)' },
+  TASK_ASSIGNED:      { icon: CheckSquare, color: '#0010AE' },
   TASK_UPDATED:       { icon: Clock,        color: '#2dd4bf' },
   TASK_REJECTED:      { icon: ShieldAlert,  color: '#ef4444' },
   TIMESHEET_APPROVED: { icon: Check,        color: '#4ade80' },
@@ -33,6 +33,7 @@ const isSystemGenerated = (id) =>
 
 export default function AlertCard({ notification: n, onNavigate, onToggleRead, onDelete }) {
   const { icon: Icon, color } = TYPE_META[n.type] || DEFAULT_META;
+  const sys = isSystemGenerated(n.id);
 
   return (
     <motion.div
@@ -44,8 +45,9 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '1rem',
         padding: '1rem 1.25rem',
+        gap: '1rem',
+        borderLeft: `4px solid ${color}`,
         backgroundColor: 'var(--card)',
         border: '1px solid var(--border)',
         borderLeft: `4px solid ${color}`,
@@ -54,9 +56,9 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
         transition: 'opacity 0.2s',
       }}
     >
-      {/* Type icon */}
+      {/* Type icon circle */}
       <div style={{
-        width: 34, height: 34, borderRadius: '50%',
+        width: 32, height: 32, borderRadius: '50%',
         backgroundColor: 'var(--secondary)',
         border: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -64,12 +66,16 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
         <Icon size={16} style={{ color }} />
       </div>
 
-      {/* Body */}
-      <div onClick={() => onNavigate(n)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+      {/* Body — clickable */}
+      <div
+        onClick={() => onNavigate(n)}
+        style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+        title="Click to go to details"
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{
             fontSize: '0.85rem',
-            fontWeight: n.isRead ? 500 : 700,
+            fontWeight: n.isRead ? 600 : 750,
             color: 'var(--foreground)',
           }}>
             {n.title}
@@ -77,14 +83,14 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
           {!n.isRead && (
             <span style={{
               width: 6, height: 6, borderRadius: '50%',
-              backgroundColor: 'var(--primary)', flexShrink: 0,
+              backgroundColor: '#0010AE', flexShrink: 0,
             }} />
           )}
         </div>
         <p style={{
           fontSize: '0.75rem', color: 'var(--muted-foreground)',
-          margin: '2px 0 0', overflow: 'hidden',
-          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          margin: '3px 0 0', textOverflow: 'ellipsis',
+          overflow: 'hidden', whiteSpace: 'nowrap',
         }}>
           {n.message}
         </p>
@@ -92,15 +98,14 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
           fontSize: '0.65rem', color: 'var(--muted-foreground)',
           display: 'block', marginTop: 4,
         }}>
-          {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-          {' at '}
+          {new Date(n.createdAt).toLocaleDateString()} at{' '}
           {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-        {!isSystemGenerated(n.id) && (
+        {!sys && (
           <button
             onClick={() => onToggleRead(n)}
             title={n.isRead ? 'Mark as unread' : 'Mark as read'}
@@ -112,11 +117,11 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
         <button
           onClick={() => onNavigate(n)}
           title="View details"
-          style={actionBtn('var(--primary)')}
+          style={actionBtn('#0010AE')}
         >
           <ExternalLink size={13} />
         </button>
-        {!isSystemGenerated(n.id) && (
+        {!sys && (
           <button
             onClick={() => onDelete(n.id)}
             title="Dismiss"

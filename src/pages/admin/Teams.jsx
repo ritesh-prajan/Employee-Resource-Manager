@@ -119,7 +119,7 @@
         header: 'TEAM MEMBERS',
         cell: ({ row }) => {
           const memberUsers = users.filter(u => row.original.members.includes(u.id));
-          return <AvatarGroup users={memberUsers} max={6} size={26} />;
+          return <AvatarGroup users={memberUsers} max={6} size={36} />;
         },
       },
       {
@@ -272,8 +272,7 @@
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem',backgroundColor:'var(--canvas)' ,zoom:'0.8'}}>
 
         {/* Page header + controls */}
-        <div style={{ marginBottom: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem' }}>          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
 
               {/* Search */}

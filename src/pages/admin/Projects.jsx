@@ -6,6 +6,7 @@ import DataTable from '../../components/ui/DataTable';
 import CreateProjectModal from '../../components/forms/admin/projects/CreateProjectModal';
 import EditProjectModal from '../../components/forms/admin/projects/EditProjectModal';
 import ProjectDetailModal from '../../components/forms/admin/projects/ProjectDetailModal';
+import AvatarGroup from '../../components/ui/AvatarGroup';
 
 export default function Projects() {
   const {
@@ -87,35 +88,7 @@ export default function Projects() {
       cell: ({ row }) => {
         const memberIds = row.original.members || [];
         const members = users.filter(u => memberIds.includes(u.id));
-        return (
-          <div className="flex items-center">
-            {members.slice(0, 6).map((m, index) => {
-              const parts = m.name.trim().split(/\s+/);
-              const initials = parts.length > 1
-                ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-                : m.name.substring(0, 2).toUpperCase();
-              return (
-                <div
-                  key={m.id}
-                  title={m.name}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-xs font-bold text-blue-700"
-                  style={{ marginLeft: index === 0 ? 0 : '-8px' }}
-                >
-                  {initials}
-                </div>
-              );
-            })}
-            {members.length > 6 && (
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-xs font-bold text-slate-500"
-                style={{ marginLeft: '-8px' }}
-              >
-                +{members.length - 6}
-              </div>
-            )}
-            {members.length === 0 && <span className="text-xs text-slate-400 italic">No members</span>}
-          </div>
-        );
+        return <AvatarGroup users={members} max={6} size={36} />;
       },
     },
     {
@@ -155,7 +128,7 @@ export default function Projects() {
   ], [users, tasks, currentUser]);
 
   return (
-    <div className="min-h-screen  " style={{ zoom: 0.8  }}>
+    <div className="min-h-screen  " style={{ zoom: 0.8 }}>
       <div style={{ marginBottom: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>

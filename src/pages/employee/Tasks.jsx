@@ -365,20 +365,54 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   ], [projects, users]);
 
   return (
-    <div className="min-h-screen bg-slate-100 p-8" style={{ zoom: 0.9 }}>
+    <div className="min-h-screen bg-slate-100 p-8" style={{ zoom: 0.8 }}>
       <div className="mx-auto" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
         {/* Toolbar */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex justify-between items-center flex-wrap gap-4">
-            <div>
-              <h3 className="text-base font-semibold text-slate-800">Task Center</h3>
-              <span className="text-xs text-slate-500">
-                {isLeader ? 'Manage team backlog, delegate items, and review delivery targets' : 'Track and execute your assigned tickets and roadmap timelines'}
-              </span>
+        <div>
+        {/* Filters */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex gap-4 flex-wrap items-center">
+            {/* Search */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.5rem 0.85rem', width: '280px' }}>
+              <Search size={14} style={{ color: '#94a3b8', flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Search by summary, ticket, assignee..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontSize: '0.85rem', color: '#1e293b' }}
+              />
             </div>
-            <div className="flex gap-3 items-center flex-wrap">
-              {/* Scope Toggle */}
+
+            <div className="flex items-center gap-2">
+              <SearchableSelect
+                options={projectOptions}
+                value={selectedProject}
+                onChange={setSelectedProject}
+                placeholder="All Projects"
+                style={{ width: '180px' }}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <SearchableSelect
+                options={statusOptions}
+                value={selectedStatus}
+                onChange={setSelectedStatus}
+                placeholder="All Statuses"
+                style={{ width: '160px' }}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <SearchableSelect
+                options={priorityOptions}
+                value={selectedPriority}
+                onChange={setSelectedPriority}
+                placeholder="All Priorities"
+                style={{ width: '150px' }}
+              />
               <div style={{ display: 'inline-flex', backgroundColor: 'rgba(0,0,0,0.04)', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 {isLeader && (
                   <button onClick={() => setScope('all')} style={{ padding: '0.35rem 0.85rem', fontSize: '0.7rem', fontWeight: 650, borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: scope === 'all' ? '#1d4ed8' : 'transparent', color: scope === 'all' ? '#fff' : '#64748b', transition: 'all 0.2s ease' }}>
@@ -417,55 +451,13 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                 )
               )}
             </div>
-          </div>
-        </div>
 
-        {/* Filters */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex gap-4 flex-wrap items-center">
-            {/* Search */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.5rem 0.85rem', width: '280px' }}>
-              <Search size={14} style={{ color: '#94a3b8', flexShrink: 0 }} />
-              <input
-                type="text"
-                placeholder="Search by summary, ticket, assignee..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontSize: '0.85rem', color: '#1e293b' }}
-              />
-            </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500">PROJECT:</span>
-              <SearchableSelect
-                options={projectOptions}
-                value={selectedProject}
-                onChange={setSelectedProject}
-                placeholder="All Projects"
-                style={{ width: '180px' }}
-              />
-            </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500">STATUS:</span>
-              <SearchableSelect
-                options={statusOptions}
-                value={selectedStatus}
-                onChange={setSelectedStatus}
-                placeholder="All Statuses"
-                style={{ width: '160px' }}
-              />
-            </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500">PRIORITY:</span>
-              <SearchableSelect
-                options={priorityOptions}
-                value={selectedPriority}
-                onChange={setSelectedPriority}
-                placeholder="All Priorities"
-                style={{ width: '150px' }}
-              />
+
+
+
             </div>
 
             {(searchQuery || selectedProject || selectedStatus || selectedPriority) && (

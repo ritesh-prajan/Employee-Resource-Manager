@@ -5,7 +5,7 @@ export default function HourRankings({ users, tasks, projects, timeEntries }) {
   const [sortOrder, setSortOrder] = useState('desc');
   const [expandedUser, setExpandedUser] = useState(null);
   const [period, setPeriod] = useState('week');
-  const [selectedDate, setSelectedDate] = useState('2026-05-29');
+const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const getInitials = (name) => {
     const parts = name.trim().split(/\s+/);

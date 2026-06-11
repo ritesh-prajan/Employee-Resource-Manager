@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Layers, Filter, Activity } from 'lucide-react';
-import ModernDailyTimesheets from './timesheets/ModernDailyTimesheets';
+import ModernDailyTimesheets from '../../components/timesheets/ModernDailyTimesheets';
 
-import ClassicTimesheets from './timesheets/ClassicTimesheets';
-import TreeTimesheets from './timesheets/TreeTimesheets';
+import ClassicTimesheets from '../../components/timesheets/ClassicTimesheets';
+import TreeTimesheets from '../../components/timesheets/TreeTimesheets';
 
 export default function Timesheets() {
   const [activeTab, setActiveTab] = useState('modern');

@@ -208,7 +208,7 @@ export default function ClassicTimesheet() {
   const [selectedEmp, setSelectedEmp] = useState(EMPLOYEES[0]);
   const [fromWeek, setFromWeek]       = useState(WEEKS[0]);
   const [toWeek, setToWeek]           = useState(WEEKS[WEEKS.length - 1]);
-  const [openWeeks, setOpenWeeks]     = useState({ w3: true });
+  const [openWeeks, setOpenWeeks]     = useState({ w3: false });
 
   const toggleWeek = id => setOpenWeeks(prev => ({ ...prev, [id]: !prev[id] }));
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Data } from "../../../components/mock_dataset/Data_admin_treetimesheet";
+import { Data } from "../mock_dataset/Data_admin_treetimesheet";
 import { ChevronRight, Calendar, Briefcase, ChevronLeft, ChevronDown } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ function entryrow({ node }) {
 
 // ─── Tree node ────────────────────────────────────────────────────────────────
 function Treenode({ node, depth = 0, coloridx = 0, openmap, setopenmap }) {
-  const isopen = openmap[node.id] ?? true;
+  const isopen = openmap[node.id] ?? false;
   const haschildren = node.children?.length > 0;
   const toggle = () => setopenmap(prev => ({ ...prev, [node.id]: !isopen }));
 

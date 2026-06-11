@@ -153,7 +153,7 @@ export default function Approvals() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' , zoom:'0.8'}}>
 
       {/* Page header */}
       <div
@@ -258,6 +258,7 @@ export default function Approvals() {
         onReject={handleReject}
         onRevert={handleRevert}
       />
+      
     </div>
   );
 }

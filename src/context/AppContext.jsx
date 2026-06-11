@@ -1323,6 +1323,9 @@ export const AppProvider = ({ children }) => {
     }
 
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...finalData } : u));
+    if (currentUser?.id === userId) {
+    setCurrentUser(prev => ({ ...prev, ...finalData }));
+}
 
     // Sync Teams
     if (updatedData.teams && Array.isArray(updatedData.teams)) {
@@ -1352,7 +1355,10 @@ export const AppProvider = ({ children }) => {
       }));
     }
   };
-
+  const verifyPassword = (userId, password) => {
+    const user = users.find(u => u.id === userId);
+    return user?.password === password;
+  };
   // Edit Time Entry Action
   const editTimeEntry = (entryId, updatedData) => {
     setTimeEntries(prev => {
@@ -1567,6 +1573,7 @@ export const AppProvider = ({ children }) => {
         toggleTheme,
         isAuthenticated,
         currentUser,
+        verifyPassword,
         login,
         logout,
         forgotPassword,

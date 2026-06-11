@@ -7,32 +7,33 @@ import {
 } from 'lucide-react';
 
 const TYPE_META = {
-  TASK_ASSIGNED:      { icon: CheckSquare, color: 'var(--primary)' },
-  TASK_UPDATED:       { icon: Clock,        color: '#2dd4bf' },
-  TASK_REJECTED:      { icon: ShieldAlert,  color: '#ef4444' },
-  TIMESHEET_APPROVED: { icon: Check,        color: '#4ade80' },
-  TIMESHEET_REJECTED: { icon: ShieldAlert,  color: '#ef4444' },
-  APPROVAL_REVERTED:  { icon: Clock,        color: '#fbbf24' },
-  BACKLOG_CLAIMED:    { icon: CheckSquare,  color: '#2dd4bf' },
-  ETA_REQUEST:        { icon: Calendar,     color: '#fbbf24' },
-  ETA_DECISION:       { icon: Calendar,     color: '#fbbf24' },
-  TRANSFER_REQUEST:   { icon: ShieldAlert,  color: '#c084fc' },
-  TRANSFER_DECISION:  { icon: ShieldAlert,  color: '#c084fc' },
-  MEETING_REMINDER:   { icon: Video,        color: '#06b6d4' },
-  ANNOUNCEMENT:       { icon: Megaphone,    color: '#ec4899' },
-  WATCHDOG_LATE:      { icon: Clock,        color: '#fbbf24' },
-  WATCHDOG_ABSENT:    { icon: UserX,        color: '#ef4444' },
-  overdue:            { icon: CalendarX,    color: '#ef4444' },
-  overtime:           { icon: TrendingUp,   color: '#fbbf24' },
+  TASK_ASSIGNED:      { icon: CheckSquare, color: 'var(--primary)', label: 'Task Assigned' },
+  TASK_UPDATED:       { icon: Clock,        color: '#2dd4bf',        label: 'Task Updated' },
+  TASK_REJECTED:      { icon: ShieldAlert,  color: '#ef4444',        label: 'Task Rejected' },
+  TIMESHEET_APPROVED: { icon: Check,        color: '#4ade80',        label: 'Approved' },
+  TIMESHEET_REJECTED: { icon: ShieldAlert,  color: '#ef4444',        label: 'Rejected' },
+  APPROVAL_REVERTED:  { icon: Clock,        color: '#fbbf24',        label: 'Reverted' },
+  BACKLOG_CLAIMED:    { icon: CheckSquare,  color: '#2dd4bf',        label: 'Backlog Claimed' },
+  ETA_REQUEST:        { icon: Calendar,     color: '#fbbf24',        label: 'ETA Request' },
+  ETA_DECISION:       { icon: Calendar,     color: '#fbbf24',        label: 'ETA Decision' },
+  TRANSFER_REQUEST:   { icon: ShieldAlert,  color: '#c084fc',        label: 'Transfer Request' },
+  TRANSFER_DECISION:  { icon: ShieldAlert,  color: '#c084fc',        label: 'Transfer Decision' },
+  MEETING_REMINDER:   { icon: Video,        color: '#06b6d4',        label: 'Meeting' },
+  ANNOUNCEMENT:       { icon: Megaphone,    color: '#ec4899',        label: 'Announcement' },
+  WATCHDOG_LATE:      { icon: Clock,        color: '#fbbf24',        label: 'Late Check-in' },
+  WATCHDOG_ABSENT:    { icon: UserX,        color: '#ef4444',        label: 'Absent' },
+  overdue:            { icon: CalendarX,    color: '#ef4444',        label: 'Overdue' },
+  overtime:           { icon: TrendingUp,   color: '#fbbf24',        label: 'Overtime' },
 };
 
-const DEFAULT_META = { icon: MessageSquare, color: '#8b939c' };
+const DEFAULT_META = { icon: MessageSquare, color: '#8b939c', label: 'Notification' };
 
 const isSystemGenerated = (id) =>
   id && (id.startsWith('overdue') || id.startsWith('overtime'));
 
 export default function AlertCard({ notification: n, onNavigate, onToggleRead, onDelete }) {
-  const { icon: Icon, color } = TYPE_META[n.type] || DEFAULT_META;
+  const { icon: Icon, color, label } = TYPE_META[n.type] || DEFAULT_META;
+  const sys = isSystemGenerated(n.id);
 
   return (
     <motion.div
@@ -45,35 +46,46 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
         display: 'flex',
         alignItems: 'center',
         gap: '1rem',
-        padding: '1rem 1.25rem',
+        padding: '0.875rem 1.125rem',
         backgroundColor: 'var(--card)',
         border: '1px solid var(--border)',
-        borderLeft: `4px solid ${color}`,
+        borderLeft: `3px solid ${color}`,
         borderRadius: '0.875rem',
-        opacity: n.isRead ? 0.72 : 1,
+        opacity: n.isRead ? 0.7 : 1,
         transition: 'opacity 0.2s',
       }}
     >
       {/* Type icon */}
       <div style={{
         width: 34, height: 34, borderRadius: '50%',
-        backgroundColor: 'var(--secondary)',
-        border: '1px solid var(--border)',
+        backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
+        border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>
-        <Icon size={16} style={{ color }} />
+        <Icon size={15} style={{ color }} />
       </div>
 
       {/* Body */}
       <div onClick={() => onNavigate(n)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
           <span style={{
-            fontSize: '0.85rem',
+            fontSize: '0.83rem',
             fontWeight: n.isRead ? 500 : 700,
             color: 'var(--foreground)',
           }}>
             {n.title}
           </span>
+          {/* Type badge */}
+          <span style={{
+            fontSize: '0.62rem', fontWeight: 600,
+            color,
+            backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
+            borderRadius: 4, padding: '1px 6px', flexShrink: 0,
+          }}>
+            {label}
+          </span>
+          {/* Unread dot */}
           {!n.isRead && (
             <span style={{
               width: 6, height: 6, borderRadius: '50%',
@@ -81,26 +93,28 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
             }} />
           )}
         </div>
+
         <p style={{
-          fontSize: '0.75rem', color: 'var(--muted-foreground)',
-          margin: '2px 0 0', overflow: 'hidden',
+          fontSize: '0.73rem', color: 'var(--muted-foreground)',
+          margin: '3px 0 0', overflow: 'hidden',
           textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {n.message}
         </p>
+
         <span style={{
-          fontSize: '0.65rem', color: 'var(--muted-foreground)',
-          display: 'block', marginTop: 4,
+          fontSize: '0.63rem', color: 'var(--muted-foreground)',
+          display: 'block', marginTop: 3,
         }}>
           {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-          {' at '}
+          {' · '}
           {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-        {!isSystemGenerated(n.id) && (
+      <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+        {!sys && (
           <button
             onClick={() => onToggleRead(n)}
             title={n.isRead ? 'Mark as unread' : 'Mark as read'}
@@ -116,7 +130,7 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
         >
           <ExternalLink size={13} />
         </button>
-        {!isSystemGenerated(n.id) && (
+        {!sys && (
           <button
             onClick={() => onDelete(n.id)}
             title="Dismiss"

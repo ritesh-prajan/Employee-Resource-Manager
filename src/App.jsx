@@ -201,6 +201,8 @@ function MainAppContent() {
       case 'admin-dashboard':
         return <AdminDashboard setCurrentPage={setCurrentPage} />;
       case 'admin-timesheets':
+      case 'timesheet':
+      case 'lead-timesheet':
         return <AdminTimesheets />;
       case 'teams':
       case 'admin-teams':

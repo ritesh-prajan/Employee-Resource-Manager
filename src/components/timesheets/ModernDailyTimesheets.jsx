@@ -65,35 +65,23 @@ export default function Timesheets() {
   const groups = filteredUsers.map((u) => {
     const nameParts = u.name.split(" ");
     const initials = nameParts.map((n) => n[0]).join("").substring(0, 2).toUpperCase();
-    
-    // Check for overlap on current day
+
     const userEntries = timeEntries.filter(e => e.userId === u.id && e.date === currentDate.format("YYYY-MM-DD"));
     const timeBlocks = userEntries.map(e => ({
       start: moment(`${e.date}T${e.startTime}:00`).valueOf(),
       end: moment(`${e.date}T${e.endTime}:00`).valueOf()
     })).sort((a, b) => a.start - b.start);
-    
+
     let hasOverlap = false;
     for (let i = 1; i < timeBlocks.length; i++) {
-      if (timeBlocks[i].start < timeBlocks[i-1].end) {
-        hasOverlap = true;
-        break;
-      }
+      if (timeBlocks[i].start < timeBlocks[i-1].end) { hasOverlap = true; break; }
     }
 
-    return {
-      id: u.id,
-      title: u.name,
-      initials,
-      subtitle: u.role || "Employee",
-      hasOverlap,
-    };
+    return { id: u.id, title: u.name, initials, subtitle: u.role || "Employee", hasOverlap };
   });
 
   const filteredEntries = timeEntries.filter(e => {
-    if (statusFilter !== "All Statuses") {
-      if (e.status !== statusFilter) return false;
-    }
+    if (statusFilter !== "All Statuses" && e.status !== statusFilter) return false;
     if (categoryFilter !== "All Categories" && e.workCategory !== categoryFilter) return false;
     if (projectFilter !== "All Projects" && e.projectId !== projectFilter) return false;
     return true;
@@ -101,12 +89,10 @@ export default function Timesheets() {
 
   const items = filteredEntries.map((e) => {
     const startStr = `${e.date}T${e.startTime}:00`;
-    const endStr = `${e.date}T${e.endTime}:00`;
+    const endStr   = `${e.date}T${e.endTime}:00`;
     let type = "pending";
     if (e.status === "Approved") type = "completed";
-    
     const taskObj = tasks.find((t) => t.id === e.taskId);
-
     return {
       id: e.id,
       group: e.userId,
@@ -121,12 +107,9 @@ export default function Timesheets() {
   });
 
   const getTimeWindow = (date, mode) => {
-    if (mode === VIEW_MODES.DAY)
-      return { start: date.clone().hour(8).toDate(), end: date.clone().hour(19).toDate() };
-    if (mode === VIEW_MODES.WEEK)
-      return { start: date.clone().startOf("week").toDate(), end: date.clone().endOf("week").toDate() };
-    if (mode === VIEW_MODES.MONTH)
-      return { start: date.clone().startOf("month").toDate(), end: date.clone().endOf("month").toDate() };
+    if (mode === VIEW_MODES.DAY)   return { start: date.clone().hour(8).toDate(), end: date.clone().hour(19).toDate() };
+    if (mode === VIEW_MODES.WEEK)  return { start: date.clone().startOf("week").toDate(), end: date.clone().endOf("week").toDate() };
+    if (mode === VIEW_MODES.MONTH) return { start: date.clone().startOf("month").toDate(), end: date.clone().endOf("month").toDate() };
   };
 
   const timeWindow = getTimeWindow(currentDate, viewMode);
@@ -222,101 +205,113 @@ export default function Timesheets() {
   return (
     <div className="flex flex-col gap-4 w-full">
 
-      {/* Filter Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-4">
-          
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-64 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition">
-            <Search size={16} className="text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search staff name..." 
-              className="bg-transparent border-none outline-none text-sm text-slate-700 w-full"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+      {/* ── Filter Bar ── */}
+      <div className="rounded-2xl border p-4 shadow-sm flex flex-wrap items-center gap-3"
+        style={{ background: "var(--card)", borderColor: "var(--border)" }}>
 
-          <div className="flex items-center gap-2">
-            <Layers size={14} className="text-slate-400" />
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Team:</span>
-            <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium outline-none hover:border-slate-300 transition appearance-none min-w-[140px]">
-              <option value="All Teams">All Teams</option>
-              {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Filter size={14} className="text-slate-400" />
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Role:</span>
-            <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium outline-none hover:border-slate-300 transition appearance-none min-w-[120px]">
-              <option value="All Staff">All Staff</option>
-              <option value="Employee">Employee</option>
-              <option value="Team Lead">Team Lead</option>
-              <option value="Admin">Admin</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Briefcase size={14} className="text-slate-400" />
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Project:</span>
-            <select value={projectFilter} onChange={e => setProjectFilter(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium outline-none hover:border-slate-300 transition appearance-none min-w-[150px]">
-              <option value="All Projects">All Projects</option>
-              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Tag size={14} className="text-slate-400" />
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Category:</span>
-            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium outline-none hover:border-slate-300 transition appearance-none min-w-[150px]">
-              <option value="All Categories">All Categories</option>
-              <option value="Story">Story</option>
-              <option value="Bug">Bug</option>
-              <option value="General">General</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2 mt-2 2xl:mt-0">
-            <Clock size={14} className="text-slate-400" />
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status:</span>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium outline-none hover:border-slate-300 transition appearance-none min-w-[140px]">
-              <option value="All Statuses">All Statuses</option>
-              <option value="Approved">Approved</option>
-              <option value="Pending">Pending Review</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2 mt-2 2xl:mt-0 ml-auto">
-            <Calendar size={14} className="text-slate-400" />
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Date:</span>
-            <input 
-              type="date" 
-              value={currentDate.format("YYYY-MM-DD")}
-              onChange={e => {
-                if(e.target.value) setCurrentDate(moment(e.target.value).startOf("day"));
-                setCurrentPage(1);
-              }}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium outline-none hover:border-slate-300 transition appearance-none cursor-pointer"
-            />
-          </div>
-
+        {/* Search */}
+        <div className="flex items-center gap-2 rounded-xl px-3 py-2 w-56 border transition"
+          style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
+          <Search size={15} style={{ color: "var(--muted-foreground)" }} className="shrink-0" />
+          <input
+            type="text"
+            placeholder="Search staff name..."
+            className="bg-transparent border-none outline-none text-sm w-full"
+            style={{ color: "var(--foreground)" }}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="cursor-pointer hover:opacity-70" style={{ color: "var(--muted-foreground)" }}>
+              <X size={12} />
+            </button>
+          )}
         </div>
+
+        {/* Team */}
+        <div className="flex items-center gap-1.5">
+          <Layers size={14} style={{ color: "var(--muted-foreground)" }} />
+          <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
+            <option value="All Teams">All Teams</option>
+            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </div>
+
+        {/* Role */}
+        <div className="flex items-center gap-1.5">
+          <Filter size={14} style={{ color: "var(--muted-foreground)" }} />
+          <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+            <option value="All Staff">All Staff</option>
+            <option value="Employee">Employee</option>
+            <option value="Team Lead">Team Lead</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </div>
+
+        {/* Project */}
+        <div className="flex items-center gap-1.5">
+          <Briefcase size={14} style={{ color: "var(--muted-foreground)" }} />
+          <select value={projectFilter} onChange={e => setProjectFilter(e.target.value)}>
+            <option value="All Projects">All Projects</option>
+            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+
+        {/* Category */}
+        <div className="flex items-center gap-1.5">
+          <Tag size={14} style={{ color: "var(--muted-foreground)" }} />
+          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+            <option value="All Categories">All Categories</option>
+            <option value="Story">Story</option>
+            <option value="Bug">Bug</option>
+            <option value="General">General</option>
+          </select>
+        </div>
+
+        {/* Status */}
+        <div className="flex items-center gap-1.5">
+          <Clock size={14} style={{ color: "var(--muted-foreground)" }} />
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="All Statuses">All Statuses</option>
+            <option value="Approved">Approved</option>
+            <option value="Pending">Pending Review</option>
+          </select>
+        </div>
+
+        {/* Date picker */}
+        <div className="flex items-center gap-1.5">
+          <Calendar size={14} style={{ color: "var(--muted-foreground)" }} />
+          <input
+            type="date"
+            value={currentDate.format("YYYY-MM-DD")}
+            onChange={e => {
+              if (e.target.value) setCurrentDate(moment(e.target.value).startOf("day"));
+              setCurrentPage(1);
+            }}
+            className="input-control text-sm cursor-pointer"
+          />
+        </div>
+
       </div>
 
-      {/* Date nav + view toggle */}
-      <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center justify-between shadow-sm">
+      {/* ── Date nav + view toggle ── */}
+      <div className="rounded-2xl border px-5 py-4 flex items-center justify-between shadow-sm"
+        style={{ background: "var(--card)", borderColor: "var(--border)" }}>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
-            <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition">‹</button>
-            <button onClick={() => navigate(1)}  className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition">›</button>
+            <button onClick={() => navigate(-1)}
+              className="w-8 h-8 rounded-lg border flex items-center justify-center transition"
+              style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>‹</button>
+            <button onClick={() => navigate(1)}
+              className="w-8 h-8 rounded-lg border flex items-center justify-center transition"
+              style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>›</button>
           </div>
           <div>
-            <div className="text-base font-bold text-slate-800">{getDateLabel()}</div>
-            <div className="text-xs text-slate-400">{getSubLabel()}</div>
+            <div className="text-base font-bold" style={{ color: "var(--foreground)" }}>{getDateLabel()}</div>
+            <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{getSubLabel()}</div>
           </div>
         </div>
-        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+        <div className="flex items-center gap-1 rounded-xl p-1" style={{ background: "var(--muted-foreground)", opacity: 0.08, borderRadius: "0.75rem" }}>
           {[
             { label: "Day Timeline", value: VIEW_MODES.DAY },
             { label: "Week Grid",    value: VIEW_MODES.WEEK },
@@ -325,16 +320,17 @@ export default function Timesheets() {
             <button
               key={value}
               onClick={() => { setViewMode(value); setCurrentPage(1); setPopup(null); }}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
-                viewMode === value ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"
-              }`}
+              className="px-4 py-1.5 rounded-lg text-sm font-medium transition"
+              style={viewMode === value
+              ? { background: "var(--primary)", color: "var(--primary-foreground)" }
+              : { color: "var(--muted-foreground)", background: "transparent" }}
             >{label}</button>
           ))}
         </div>
       </div>
 
-      {/* Main card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+      {/* ── Main card ── */}
+      <div className="rounded-2xl border shadow-sm" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
         {viewMode === VIEW_MODES.WEEK ? (
           <ModernWeeklyTimesheets groups={paginatedGroups} items={items} currentDate={currentDate} />
         ) : viewMode === VIEW_MODES.MONTH ? (
@@ -346,7 +342,7 @@ export default function Timesheets() {
               groups={paginatedGroups}
               items={paginatedItems}
               keys={keys}
-              lineHeight={56}
+              lineHeight={72}
               sidebarWidth={220}
               visibleTimeStart={timeWindow.start}
               visibleTimeEnd={timeWindow.end}
@@ -361,19 +357,21 @@ export default function Timesheets() {
               canResize={false}
               groupRenderer={({ group }) => (
                 <div className="flex items-center h-full px-3">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[11px] font-bold shrink-0">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                    style={{ background: "var(--accent)", color: "var(--primary)" }}>
                     {group.initials}
                   </div>
                   <div className="ml-2 flex flex-col justify-center">
-                    <div className="text-xs font-semibold text-slate-800 leading-tight flex items-center gap-1">
+                    <div className="text-xs font-semibold leading-tight flex items-center gap-1"
+                      style={{ color: "var(--foreground)" }}>
                       {group.title}
                       {group.hasOverlap && (
-                        <div title="Warning: Overlapping time entries" className="text-amber-500 flex items-center cursor-help">
+                        <div title="Warning: Overlapping time entries" className="flex items-center cursor-help" style={{ color: "#f59e0b" }}>
                           <AlertTriangle size={12} strokeWidth={2.5} />
                         </div>
                       )}
                     </div>
-                    <div className="text-[11px] text-slate-400 leading-tight">{group.subtitle}</div>
+                    <div className="text-[11px] leading-tight" style={{ color: "var(--muted-foreground)" }}>{group.subtitle}</div>
                   </div>
                 </div>
               )}
@@ -381,7 +379,8 @@ export default function Timesheets() {
               <TimelineHeaders>
                 <SidebarHeader>
                   {({ getRootProps }) => (
-                    <div {...getRootProps()} className="flex items-center px-4 h-full text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    <div {...getRootProps()} className="flex items-center px-4 h-full text-xs font-semibold uppercase tracking-wide"
+                      style={{ color: "var(--muted-foreground)" }}>
                       Staff Member
                     </div>
                   )}
@@ -393,65 +392,103 @@ export default function Timesheets() {
         )}
       </div>
 
-      {/* Pagination */}
-      <div className="bg-white rounded-2xl border border-slate-200 px-5 py-3 flex items-center justify-between shadow-sm">
-        <span className="text-sm text-slate-500">
-          Showing <span className="font-semibold text-slate-700">{startIndex + 1} – {Math.min(startIndex + perPage, totalGroups)}</span> of <span className="font-semibold text-slate-700">{totalGroups}</span> staff members
+      {/* ── Pagination ── */}
+      <div className="rounded-2xl border px-5 py-3 flex items-center justify-between shadow-sm"
+        style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+        <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+          Showing{" "}
+          <span className="font-semibold" style={{ color: "var(--foreground)" }}>{startIndex + 1} – {Math.min(startIndex + perPage, totalGroups)}</span>
+          {" "}of{" "}
+          <span className="font-semibold" style={{ color: "var(--foreground)" }}>{totalGroups}</span>
+          {" "}staff members
         </span>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
+          <div className="flex items-center gap-2 text-sm" style={{ color: "var(--muted-foreground)" }}>
             Per page:
-            <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }} className="border border-slate-200 rounded-lg px-2 py-1 text-sm text-slate-700 bg-white focus:outline-none">
+            <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}>
               {PER_PAGE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 rounded-lg border border-slate-200 text-sm text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition">Prev</button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded-lg border text-sm disabled:opacity-40 transition"
+              style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>Prev</button>
             {getPageNumbers().map((n) => (
-              <button key={n} onClick={() => setCurrentPage(n)} className={`w-8 h-8 rounded-lg text-sm font-medium transition ${n === currentPage ? "bg-indigo-600 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>{n}</button>
+              <button key={n} onClick={() => setCurrentPage(n)}
+                className="w-8 h-8 rounded-lg text-sm font-medium transition"
+                style={n === currentPage
+                  ? { background: "var(--primary)", color: "var(--primary-foreground)" }
+                  : { border: "1px solid var(--border)", color: "var(--foreground)" }}>
+                {n}
+              </button>
             ))}
-            <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 rounded-lg border border-slate-200 text-sm text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition">Next</button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded-lg border text-sm disabled:opacity-40 transition"
+              style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>Next</button>
           </div>
         </div>
       </div>
 
-      {/* Popup — fixed, outside all overflow containers */}
+      {/* ── Popup ── */}
       {popup && (() => {
         const group = groups.find((g) => g.id === popup.item.group);
         const meta  = STATUS_META[popup.item.type] ?? STATUS_META.pending;
         return (
-          <div className="fixed z-[999] bg-slate-50 rounded-2xl shadow-xl border border-slate-100 w-72 p-4" style={{ left: popup.x, top: popup.y }}>
-            <button onClick={() => setPopup(null)} className="absolute top-3 right-3 text-slate-300 hover:text-slate-500 transition"><X size={15} /></button>
+          <div className="fixed z-[999] rounded-2xl shadow-xl w-72 p-4"
+            style={{ left: popup.x, top: popup.y, background: "var(--card)", border: "1px solid var(--border)" }}>
+            <button onClick={() => setPopup(null)}
+              className="absolute top-3 right-3 transition cursor-pointer hover:opacity-70"
+              style={{ color: "var(--muted-foreground)" }}>
+              <X size={15} />
+            </button>
             <div className="flex items-center gap-2.5 mb-3 pr-4">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[11px] font-bold shrink-0">{group?.initials}</div>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                style={{ background: "var(--accent)", color: "var(--primary)" }}>
+                {group?.initials}
+              </div>
               <div>
-                <div className="text-[11px] text-slate-400 font-medium">{group?.title}</div>
-                <div className="text-sm font-bold text-slate-800 leading-tight">{popup.item.taskTitle ?? popup.item.title}</div>
+                <div className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>{group?.title}</div>
+                <div className="text-sm font-bold leading-tight" style={{ color: "var(--foreground)" }}>{popup.item.taskTitle ?? popup.item.title}</div>
               </div>
             </div>
-            <div className="border-t border-slate-100 pt-3 flex flex-col gap-2.5">
+            <div className="pt-3 flex flex-col gap-2.5" style={{ borderTop: "1px solid var(--border)" }}>
               <div>
-                <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5"><Clock size={10} /> Time</div>
-                <div className="text-sm text-slate-700">{formatTimeRange(popup.item)}</div>
+                <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  <Clock size={10} /> Time
+                </div>
+                <div className="text-sm" style={{ color: "var(--foreground)" }}>{formatTimeRange(popup.item)}</div>
               </div>
               <div>
-                <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5"><Tag size={10} /> Category</div>
-                <div className="text-sm text-slate-700">{popup.item.category ?? "General"}</div>
+                <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  <Tag size={10} /> Category
+                </div>
+                <div className="text-sm" style={{ color: "var(--foreground)" }}>{popup.item.category ?? "General"}</div>
               </div>
               {popup.item.description && (
                 <div>
-                  <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5"><FileText size={10} /> Description</div>
-                  <div className="text-sm text-slate-600 leading-relaxed">{popup.item.description}</div>
+                  <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    <FileText size={10} /> Description
+                  </div>
+                  <div className="text-sm leading-relaxed" style={{ color: "var(--muted-foreground)" }}>{popup.item.description}</div>
                 </div>
               )}
               <div>
-                <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5"><CheckCircle size={10} /> Status</div>
-                <div className="text-sm text-slate-700">{meta.label}</div>
+                <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+                  <CheckCircle size={10} /> Status
+                </div>
+                <div className="text-sm" style={{ color: "var(--foreground)" }}>{meta.label}</div>
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Entry State</span>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-lg" style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.border}` }}>{meta.label}</span>
+            <div className="mt-3 pt-3 flex items-center justify-between" style={{ borderTop: "1px solid var(--border)" }}>
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--muted-foreground)" }}>Entry State</span>
+              <span className="text-xs font-bold px-2.5 py-1 rounded-lg"
+                style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.border}` }}>
+                {meta.label}
+              </span>
             </div>
           </div>
         );

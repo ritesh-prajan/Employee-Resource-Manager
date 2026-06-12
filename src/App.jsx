@@ -39,6 +39,8 @@ function MainAppContent() {
   const [currentPage, setCurrentPage] = useState('');
   const [prevUserId, setPrevUserId] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  console.log('currentUser:', currentUser);
+  console.log('role:', currentUser?.role);
 
 
   // Automatically adjust view if changing to a user who doesn't have access to the current page

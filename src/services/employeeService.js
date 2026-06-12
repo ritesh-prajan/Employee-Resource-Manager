@@ -36,14 +36,17 @@ function toBackendEmployee(data) {
     employeeCode:           data.employee_code,
     name:                   data.name,
     workEmail:              data.email || data.workEmail,
-    personalEmail:          data.personalEmail || '',
+    personalEmail:          data.personalEmail || data.email || data.workEmail,
     phone:                  data.phone || '',
     designation:            data.designation || 'General',
     status:                 toBackendStatus(data.status),
     notificationPreference: data.notification_preference || 'ALL',
     profileImage:           data.profileImage || data.avatar || '',
-    password:               data.password || '',
-
+    joiningDate:            data.joiningDate || new Date().toISOString().split('T')[0],
+    roles:                  data.role ? [data.role] : ['Employee'],
+    user: {
+      password:             data.password || '',
+    },
   };
 }
 

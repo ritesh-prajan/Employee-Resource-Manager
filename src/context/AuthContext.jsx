@@ -14,9 +14,7 @@ function maprole(apirole=[]){
     if(apirole.includes(code)){
      
       return ROLE_MAP[code];
-
     }
-   
   }
   return 'Employee'
 }

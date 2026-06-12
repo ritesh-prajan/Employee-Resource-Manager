@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion } from "motion/react"
+import { motion } from "framer-motion";
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -22,9 +22,18 @@ export default function Login() {
         case 'Sub Lead':  navigate('/lead/dashboard');  break;
         default:          navigate('/dashboard');        break;
       }
-    } catch {
-      setError('Invalid email or password. Please try again.');
-    }
+    } catch (err) {
+      const msg = err?.message?.toLowerCase() ?? '';
+        if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('invalid')) {
+          setError('Incorrect email or password. Please try again.');
+        } else if (msg.includes('403') || msg.includes('forbidden')) {
+          setError('Your account has been disabled. Contact your admin.');
+        } else if (msg.includes('network') || msg.includes('failed to fetch')) {
+          setError('Cannot reach server. Check your connection.');
+        } else {
+          setError('Something went wrong. Please try again.');
+        }
+      }
   }
 
   return (

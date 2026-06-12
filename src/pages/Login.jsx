@@ -4,16 +4,18 @@ import { motion } from "framer-motion";
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
-  const { login, loading } = useAuth();
+  const { login } = useAuth();
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
     try {
       const user = await login(email, password);
       switch (user.role) {
@@ -23,17 +25,18 @@ export default function Login() {
         default:          navigate('/dashboard');        break;
       }
     } catch (err) {
-      const msg = err?.message?.toLowerCase() ?? '';
-        if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('invalid')) {
-          setError('Incorrect email or password. Please try again.');
-        } else if (msg.includes('403') || msg.includes('forbidden')) {
-          setError('Your account has been disabled. Contact your admin.');
-        } else if (msg.includes('network') || msg.includes('failed to fetch')) {
-          setError('Cannot reach server. Check your connection.');
-        } else {
-          setError('Something went wrong. Please try again.');
-        }
+      if (err.status === 401) {
+        setError('Incorrect email or password. Please try again.');
+      } else if (err.status === 403) {
+        setError('Your account has been disabled. Contact your admin.');
+      } else if (err.status >= 500) {
+        setError('Server error. Please try again later.');
+      } else {
+        setError('Something went wrong. Please try again.');
       }
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -74,7 +77,7 @@ export default function Login() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              disabled={loading}
+              disabled={isLoading}
               className="input-control w-full py-2.5 text-[14px]"
             />
           </div>
@@ -98,7 +101,7 @@ export default function Login() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              disabled={loading}
+              disabled={isLoading}
               className="input-control w-full py-2.5 text-[14px]"
             />
           </div>
@@ -116,13 +119,13 @@ export default function Login() {
 
           {/* Submit */}
           <motion.button
-            whileHover={{ scale: loading ? 1 : 1.01 }}
-            whileTap={{ scale: loading ? 1 : 0.98 }}
+            whileHover={{ scale: isLoading ? 1 : 1.01 }}
+            whileTap={{ scale: isLoading ? 1 : 0.98 }}
             type="submit"
-            disabled={loading}
+            disabled={isLoading}
             className="w-full btn btn-primary py-3 mt-1 rounded-xl shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? (
+            {isLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <svg className="animate-spin h-4 w-4 text-primary-foreground" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>

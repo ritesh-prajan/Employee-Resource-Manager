@@ -15,6 +15,9 @@ export const authService = {
   },
   forgotpassword:(email)=>{
     return api.post('/auth/forgot-password',{email})
+  },
+  resetpassword:(password,token)=>{
+    return api.post('/auth/reset-password',{token, newPassword: password})
   }
 
 

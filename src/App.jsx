@@ -10,6 +10,8 @@ import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import {Route,Routes,Navigate} from 'react-router-dom'
 import Forgotpassword from './pages/Forgotpassword.jsx';
+import Resetpassword from './pages/Resetpassword.jsx'
+import { useLocation } from 'react-router-dom';
 // Employee Pages
 import Tasks from './pages/employee/Tasks';
 import EmployeeAttendance from './pages/employee/Attendance';
@@ -39,8 +41,7 @@ function MainAppContent() {
   const [currentPage, setCurrentPage] = useState('');
   const [prevUserId, setPrevUserId] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  console.log('currentUser:', currentUser);
-  console.log('role:', currentUser?.role);
+  const location=useLocation();
 
 
   // Automatically adjust view if changing to a user who doesn't have access to the current page
@@ -132,12 +133,19 @@ function MainAppContent() {
     );
   }
 
+  
+  if(location.pathname==="/reset-password"){
+    return <Resetpassword/>
+  }
+
+
   {/*Login guard */}
    if (!isAuthenticated) {
     return (
       <Routes>
         <Route path="/login" element={<Login/>}></Route>
         <Route path="/forgotpassword" element={<Forgotpassword/>}></Route>
+        
         <Route path="*" element={<Navigate to="/login" replace/>}></Route>
       </Routes>
     )

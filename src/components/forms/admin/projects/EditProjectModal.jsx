@@ -54,7 +54,7 @@ export default function EditProjectModal({ show, onClose, project }) {
   if (!projData) return null;
 
   return (
-    <Modal isOpen={show} onClose={onClose} maxWidth="460px">
+    <Modal isOpen={show} onClose={onClose} maxWidth="850px">
       <div className="modal-header">
         <h3 className="modal-title">Edit Project</h3>
         <button className="modal-close" onClick={onClose}>×</button>

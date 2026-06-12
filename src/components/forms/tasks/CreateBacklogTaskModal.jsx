@@ -21,7 +21,7 @@ export default function CreateBacklogTaskModal({ show, onClose, onSubmit, projec
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            style={{ maxWidth: '480px' }}
+            style={{ maxWidth: '850px' }}
           >
             <div className="modal-header">
               <h3 className="modal-title">Create Backlog Task</h3>

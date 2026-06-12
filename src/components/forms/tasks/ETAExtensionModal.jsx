@@ -17,7 +17,7 @@ export default function ETAExtensionModal({ show, onClose, onSubmit, etaDate, se
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            style={{ maxWidth: '440px' }}
+            style={{ maxWidth: '850px' }}
           >
             <div className="modal-header">
               <h3 className="modal-title">Request ETA Extension</h3>

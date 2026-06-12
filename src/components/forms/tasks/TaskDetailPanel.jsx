@@ -51,7 +51,7 @@ export default function TaskDetailPanel({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '680px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
+            style={{ maxWidth: '850px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
           >
             {/* Header */}
             <div className="modal-header" style={{ position: 'sticky', top: 0, backgroundColor: 'var(--bg-card)', zIndex: 10, paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>

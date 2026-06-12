@@ -7,7 +7,7 @@ import WeeklyHoursChart from '../../components/dashboard/WeeklyHoursChart';
 import ProjectTaskHealth from '../../components/dashboard/ProjectTaskHealth';
 import WorkCategoryChart from '../../components/dashboard/WorkCategoryChart';
 
-const TODAY = '2026-05-29';
+const TODAY = new Date().toISOString().split('T')[0];
 
 export default function AdminDashboard({ setCurrentPage }) {
   const {
@@ -36,7 +36,7 @@ export default function AdminDashboard({ setCurrentPage }) {
   users.filter(u => u.id !== currentUser.id).forEach(u => {
     const att = attendanceHistory.find(a => a.employeeId === u.id && a.date === TODAY);
     if (att && att.clockStatus !== 'Offline') {
-      const activeTask = tasks.find(t => t.assignedTo === u.id && t.status === 'In Progress');
+    const activeTask = tasks.find(t => t.assignedTo === u.id && t.status?.toUpperCase() === 'IN_PROGRESS');
       activeTrackers.push({
         user: u,
         taskName: activeTask ? activeTask.name : 'Working on general tasks',
@@ -59,16 +59,20 @@ export default function AdminDashboard({ setCurrentPage }) {
     },
     hoursToday: timeEntries
       .filter(e => e.date === TODAY)
-      .reduce((sum, e) => sum + parseFloat(e.duration), 0),
-    openTasks: tasks.filter(t => t.status !== 'Completed' && t.status !== 'Cancelled').length,
-    overdueTasks: tasks.filter(t =>
-      t.status !== 'Completed' && t.status !== 'Cancelled' &&
-      t.etaDate && new Date(t.etaDate) < new Date(TODAY)
-    ).length,
+      .reduce((sum, e) => sum + parseFloat(e.duration || 0), 0),
+    openTasks: tasks.filter(t => {
+      const s = t.status?.toUpperCase();
+      return s !== 'COMPLETED' && s !== 'CANCELLED' && s !== 'REJECTED' && s !== 'TRANSFERRED';
+    }).length,
+    overdueTasks: tasks.filter(t => {
+      const s = t.status?.toUpperCase();
+      return s !== 'COMPLETED' && s !== 'CANCELLED' && s !== 'REJECTED' &&
+        t.etaDate && new Date(t.etaDate) < new Date(TODAY);
+    }).length,
     pendingApprovals: (reports || []).filter(r =>
       r.status === 'Submitted' || r.status?.includes('Pending')
     ).length,
-    backlogSize: tasks.filter(t => !t.assignedTo || t.assignedTo === '').length,
+    backlogSize: tasks.filter(t => !t.assignedTo).length,
   };
 
   return (

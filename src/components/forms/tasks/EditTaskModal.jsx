@@ -16,7 +16,7 @@ export default function EditTaskModal({ show, onClose, onSubmit, editingTask, se
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            style={{ maxWidth: '520px' }}
+            style={{ maxWidth: '850px' }}
           >
             <div className="modal-header">
               <h3 className="modal-title">Edit Task — {editingTask.taskNumber}</h3>

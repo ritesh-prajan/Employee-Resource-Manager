@@ -69,7 +69,7 @@ export default function CreateTaskModal({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            style={{ maxWidth: '620px', width: '100%' }}
+            style={{ maxWidth: '850px', width: '100%' }}
           >
             <div className="modal-header">
               <h3 className="modal-title">Assign Tasks to Team Members</h3>

@@ -223,6 +223,7 @@ export const AppProvider = ({ children }) => {
       setEmployeesError(null);
       try {
         const data = await employeeService.getAll();
+        console.log('fetched employees:', data.length);
         setUsers(data);
       } catch (err) {
         console.error('Failed to fetch employees:', err);
@@ -1334,21 +1335,65 @@ export const AppProvider = ({ children }) => {
   };
 
   // Edit Team Action
-  const editTeam = async (teamId, updatedData) => {
+const editTeam = async (teamId, updatedData) => {
   try {
     const updated = await teamService.update(teamId, updatedData);
     setTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...updated } : t));
+
+    // Sync members: remove all then re-add
+    const existingMembers = await teamService.getMembers(teamId);
+    const existingIds = existingMembers.map(m => m.id);
+    const newIds = updatedData.members || [];
+
+    // Remove members no longer in the list
+    for (const id of existingIds) {
+      if (!newIds.includes(id)) {
+        await teamService.removeMember(teamId, id);
+      }
+    }
+    // Add new members not already there
+    for (const id of newIds) {
+      if (!existingIds.includes(id)) {
+        await teamService.addMember(teamId, id);
+      }
+    }
+
+    // Refresh members on the team in state
+    const finalMembers = await teamService.getMembers(teamId);
+    setTeams(prev => prev.map(t =>
+      t.id === teamId ? { ...t, members: finalMembers.map(m => m.id) } : t
+    ));
   } catch (err) {
     console.error('Failed to update team:', err);
     alert('Failed to update team: ' + err.message);
   }
 };
 
-  // Edit Project Action
- const editProject = async (projectId, updatedData) => {
+const editProject = async (projectId, updatedData) => {
   try {
     const updated = await projectService.update(projectId, updatedData);
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...updated } : p));
+
+    // Sync members
+    const existingMembers = await projectService.getMembers(projectId);
+    const existingIds = existingMembers.map(m => m.id);
+    const newIds = updatedData.members || [];
+
+    for (const id of existingIds) {
+      if (!newIds.includes(id)) {
+        await projectService.removeMember(projectId, id);
+      }
+    }
+    for (const id of newIds) {
+      if (!existingIds.includes(id)) {
+        await projectService.addMember(projectId, id);
+      }
+    }
+
+    const finalMembers = await projectService.getMembers(projectId);
+    setProjects(prev => prev.map(p =>
+      p.id === projectId ? { ...p, members: finalMembers.map(m => m.id) } : p
+    ));
   } catch (err) {
     console.error('Failed to update project:', err);
     alert('Failed to update project: ' + err.message);

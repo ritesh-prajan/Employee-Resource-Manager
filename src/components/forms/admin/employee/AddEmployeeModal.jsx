@@ -66,22 +66,22 @@ export default function AddEmployeeModal({ show, onClose, users, teams, projects
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">FULL NAME *</label>
-              <input type="text" className="input-control" placeholder="E.g. David Miller" value={empData.name} onChange={(e) => setEmpData(prev => ({ ...prev, name: e.target.value }))} required />
+              <input type="text" className="input-control" placeholder="Enter Name" value={empData.name} onChange={(e) => setEmpData(prev => ({ ...prev, name: e.target.value }))} required />
             </div>
             <div className="form-group">
               <label className="form-label">EMPLOYEE NUMBER *</label>
-              <input type="text" className="input-control" placeholder="E.g. EMP-0046" value={empData.employee_code} onChange={(e) => setEmpData(prev => ({ ...prev, employee_code: e.target.value }))} required />
+              <input type="text" className="input-control" placeholder="Enter Employee Number" value={empData.employee_code} onChange={(e) => setEmpData(prev => ({ ...prev, employee_code: e.target.value }))} required />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">WORK EMAIL *</label>
-              <input type="email" className="input-control" placeholder="E.g. david.m@office.com" value={empData.email} onChange={(e) => setEmpData(prev => ({ ...prev, email: e.target.value }))} required />
+              <input type="email" className="input-control" placeholder="Enter Work Email" value={empData.email} onChange={(e) => setEmpData(prev => ({ ...prev, email: e.target.value }))} required />
             </div>
             <div className="form-group">
               <label className="form-label">PERSONAL EMAIL (OPTIONAL)</label>
-              <input type="email" className="input-control" placeholder="E.g. david.m.personal@gmail.com" value={empData.personalEmail} onChange={(e) => setEmpData(prev => ({ ...prev, personalEmail: e.target.value }))} />
+              <input type="email" className="input-control" placeholder="Enter Personal Email" value={empData.personalEmail} onChange={(e) => setEmpData(prev => ({ ...prev, personalEmail: e.target.value }))} />
             </div>
           </div>
 

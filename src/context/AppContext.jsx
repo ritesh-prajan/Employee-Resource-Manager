@@ -214,57 +214,74 @@ export const AppProvider = ({ children }) => {
     document.body.className = theme === 'dark' ? 'dark-theme' : 'light-theme';
   }, [theme]);
   useEffect(() => {
-  const fetchEmployees = async () => {
-    setEmployeesLoading(true);
-    setEmployeesError(null);
-    try {
-      const data = await employeeService.getAll();
-      setUsers(data);
-    } catch (err) {
-      console.error('Failed to fetch employees:', err);
-      setEmployeesError(err.message);
-      // keeps MOCK_USERS as fallback if backend is down
-    } finally {
-      setEmployeesLoading(false);
+    if (!isAuthenticated) {
+      setUsers(MOCK_USERS);
+      return;
     }
-  };
+    const fetchEmployees = async () => {
+      setEmployeesLoading(true);
+      setEmployeesError(null);
+      try {
+        const data = await employeeService.getAll();
+        setUsers(data);
+      } catch (err) {
+        console.error('Failed to fetch employees:', err);
+        setEmployeesError(err.message);
+      } finally {
+        setEmployeesLoading(false);
+      }
+    };
 
-  fetchEmployees();
-}, []);
+    fetchEmployees();
+  }, [isAuthenticated]);
+
   useEffect(() => {
-  const fetchTeams = async () => {
-    try {
-      const data = await teamService.getAll();
-      setTeams(data);
-    } catch (err) {
-      console.error('Failed to fetch teams:', err);
-      // keeps MOCK_TEAMS as fallback
+    if (!isAuthenticated) {
+      setTeams(MOCK_TEAMS);
+      return;
     }
-  };
-  fetchTeams();
-}, []);
-useEffect(() => {
-  const fetchProjects = async () => {
-    try {
-      const data = await projectService.getAll();
-      setProjects(data);
-    } catch (err) {
-      console.error('Failed to fetch projects:', err);
+    const fetchTeams = async () => {
+      try {
+        const data = await teamService.getAll();
+        setTeams(data);
+      } catch (err) {
+        console.error('Failed to fetch teams:', err);
+      }
+    };
+    fetchTeams();
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setProjects(MOCK_PROJECTS);
+      return;
     }
-  };
-  fetchProjects();
-}, []);
-useEffect(() => {
-  const fetchTasks = async () => {
-    try {
-      const data = await taskService.getAll();
-      setTasks(data);
-    } catch (err) {
-      console.error('Failed to fetch tasks:', err);
+    const fetchProjects = async () => {
+      try {
+        const data = await projectService.getAll();
+        setProjects(data);
+      } catch (err) {
+        console.error('Failed to fetch projects:', err);
+      }
+    };
+    fetchProjects();
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setTasks(MOCK_TASKS);
+      return;
     }
-  };
-  fetchTasks();
-}, []);
+    const fetchTasks = async () => {
+      try {
+        const data = await taskService.getAll();
+        setTasks(data);
+      } catch (err) {
+        console.error('Failed to fetch tasks:', err);
+      }
+    };
+    fetchTasks();
+  }, [isAuthenticated]);
   // Toggle Theme
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -275,7 +292,7 @@ useEffect(() => {
     setUsers(prevUsers => {
       let changed = false;
       const nextUsers = prevUsers.map(user => {
-        if (user.id === 'user-admin') return user; // Keep Admin as is
+        if (user.role === 'Admin') return user; // Keep Admin as is
         const leadsAnyTeam = teams.some(t => t.leadId === user.id);
         const targetRole = leadsAnyTeam ? 'Team Lead' : 'Employee';
         if (user.role !== targetRole) {
@@ -292,8 +309,8 @@ useEffect(() => {
   }, [teams]);
 
   useEffect(() => {
-    if (currentUser) {
-      const match = users.find(u => u.id === currentUser.id);
+    if (currentUser && currentUser.email) {
+      const match = users.find(u => u.email && u.email.toLowerCase() === currentUser.email.toLowerCase());
       if (match && JSON.stringify(match) !== JSON.stringify(currentUser)) {
         setCurrentUser(match);
       }

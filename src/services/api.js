@@ -22,7 +22,9 @@ export async function refreshapi() {
     });
     if (!response.ok) throw new Error("refresh token failed");
     return await response.json();
-}const BASE_URL = '/api/v1';
+}
+
+const BASE_URL = '/api/v1';
 
 const defaultHeaders = {
   'Content-Type': 'application/json',

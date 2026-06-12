@@ -9,7 +9,7 @@ import TopBar from './components/layout/TopBar';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import {Route,Routes,Navigate} from 'react-router-dom'
-import Forgotpassword from '#pages/Forgotpassword.jsx';
+import Forgotpassword from './pages/Forgotpassword.jsx';
 // Employee Pages
 import Tasks from './pages/employee/Tasks';
 import EmployeeAttendance from './pages/employee/Attendance';

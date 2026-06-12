@@ -15,11 +15,11 @@ import { getLast7Days, TODAY } from '../../utils/dateHelpers';
 
 const CARD_SCHEME = [
   { key: 'activeTasks',      label: 'Active Tasks',       icon: CheckSquare,   accent: '#3b82f6' },
-  { key: 'overdueTasks',     label: 'Overdue Tasks',      icon: AlertTriangle, accent: '#ef4444' },
-  { key: 'pendingApprovals', label: 'Pending Approvals',  icon: UserCheck,     accent: '#f59e0b' },
-  { key: 'hoursThisWeek',    label: 'Team Hours (Week)',  icon: Clock,         accent: '#8b5cf6' },
+  { key: 'overdueTasks',     label: 'ETA Overdue',      icon: AlertTriangle, accent: '#ef4444' },
+  { key: 'pendingApprovals', label: 'Approvals',  icon: UserCheck,     accent: '#f59e0b' },
+  { key: 'hoursThisWeek',    label: 'Team Hours',  icon: Clock,         accent: '#8b5cf6' },
   { key: 'tasksDueToday',    label: 'Due Today',          icon: Calendar,      accent: '#10b981' },
-  { key: 'backlogTasks',     label: 'Backlog Tasks',      icon: Archive,       accent: '#6b7280' },
+  { key: 'backlogTasks',     label: 'Backlog',      icon: Archive,       accent: '#6b7280' },
 ];
 
 export default function TeamLeadDashboard({ setCurrentPage }) {
@@ -50,39 +50,33 @@ export default function TeamLeadDashboard({ setCurrentPage }) {
   const kpis = {
     activeTasks: {
       value: teamTasks.filter(t => ['IN_PROGRESS', 'OPEN', 'PENDING_REVIEW'].includes(t.status?.toUpperCase())).length,
-      sub: `across ${memberIds.length} members`,
     },
     overdueTasks: {
       value: teamTasks.filter(t => {
         const s = t.status?.toUpperCase();
         return s !== 'COMPLETED' && s !== 'REJECTED' && s !== 'TRANSFERRED' && t.etaDate && new Date(t.etaDate) < new Date(TODAY);
       }).length,
-      sub: 'past ETA date',
     },
     pendingApprovals: {
       value: (reports || []).filter(r => memberIds.includes(r.userId) && (r.status === 'Submitted' || r.status?.includes('Pending'))).length,
-      sub: 'timesheets awaiting review',
     },
     hoursThisWeek: {
       value: parseFloat(
         timeEntries.filter(e => memberIds.includes(e.userId) && e.date >= weekStart)
           .reduce((sum, e) => sum + parseFloat(e.duration || 0), 0).toFixed(1)
       ) + 'h',
-      sub: 'logged by team this week',
     },
     tasksDueToday: {
       value: teamTasks.filter(t => {
         const s = t.status?.toUpperCase();
         return s !== 'COMPLETED' && s !== 'REJECTED' && t.etaDate === TODAY;
       }).length,
-      sub: 'tasks due today',
     },
     backlogTasks: {
       value: tasks.filter(t => {
         const s = t.status?.toUpperCase();
         return !t.assignedTo && s !== 'COMPLETED' && s !== 'REJECTED' && teamProjectIds.includes(t.projectId);
       }).length,
-      sub: 'unassigned in team projects',
     },
   };
 

@@ -6,9 +6,10 @@ import { ThemeProvider } from './context/ThemeContext';
 import { TimerProvider } from './context/TimerContext';
 import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
-
+import {Route,Routes,Navigate} from 'react-router-dom'
+import Forgotpassword from '#pages/Forgotpassword.jsx';
 // Employee Pages
 import Tasks from './pages/employee/Tasks';
 import EmployeeAttendance from './pages/employee/Attendance';
@@ -33,14 +34,12 @@ import Alerts from './pages/Alerts';
 import Backlog from './pages/Backlog';
 
 function MainAppContent() {
-  const { currentUser, isAuthenticated, changeUser } = useAuth();
+  const { user: currentUser, isAuthenticated, loading, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState('');
   const [prevUserId, setPrevUserId] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  useEffect(() => {
-    changeUser('user-admin');
-  }, []);
+
   // Automatically adjust view if changing to a user who doesn't have access to the current page
   useEffect(() => {
     if (!isAuthenticated || !currentUser) {
@@ -113,9 +112,32 @@ function MainAppContent() {
     };
   }, []);
 
+
+
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-canvas)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <svg className="animate-spin h-8 w-8 text-primary" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+          <span className="text-[14px] text-muted-foreground font-medium">Loading TeamOps...</span>
+        </div>
+      </div>
+    );
+  }
+
   {/*Login guard */}
-   if (!isAuthenticated || !currentUser) {
-    return <Login />;
+   if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login/>}></Route>
+        <Route path="/forgotpassword" element={<Forgotpassword/>}></Route>
+        <Route path="*" element={<Navigate to="/login" replace/>}></Route>
+      </Routes>
+    )
   }
 
   {/* Page title mapper*/}
@@ -142,8 +164,8 @@ function MainAppContent() {
       case 'lead-meetings':
         return 'Link Room';
       case 'admin-dashboard':
-        case 'admin-dashboard':
-        return <AdminDashboard setCurrentPage={setCurrentPage} />;
+       
+        return 'Dashboard'
       case 'admin-timesheets':
         return 'Timesheets';
       case 'admin-teams':
@@ -254,14 +276,14 @@ function MainAppContent() {
 
   export default function App() {
     return (
-      <AppProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <AppProvider>
           <ThemeProvider>
             <TimerProvider>
               <MainAppContent />
             </TimerProvider>
           </ThemeProvider>
-        </AuthProvider>
-      </AppProvider>
+        </AppProvider>
+      </AuthProvider>
     );
 }

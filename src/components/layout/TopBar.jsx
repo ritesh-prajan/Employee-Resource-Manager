@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {Search, ChevronDown, LogOut, Bell } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed }) {
-  const { theme, toggleTheme, currentUser, changeUser, users, logout, notifications = [] } = useApp();
+  const { theme, toggleTheme, currentUser, changeUser, users, notifications = [] } = useApp();
+  const { logout } = useAuth();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const menuRef = useRef(null);
 

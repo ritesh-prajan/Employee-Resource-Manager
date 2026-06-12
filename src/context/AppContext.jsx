@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { useAuth } from './AuthContext';
 import { 
   MOCK_USERS, 
   MOCK_PROJECTS, 
@@ -14,7 +15,6 @@ import {
   MOCK_ANNOUNCEMENTS,
   MOCK_TEAMS
 } from '../data/mockData';
-
 // Helper: Convert hex to HSL
 function hexToHsl(hex) {
   hex = hex.replace(/^#/, '');
@@ -102,13 +102,24 @@ function getAdjustedProjectColor(hex, theme) {
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
+  const { user: authUser, isAuthenticated: authIsAuthenticated } = useAuth();
+
   // Theme State
   const [theme, setTheme] = useState('light');
 
-  // Authentication State — boot to login page first
+  // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Synchronize AppContext auth state with AuthContext synchronously during render
+  const [prevAuthUser, setPrevAuthUser] = useState(null);
+  if (authUser !== prevAuthUser) {
+    setPrevAuthUser(authUser);
+    setCurrentUser(authUser);
+    setIsAuthenticated(authIsAuthenticated);
+  }
+
+ 
   // Core Data States
   const [users, setUsers] = useState(MOCK_USERS);
   const [projects, setProjects] = useState(MOCK_PROJECTS);
@@ -322,7 +333,7 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  // Toggle Break Action
+  // Toggle Break Actio
   const toggleBreak = () => {
     setTimerState(prev => {
       if (!prev.isClockedIn) return prev;

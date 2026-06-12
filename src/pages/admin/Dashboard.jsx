@@ -16,6 +16,8 @@ export default function AdminDashboard({ setCurrentPage }) {
     attendanceHistory, notifications = [],
   } = useApp();
 
+  if (!currentUser) return null;
+
   // ── Active Trackers ──────────────────────────────────────────
   const activeTrackers = [];
 

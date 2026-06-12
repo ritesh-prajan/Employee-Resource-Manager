@@ -17,8 +17,12 @@ import PriorityBadge from '../../../ui/PriorityBadge';
  *   onSelectTask — fn(task) — opens TaskDetailModal
  */
 export default function TeamTasksModal({ isOpen, onClose, team, users = [], tasks = [], projects = [], onCreateTask, onSelectTask }) {
-  const [form, setForm] = useState({ name: '', projectId: '', assignedTo: '', priority: 'Medium', eta: '8' });
-
+    const [form, setForm] = useState({ 
+    name: '', projectId: '', assignedTo: '', 
+    priority: 'Medium', eta: '8',
+    etaDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    taskType: 'TASK'
+    });
   // When team changes, reset form defaults to first available project/member
   useEffect(() => {
     if (!team) return;
@@ -49,16 +53,22 @@ export default function TeamTasksModal({ isOpen, onClose, team, users = [], task
       return;
     }
     onCreateTask({
-      name: form.name.trim(),
-      projectId: form.projectId,
-      assignedTo: form.assignedTo,
-      priority: form.priority,
-      eta: parseFloat(form.eta) || 8,
-      type: 'Story',
-      epic: 'Sprint',
+        title:      form.name.trim(),
+        project:    { id: form.projectId },
+        assignedTo: { id: form.assignedTo },
+        priority:   form.priority.toUpperCase(),
+        etaHours:   parseFloat(form.eta) || 8,
+        etaDate:    form.etaDate,
+        taskType:   form.taskType,
+        epic:       'Sprint',
     });
-    setForm(prev => ({ ...prev, name: '', eta: '8' }));
-  };
+    setForm(prev => ({ 
+        ...prev, 
+        name: '', 
+        eta: '8',
+        etaDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    })); 
+    };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="850px">
@@ -136,7 +146,29 @@ export default function TeamTasksModal({ isOpen, onClose, team, users = [], task
                 {['Critical', 'High', 'Medium', 'Low'].map(v => <option key={v}>{v}</option>)}
               </select>
             </div>
+            <div className="form-group">
+                <label className="form-label">TASK TYPE</label>
+                <select
+                    className="input-control"
+                    value={form.taskType}
+                    onChange={e => setForm(p => ({ ...p, taskType: e.target.value }))}
+                >
+                    {['TASK', 'FEATURE', 'BUG', 'STORY', 'RND'].map(v => (
+                    <option key={v} value={v}>{v}</option>
+                    ))}
+                </select>
+                </div>
 
+                <div className="form-group">
+                <label className="form-label">ETA DATE</label>
+                <input
+                    type="date"
+                    className="input-control"
+                    value={form.etaDate}
+                    onChange={e => setForm(p => ({ ...p, etaDate: e.target.value }))}
+                    required
+                />
+                </div>
             <div className="form-group">
               <label className="form-label">ETA (HOURS)</label>
               <input

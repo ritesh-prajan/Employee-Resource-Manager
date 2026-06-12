@@ -25,9 +25,9 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
   const userNotifications = notifications.filter(n => n.recipientId === currentUser.id);
   const unreadCount = userNotifications.filter(n => !n.isRead).length;
 
-  const isAdminView = currentUser.role === 'Admin' && !currentPage.startsWith('lead-') && currentPage !== 'dashboard' && currentPage !== 'timesheet';
-  const isLeadView = (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && !currentPage.startsWith('admin-');
-  const isEmployeeMode = !isAdminView && !isLeadView;
+const isAdminView = currentUser.role === 'Admin' && !currentPage.startsWith('lead-') && currentPage !== 'dashboard' && currentPage !== 'timesheet';
+const isLeadView = (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && !currentPage.startsWith('admin-');
+const isEmployeeMode = !isAdminView && !isLeadView;
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -104,6 +104,15 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
           </button>
           <button className={`sidebar-link ${currentPage === 'admin-meetings' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-meetings')} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
             <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
+          </button>
+          {renderSectionHeader('Account')}
+          <button
+            className={`sidebar-link ${currentPage === 'settings' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('settings')}
+            style={getLinkStyle()}
+            title={isCollapsed ? 'Profile' : undefined}
+          >
+            <User size={18} />{!isCollapsed && <span>Profile</span>}
           </button>
         </>
       );

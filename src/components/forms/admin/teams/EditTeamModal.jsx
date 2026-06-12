@@ -13,13 +13,22 @@ import MultiSearchSelect from "../../../ui/MultiSelectDropdown";
  *   onSave   — fn(teamId, { name, leadId, members })
  */
 export default function EditTeamModal({ isOpen, onClose, team, users = [], onSave }) {
-  const [name, setName] = useState('');
-  const [leadId, setLeadId] = useState('');
-  const [members, setMembers] = useState([]);
+    const [name, setName] = useState('');
+    const [leadId, setLeadId] = useState('');
+    const [subLeadId, setSubLeadId] = useState('');
+    const [members, setMembers] = useState([]);
+    const [description, setDescription] = useState('');
 
   // Sync form fields whenever the team prop changes (different row clicked)
   useEffect(() => {
-    if (team) {
+  if (team) {
+      setName(team.name || '');
+      setLeadId(team.leadId || '');
+      setSubLeadId(team.subLeadId || '');
+      setMembers(team.members || []);
+      setDescription(team.description || '');
+    }
+if (team) {
       setName(team.name || '');
       setLeadId(team.leadId || '');
       setMembers(team.members || []);
@@ -37,8 +46,14 @@ export default function EditTeamModal({ isOpen, onClose, team, users = [], onSav
       return;
     }
     const finalMembers = members.includes(leadId) ? members : [leadId, ...members];
-    onSave(team.id, { name: name.trim(), leadId, members: finalMembers });
-    onClose();
+      onSave(team.id, { 
+        name: name.trim(), 
+        leadId,
+        subLeadId: subLeadId || null,
+        members: finalMembers,
+        description: description.trim(),
+      });
+      onClose();
   };
 
   return (
@@ -63,7 +78,7 @@ export default function EditTeamModal({ isOpen, onClose, team, users = [], onSav
 
         <div className="form-group">
           <label className="form-label">TEAM LEAD</label>
-          <SingleSearchSelect
+          <SearchableSelect
             options={userOptions}
             value={leadId}
             onChange={(val) => {
@@ -75,7 +90,27 @@ export default function EditTeamModal({ isOpen, onClose, team, users = [], onSav
             placeholder="Search and select team lead..."
           />
         </div>
+        <div className="form-group">
+          <label className="form-label">SUB LEAD (OPTIONAL)</label>
+          <SearchableSelect
+            options={userOptions}
+            value={subLeadId}
+            onChange={(val) => setSubLeadId(val)}
+            placeholder="Search and select sub lead..."
+          />
+        </div>
 
+        <div className="form-group">
+          <label className="form-label">DESCRIPTION (OPTIONAL)</label>
+          <textarea
+            className="input-control"
+            placeholder="What does this team work on?"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            rows={2}
+            style={{ resize: 'vertical' }}
+          />
+        </div>
         <div className="form-group">
           <label className="form-label">TEAM MEMBERS</label>
           <MultiSearchSelect

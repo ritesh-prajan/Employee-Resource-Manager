@@ -32,7 +32,7 @@ export default function ETABreachPopup({ breaches, onClose }) {
             borderRadius: '1rem',
             padding: '1.5rem',
             width: '100%',
-            maxWidth: '500px',
+            maxWidth: '850px',
             maxHeight: '80vh',
             overflowY: 'auto',
           }}

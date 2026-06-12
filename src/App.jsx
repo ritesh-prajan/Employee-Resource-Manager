@@ -32,6 +32,7 @@ import AdminTimesheets from './pages/admin/Timesheets';
 import Settings from './pages/Settings';
 import Alerts from './pages/Alerts';
 import Backlog from './pages/Backlog';
+import ProfileSettings from './pages/ProfileSettings';
 
 function MainAppContent() {
   const { user: currentUser, isAuthenticated, loading, logout } = useAuth();
@@ -191,8 +192,8 @@ function MainAppContent() {
       case 'admin-announcements':
       case 'lead-announcements':
         return 'Announcements';
-      case 'settings':
-        return 'Settings';
+      case 'settings': 
+        return <ProfileSettings />;
       case 'alerts':
       case 'admin-alerts':
       case 'lead-alerts':
@@ -223,6 +224,8 @@ function MainAppContent() {
       case 'admin-dashboard':
         return <AdminDashboard setCurrentPage={setCurrentPage} />;
       case 'admin-timesheets':
+      case 'timesheet':
+      case 'lead-timesheet':
         return <AdminTimesheets />;
       case 'teams':
       case 'admin-teams':
@@ -245,8 +248,8 @@ function MainAppContent() {
       case 'admin-announcements':
       case 'lead-announcements':
         return <AdminAnnouncements />;
-      case 'settings':
-        return <Settings />;
+      case 'settings': 
+        return <ProfileSettings />;
       case 'alerts':
       case 'admin-alerts':
       case 'lead-alerts':

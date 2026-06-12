@@ -7,7 +7,10 @@ export default function CreateProjectModal({ show, onClose }) {
   const { users, teams, createProject, getAdjustedProjectColor, theme } = useApp();
 
   const [projData, setProjData] = useState({
-    name: '', color: '#8ECAE6', members: [], status: 'Active'
+    name: '', color: '#8ECAE6', members: [], status: 'Active',
+    client: '',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
   });
 
   const colorOptions = ['#8ECAE6', '#FFB5A7', '#FFE3A8', '#B7E4C7', '#C7C7FF', '#F5958E'];
@@ -25,8 +28,13 @@ export default function CreateProjectModal({ show, onClose }) {
         }
       });
     });
-
-    createProject({ ...projData, teams: Array.from(autoTeams) });
+    createProject({
+      ...projData,
+      client: projData.client || 'Internal',
+      startDate: projData.startDate,
+      endDate: projData.endDate || null,
+      teams: Array.from(autoTeams),
+    });
     setProjData({ name: '', color: '#8ECAE6', members: [], status: 'Active' });
     onClose();
   };
@@ -50,7 +58,39 @@ export default function CreateProjectModal({ show, onClose }) {
             required
           />
         </div>
+        <div className="form-group">
+          <label className="form-label">CLIENT NAME</label>
+          <input
+            type="text"
+            className="input-control"
+            placeholder="E.g. Acme Corp"
+            value={projData.client}
+            onChange={(e) => setProjData(prev => ({ ...prev, client: e.target.value }))}
+          />
+        </div>
 
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">START DATE</label>
+            <input
+              type="date"
+              className="input-control"
+              value={projData.startDate}
+              onChange={(e) => setProjData(prev => ({ ...prev, startDate: e.target.value }))}
+              required
+            />
+          </div>
+
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">END DATE</label>
+            <input
+              type="date"
+              className="input-control"
+              value={projData.endDate}
+              onChange={(e) => setProjData(prev => ({ ...prev, endDate: e.target.value }))}
+            />
+          </div>
+        </div>
         <div className="form-group">
           <label className="form-label">ACCENT COLOR</label>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>

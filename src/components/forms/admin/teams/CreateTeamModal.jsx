@@ -13,7 +13,9 @@ import MultiSearchSelect from "../../../ui/MultiSelectDropdown";
 export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit }) {
   const [name, setName] = useState('');
   const [leadId, setLeadId] = useState('');
+  const [subLeadId, setSubLeadId] = useState('');
   const [members, setMembers] = useState([]);
+  const [description, setDescription] = useState('');
 
   if (!isOpen) return null;
 
@@ -27,8 +29,16 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
     }
     // Auto-include the lead in members if not already there
     const finalMembers = members.includes(leadId) ? members : [leadId, ...members];
-    onSubmit({ name: name.trim(), leadId, members: finalMembers });
+    onSubmit({ 
+      name: name.trim(), 
+      leadId, 
+      subLeadId: subLeadId || null,
+      members: finalMembers,
+      description: description.trim(),
+    });
     // Reset form
+    setSubLeadId('');
+    setDescription('');
     setName('');
     setLeadId('');
     setMembers([]);
@@ -74,6 +84,27 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
               }
             }}
             placeholder="Search and select team lead..."
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label">SUB LEAD </label>
+          <SearchableSelect
+            options={userOptions}
+            value={subLeadId}
+            onChange={(val) => setSubLeadId(val)}
+            placeholder="Search and select sub lead..."
+          />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">DESCRIPTION </label>
+          <textarea
+            className="input-control"
+            placeholder="What does this team work on?"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            rows={2}
+            style={{ resize: 'vertical' }}
           />
         </div>
         <div className="form-group">

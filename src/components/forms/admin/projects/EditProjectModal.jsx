@@ -17,6 +17,9 @@ export default function EditProjectModal({ show, onClose, project }) {
         color: project.color || '#8ECAE6',
         status: project.status || 'Active',
         members: project.members || [],
+        client: project.client || project.clientName || '',
+        startDate: project.startDate || new Date().toISOString().split('T')[0],
+        endDate: project.endDate || '',
       });
     }
   }, [project]);
@@ -41,6 +44,9 @@ export default function EditProjectModal({ show, onClose, project }) {
       status: projData.status,
       members: projData.members,
       teams: Array.from(autoTeams),
+      client: projData.client || 'Internal',
+      startDate: projData.startDate,
+      endDate: projData.endDate || null,
     });
     onClose();
   };
@@ -65,6 +71,38 @@ export default function EditProjectModal({ show, onClose, project }) {
             onChange={(e) => setProjData(prev => ({ ...prev, name: e.target.value }))}
             required
           />
+        </div>
+        <div className="form-group">
+          <label className="form-label">CLIENT NAME</label>
+          <input
+            type="text"
+            className="input-control"
+            placeholder="E.g. Acme Corp"
+            value={projData.client}
+            onChange={(e) => setProjData(prev => ({ ...prev, client: e.target.value }))}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">START DATE</label>
+            <input
+              type="date"
+              className="input-control"
+              value={projData.startDate}
+              onChange={(e) => setProjData(prev => ({ ...prev, startDate: e.target.value }))}
+              required
+            />
+          </div>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">END DATE</label>
+            <input
+              type="date"
+              className="input-control"
+              value={projData.endDate}
+              onChange={(e) => setProjData(prev => ({ ...prev, endDate: e.target.value }))}
+            />
+          </div>
         </div>
 
         <div className="form-group">

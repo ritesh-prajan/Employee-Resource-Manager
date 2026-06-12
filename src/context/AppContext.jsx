@@ -14,6 +14,7 @@ import {
   MOCK_ANNOUNCEMENTS,
   MOCK_TEAMS
 } from '../data/mockData';
+import { employeeService } from '../services/employeeService';
 
 // Helper: Convert hex to HSL
 function hexToHsl(hex) {
@@ -110,7 +111,10 @@ export const AppProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
 
   // Core Data States
-  const [users, setUsers] = useState(MOCK_USERS);
+  const [users, setUsers] = useState(MOCK_USERS); // will be overwritten by backend fetch
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+  const [employeesError, setEmployeesError] = useState(null);
+
   const [projects, setProjects] = useState(MOCK_PROJECTS);
   const [tasks, setTasks] = useState(MOCK_TASKS);
   const [timeEntries, setTimeEntries] = useState(MOCK_TIME_ENTRIES);
@@ -194,6 +198,24 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     document.body.className = theme === 'dark' ? 'dark-theme' : 'light-theme';
   }, [theme]);
+  useEffect(() => {
+  const fetchEmployees = async () => {
+    setEmployeesLoading(true);
+    setEmployeesError(null);
+    try {
+      const data = await employeeService.getAll();
+      setUsers(data);
+    } catch (err) {
+      console.error('Failed to fetch employees:', err);
+      setEmployeesError(err.message);
+      // keeps MOCK_USERS as fallback if backend is down
+    } finally {
+      setEmployeesLoading(false);
+    }
+  };
+
+  fetchEmployees();
+}, []);
 
   // Toggle Theme
   const toggleTheme = () => {
@@ -637,66 +659,16 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Add Employee (Admin only)
-  const addEmployee = (empData) => {
-    const latestEmpCodeNum = users.reduce((max, u) => {
-      if (u.employee_code && u.employee_code.startsWith("EMP-")) {
-        const num = parseInt(u.employee_code.split("-")[1]);
-        return num > max ? num : max;
+    // Add Employee (Admin only)
+    const addEmployee = async (empData) => {
+      try {
+        const created = await employeeService.create(empData);
+        setUsers(prev => [...prev, created]);
+      } catch (err) {
+        console.error('Failed to add employee:', err);
+        alert('Failed to add employee: ' + err.message);
       }
-      return max;
-    }, 44);
-
-    const newEmpId = `user-${Date.now()}`;
-    const designation = empData.designation || empData.department || 'Engineering';
-
-    const newEmp = {
-      id: newEmpId,
-      name: empData.name,
-      email: empData.email,
-      personalEmail: empData.personalEmail || '',
-      role: empData.role || 'Employee',
-      avatar: empData.avatar || `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random()*1000000)}?w=150`,
-      status: 'Active',
-      department: designation,
-      designation: designation,
-      phone: empData.phone || "+91 99999 88888",
-      whatsapp_number: empData.phone || "+91 99999 88888",
-      employee_code: empData.employee_code || `EMP-00${latestEmpCodeNum + 1}`,
-      password: empData.password || '',
-      notification_preference: empData.notification_preference || "IN_APP"
     };
-
-    setUsers(prev => [...prev, newEmp]);
-
-    // Sync Teams
-    if (empData.teams && Array.isArray(empData.teams)) {
-      setTeams(prevTeams => prevTeams.map(t => {
-        const isSelected = empData.teams.includes(t.id);
-        const isMember = t.members.includes(newEmpId);
-        if (isSelected && !isMember) {
-          return { ...t, members: [...t.members, newEmpId] };
-        } else if (!isSelected && isMember) {
-          return { ...t, members: t.members.filter(mId => mId !== newEmpId) };
-        }
-        return t;
-      }));
-    }
-
-    // Sync Projects
-    if (empData.projects && Array.isArray(empData.projects)) {
-      setProjects(prevProjects => prevProjects.map(p => {
-        const isSelected = empData.projects.includes(p.id);
-        const isMember = p.members.includes(newEmpId);
-        if (isSelected && !isMember) {
-          return { ...p, members: [...p.members, newEmpId] };
-        } else if (!isSelected && isMember) {
-          return { ...p, members: p.members.filter(mId => mId !== newEmpId) };
-        }
-        return p;
-      }));
-    }
-  };
 
   // Submit timesheet
   const submitTimesheetReport = (userId, totalHours) => {
@@ -1278,24 +1250,23 @@ export const AppProvider = ({ children }) => {
   };
 
   // Delete Employee Action
-  const deleteEmployee = (userId) => {
-    // Safeguard: cannot delete logged in user or admin Sarah
-    if (userId === currentUser?.id || userId === 'user-admin') return;
-    setUsers(prev => prev.filter(u => u.id !== userId));
-    // Also remove from teams members lists
-    setTeams(prev => 
-      prev.map(t => ({
+  const deleteEmployee = async (userId, reason = 'Removed by admin') => {
+    if (userId === currentUser?.id) return;
+    try {
+      await employeeService.delete(userId, reason);
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      setTeams(prev => prev.map(t => ({
         ...t,
         members: t.members.filter(mId => mId !== userId)
-      }))
-    );
-    // Also remove from projects members lists
-    setProjects(prev =>
-      prev.map(p => ({
+      })));
+      setProjects(prev => prev.map(p => ({
         ...p,
         members: p.members.filter(mId => mId !== userId)
-      }))
-    );
+      })));
+    } catch (err) {
+      console.error('Failed to delete employee:', err);
+      alert('Failed to delete employee: ' + err.message);
+    }
   };
 
   // Edit Team Action
@@ -1314,47 +1285,18 @@ export const AppProvider = ({ children }) => {
   };
 
   // Edit Employee Action
-  const editEmployee = (userId, updatedData) => {
-    const finalData = { ...updatedData };
-    if (updatedData.designation !== undefined) {
-      finalData.department = updatedData.designation;
-    } else if (updatedData.department !== undefined) {
-      finalData.designation = updatedData.department;
-    }
-
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...finalData } : u));
+  const editEmployee = async (userId, updatedData) => {
+  try {
+    const updated = await employeeService.update(userId, updatedData);
+    setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
     if (currentUser?.id === userId) {
-    setCurrentUser(prev => ({ ...prev, ...finalData }));
-}
-
-    // Sync Teams
-    if (updatedData.teams && Array.isArray(updatedData.teams)) {
-      setTeams(prevTeams => prevTeams.map(t => {
-        const isSelected = updatedData.teams.includes(t.id);
-        const isMember = t.members.includes(userId);
-        if (isSelected && !isMember) {
-          return { ...t, members: [...t.members, userId] };
-        } else if (!isSelected && isMember) {
-          return { ...t, members: t.members.filter(mId => mId !== userId) };
-        }
-        return t;
-      }));
+      setCurrentUser(updated);
     }
-
-    // Sync Projects
-    if (updatedData.projects && Array.isArray(updatedData.projects)) {
-      setProjects(prevProjects => prevProjects.map(p => {
-        const isSelected = updatedData.projects.includes(p.id);
-        const isMember = p.members.includes(userId);
-        if (isSelected && !isMember) {
-          return { ...p, members: [...p.members, userId] };
-        } else if (!isSelected && isMember) {
-          return { ...p, members: p.members.filter(mId => mId !== userId) };
-        }
-        return p;
-      }));
-    }
-  };
+  } catch (err) {
+    console.error('Failed to update employee:', err);
+    alert('Failed to update employee: ' + err.message);
+  }
+};
   const verifyPassword = (userId, password) => {
     const user = users.find(u => u.id === userId);
     return user?.password === password;
@@ -1569,6 +1511,8 @@ export const AppProvider = ({ children }) => {
   return (
     <AppContext.Provider
       value={{
+        employeesLoading,
+        employeesError,//actual backend
         theme,
         toggleTheme,
         isAuthenticated,

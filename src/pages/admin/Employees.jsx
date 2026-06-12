@@ -255,7 +255,7 @@ export default function EmployeesPage() {
               onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--primary) 8%, transparent)'}
             ><CheckSquare size={14} /></button>
 
-            {user.id !== currentUser?.id && user.id !== 'user-admin' && (<>
+            {user.id !== currentUser?.id && (<>
               <button
                 onClick={() => { setEditingUser({ ...user, designation: user.designation || '', personalEmail: user.personalEmail || '', phone: user.phone || '', password: user.password || '', teams: teams.filter(t => t.members.includes(user.id)).map(t => t.id), projects: projects.filter(p => p.members.includes(user.id)).map(p => p.id) }); setValidationError(''); setShowEditModal(true); }}
                 title="Edit"
@@ -265,7 +265,7 @@ export default function EmployeesPage() {
               ><Pencil size={14} /></button>
 
               <button
-                onClick={() => { if (window.confirm(`Remove ${user.name}?`)) deleteEmployee(user.id); }}
+                onClick={() => { if (window.confirm(`Remove ${user.name}?`)) deleteEmployee(user.id, 'Removed by admin'); }}
                 title="Delete"
                 style={{ background: 'color-mix(in oklch, var(--destructive) 8%, transparent)', border: 'none', color: 'var(--destructive)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 15%, transparent)'}

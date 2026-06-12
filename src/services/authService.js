@@ -13,5 +13,9 @@ export const authService = {
   refresh: (refreshToken) => {
     return api.post('/auth/refresh', { refreshToken });
   },
+  forgotpassword:(email)=>{
+    return api.post('/auth/forgot-password',{email})
+  }
+
 
 };

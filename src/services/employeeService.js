@@ -1,5 +1,21 @@
 import { api } from './api';
 
+const ROLE_MAP = {
+  ADMIN:     "Admin",
+  TEAM_LEAD: "Team Lead",
+  SUB_LEAD:  "Sub Lead",
+  EMPLOYEE:  "Employee",
+};
+
+function mapRole(apiRoles = []) {
+  for (const code of ["ADMIN", "TEAM_LEAD", "SUB_LEAD", "EMPLOYEE"]) {
+    if (apiRoles.includes(code)) {
+      return ROLE_MAP[code];
+    }
+  }
+  return 'Employee';
+}
+
 // Converts backend employee shape → frontend shape your components expect
 function mapEmployee(emp) {
   return {
@@ -15,7 +31,7 @@ function mapEmployee(emp) {
     status:                mapStatus(emp.status),
     notification_preference: emp.notificationPreference || 'ALL',
     profileImage:          emp.profileImage || '',
-    role:                  emp.roles?.[0] || 'Employee',
+    role:                  mapRole(emp.roles),
     roles:                 emp.roles || [],
   };
 }

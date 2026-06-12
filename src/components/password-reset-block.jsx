@@ -1,18 +1,17 @@
-"use client";;
 import { Label } from "@/components/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/input";
+import { Button } from "@/components/button";
 import {
-Card,
-CardContent,
-CardDescription,
-CardHeader,
-CardFooter,
-CardTitle,
-} from "@/components/ui/card";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+} from "@/components/card";
 import { useState } from "react";
 import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 
 const PasswordResetBlock = ()  =>{      
 const [formData, setFormData] = useState({
@@ -75,7 +74,7 @@ const handleSubmit = async (e) => {
 
 if (isSuccess) {
   return (
-    <Card className="w-full max-w-mmx-auto">
+    <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
           <CheckCircle className="h-12 w-12 text-green-600" />
@@ -105,7 +104,7 @@ if (isSuccess) {
       </CardContent>
       <CardFooter className="justify-center">
         <Link
-          href="#"
+          to="/login"
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" />
           Back to Sign In
@@ -133,7 +132,7 @@ return (
           </div>
         )}
 
-        <div className="flex flex-col flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="email">Email Address</Label>
           <Input
             id="email"
@@ -150,17 +149,20 @@ return (
         </div>
       </CardContent>
 
-      <CardFooter className="flex flex-col flex flex-col gap-4">
+      <CardFooter className="flex flex-col gap-4">
         <Button type="submit" className="w-full" loading={isLoading} disabled={isLoading}>
           {isLoading ? "Sending Reset Link..." : "Send Reset Link"}
         </Button>
 
-        <Button
-          variant="ghost"
-          className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground w-full">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Sign In
-        </Button>
+        <Link to="/login" className="w-full">
+          <Button
+            type="button"
+            variant="ghost"
+            className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground w-full">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Sign In
+          </Button>
+        </Link>
       </CardFooter>
     </form>
   </Card>

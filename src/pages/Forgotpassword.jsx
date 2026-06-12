@@ -143,11 +143,11 @@ const Forgotpassword = () => {
               Email Address
             </label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              
               <input
                 id="email"
                 type="email"
-                placeholder="name@office.com"
+              
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
                 disabled={isLoading}

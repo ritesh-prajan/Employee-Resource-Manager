@@ -18,6 +18,7 @@ import Meetings from './pages/employee/Meetings';
 // Team Lead / Sub Lead Pages
 import TeamAttendance from './pages/lead/TeamAttendance';
 import LeadRequests from './pages/lead/Requests';
+import TeamLeadDashboard from './pages/lead/TeamLeadDashboard';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -256,6 +257,9 @@ function MainAppContent() {
       case 'admin-alerts':
       case 'lead-alerts':
         return <Alerts setCurrentPage={setCurrentPage} />;
+      case 'dashboard':
+      case 'lead-dashboard':
+       return <TeamLeadDashboard setCurrentPage={setCurrentPage} />;
       default:
         return <AdminDashboard />;
     }

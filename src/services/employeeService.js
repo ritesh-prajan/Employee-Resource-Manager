@@ -42,6 +42,8 @@ function toBackendEmployee(data) {
     status:                 toBackendStatus(data.status),
     notificationPreference: data.notification_preference || 'ALL',
     profileImage:           data.profileImage || data.avatar || '',
+    password:               data.password || '',
+
   };
 }
 

@@ -442,16 +442,20 @@ export default function Alerts({ setCurrentPage }) {
       )}
 
       {/* ── Modals & toasts ── */}
-      {role === 'Admin' && showETAPopup && (
-        <ETABreachPopup breaches={etaBreaches} onClose={() => setShowETAPopup(false)} />
-      )}
-      {role === 'Team Lead' && showDailyPrompt && (
-        <DailyTaskPrompt
-          teamMembers={teamMembers}
-          onClose={() => setShowDailyPrompt(false)}
-          onAssign={() => { setShowDailyPrompt(false); if (setCurrentPage) setCurrentPage('lead-tasks'); }}
-        />
-      )}
+      <AnimatePresence>
+        {role === 'Admin' && showETAPopup && (
+          <ETABreachPopup breaches={etaBreaches} onClose={() => setShowETAPopup(false)} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {role === 'Team Lead' && showDailyPrompt && (
+          <DailyTaskPrompt
+            teamMembers={teamMembers}
+            onClose={() => setShowDailyPrompt(false)}
+            onAssign={() => { setShowDailyPrompt(false); if (setCurrentPage) setCurrentPage('lead-tasks'); }}
+          />
+        )}
+      </AnimatePresence>
       <TaskAssignedToast
         task={toastTask}
         onClose={() => dismissToast(toastTask?._notifId, false)}

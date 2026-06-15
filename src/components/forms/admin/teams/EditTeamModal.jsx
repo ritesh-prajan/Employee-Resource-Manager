@@ -57,7 +57,7 @@ if (team) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} maxWidth="850px">
+    <Modal isOpen={isOpen} onClose={onClose} maxWidth="850px" overflow="visible">
       <div className="modal-header">
         <h3 className="modal-title">Edit Team</h3>
         <button className="modal-close" onClick={onClose}>×</button>

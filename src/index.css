@@ -540,3 +540,84 @@ select option {
   from { transform: scale(0.96); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* Tasks Page Styles */
+.tasks-page-container {
+  min-height: 100vh;
+  background-color: var(--bg-canvas, #f0f2f5);
+  padding: 2rem;
+  zoom: 0.8;
+}
+.tasks-toolbar-wrapper {
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.tasks-filter-card {
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background-color: var(--background);
+  padding: 1.25rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+.tasks-filter-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.tasks-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.5rem 0.85rem;
+  width: 280px;
+}
+.tasks-search-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.tasks-search-input {
+  background: none;
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 0.85rem;
+  color: #1e293b;
+}
+.tasks-scope-toggle {
+  display: inline-flex;
+  background-color: rgba(0,0,0,0.04);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+.tasks-scope-btn {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.7rem;
+  font-weight: 650;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.tasks-scope-btn.active {
+  background-color: var(--primary, #1d4ed8);
+  color: #fff;
+}
+.tasks-scope-btn.inactive {
+  background-color: transparent;
+  color: #64748b;
+}
+.tasks-create-btn {
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}

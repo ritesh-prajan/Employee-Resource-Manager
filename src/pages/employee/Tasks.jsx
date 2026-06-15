@@ -365,66 +365,73 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   ], [projects, users]);
 
   return (
-    <div className="min-h-screen bg-slate-100 p-8" style={{ zoom: 0.8 }}>
-      <div className="mx-auto" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="tasks-page-container">
+      <div className="tasks-toolbar-wrapper">
 
         {/* Toolbar */}
         <div>
         {/* Filters */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex gap-4 flex-wrap items-center">
-            {/* Search */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.5rem 0.85rem', width: '280px' }}>
-              <Search size={14} style={{ color: '#94a3b8', flexShrink: 0 }} />
-              <input
-                type="text"
-                placeholder="Search by summary, ticket, assignee..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontSize: '0.85rem', color: '#1e293b' }}
-              />
+        <div className="tasks-filter-card">
+          <div className="tasks-filter-row">
+            {/* Filters Left Side */}
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Search */}
+              <div className="tasks-search-box">
+                <Search size={14} className="tasks-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search by summary, ticket, assignee..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="tasks-search-input"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <SearchableSelect
+                  options={projectOptions}
+                  value={selectedProject}
+                  onChange={setSelectedProject}
+                  placeholder="All Projects"
+                  style={{ width: '180px' }}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <SearchableSelect
+                  options={statusOptions}
+                  value={selectedStatus}
+                  onChange={setSelectedStatus}
+                  placeholder="All Statuses"
+                  style={{ width: '160px' }}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <SearchableSelect
+                  options={priorityOptions}
+                  value={selectedPriority}
+                  onChange={setSelectedPriority}
+                  placeholder="All Priorities"
+                  style={{ width: '150px' }}
+                />
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <SearchableSelect
-                options={projectOptions}
-                value={selectedProject}
-                onChange={setSelectedProject}
-                placeholder="All Projects"
-                style={{ width: '180px' }}
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <SearchableSelect
-                options={statusOptions}
-                value={selectedStatus}
-                onChange={setSelectedStatus}
-                placeholder="All Statuses"
-                style={{ width: '160px' }}
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <SearchableSelect
-                options={priorityOptions}
-                value={selectedPriority}
-                onChange={setSelectedPriority}
-                placeholder="All Priorities"
-                style={{ width: '150px' }}
-              />
-              <div style={{ display: 'inline-flex', backgroundColor: 'rgba(0,0,0,0.04)', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            {/* Filters Right Side */}
+            <div className="flex items-center gap-4 flex-wrap" style={{ marginLeft: 'auto' }}>
+              <div className="tasks-scope-toggle">
                 {isLeader && (
-                  <button onClick={() => setScope('all')} style={{ padding: '0.35rem 0.85rem', fontSize: '0.7rem', fontWeight: 650, borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: scope === 'all' ? '#1d4ed8' : 'transparent', color: scope === 'all' ? '#fff' : '#64748b', transition: 'all 0.2s ease' }}>
+                  <button onClick={() => setScope('all')} className={`tasks-scope-btn ${scope === 'all' ? 'active' : 'inactive'}`}>
                     All Team Tasks
                   </button>
                 )}
                 {!isAdmin && (
-                  <button onClick={() => setScope('my')} style={{ padding: '0.35rem 0.85rem', fontSize: '0.7rem', fontWeight: 650, borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: scope === 'my' ? '#1d4ed8' : 'transparent', color: scope === 'my' ? '#fff' : '#64748b', transition: 'all 0.2s ease' }}>
+                  <button onClick={() => setScope('my')} className={`tasks-scope-btn ${scope === 'my' ? 'active' : 'inactive'}`}>
                     My Tasks
                   </button>
                 )}
-                <button onClick={() => setScope('backlog')} style={{ padding: '0.35rem 0.85rem', fontSize: '0.7rem', fontWeight: 650, borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: scope === 'backlog' ? '#1d4ed8' : 'transparent', color: scope === 'backlog' ? '#fff' : '#64748b', transition: 'all 0.2s ease' }}>
+                <button onClick={() => setScope('backlog')} className={`tasks-scope-btn ${scope === 'backlog' ? 'active' : 'inactive'}`}>
                   Backlog Tasks
                 </button>
               </div>
@@ -432,8 +439,8 @@ export default function Tasks({ setCurrentPage, initialScope }) {
               {scope === 'backlog' ? (
                 isLeader && (
                   <button
-                    className="rounded-xl px-5 py-2 text-sm font-semibold text-white transition"
-                    style={{ backgroundColor: '#32bf90', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    className="rounded-xl px-5 py-2 text-sm font-semibold text-white transition tasks-create-btn"
+                    style={{ backgroundColor: '#0010ae' }}
                     onClick={() => { setBacklogCreateData({ name: '', projectId: projects[0]?.id || '', eta: '8', type: 'Story', priority: 'Medium' }); setShowBacklogCreateModal(true); }}
                   >
                     <Plus size={14} /> Create Backlog Task
@@ -442,12 +449,13 @@ export default function Tasks({ setCurrentPage, initialScope }) {
               ) : (
                 isLeader && (
                   <button
-                    className="rounded-xl bg-blue-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
-                    style={{ border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    className="rounded-xl  px-5 py-2 text-sm font-semibold text-white transition tasks-create-btn"
+                    style={{backgroundColor:'#0010ae'}}
                     onClick={() => setShowTaskModal(true)}
                   >
                     <Plus size={14} /> Create Task
                   </button>
+
                 )
               )}
             </div>

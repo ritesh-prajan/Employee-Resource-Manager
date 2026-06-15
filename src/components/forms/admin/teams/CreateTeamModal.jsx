@@ -28,8 +28,11 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
       return;
     }
     // Auto-include the lead in members if not already there
-    const finalMembers = members.includes(leadId) ? members : [leadId, ...members];
-    onSubmit({ 
+    let finalMembers = members.includes(leadId) ? members : [leadId, ...members];
+    if (subLeadId && !finalMembers.includes(subLeadId)) {
+      finalMembers = [subLeadId, ...finalMembers];
+    }  
+  onSubmit({ 
       name: name.trim(), 
       leadId, 
       subLeadId: subLeadId || null,
@@ -52,7 +55,7 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="850px">
+    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="850px" overflow="visible">
       <div className="modal-header">
         <h3 className="modal-title">Create New Team</h3>
         <button className="modal-close" onClick={handleClose}>×</button>

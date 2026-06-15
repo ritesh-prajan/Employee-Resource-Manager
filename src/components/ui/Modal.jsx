@@ -1,9 +1,9 @@
 import react from 'react';
-export default function Modal({isOpen, onClose, children , maxWidth='500px'}){
+export default function Modal({isOpen, onClose, children , maxWidth='500px', overflow='auto'}){
     if (!isOpen) return null;
     return(
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth}}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth, overflow: overflow}}>
                 {children}
             </div>
         </div>

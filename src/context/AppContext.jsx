@@ -1,20 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useAuth } from './AuthContext';
-import { 
-  MOCK_USERS, 
-  MOCK_PROJECTS, 
-  MOCK_TASKS, 
-  MOCK_TIME_ENTRIES, 
-  MOCK_TIMESHEET_REPORTS, 
-  MOCK_NOTIFICATIONS,
-  MOCK_MEETINGS,
-  MOCK_ETA_EXTENSIONS,
-  MOCK_TASK_TRANSFERS,
-  MOCK_TASK_COMMENTS,
-  MOCK_ATTENDANCE_HISTORY,
-  MOCK_ANNOUNCEMENTS,
-  MOCK_TEAMS
-} from '../data/mockData';
+
 import { employeeService } from '../services/employeeService';
 import { projectService } from '../services/projectService';
 import { teamService } from '../services/teamService';
@@ -126,67 +112,24 @@ export const AppProvider = ({ children }) => {
 
  
   // Core Data States
-  const [users, setUsers] = useState(MOCK_USERS); // will be overwritten by backend fetch
+  const [users, setUsers] = useState([]);
   const [employeesLoading, setEmployeesLoading] = useState(false);
   const [employeesError, setEmployeesError] = useState(null);
 
-  const [projects, setProjects] = useState(MOCK_PROJECTS);
-  const [tasks, setTasks] = useState(MOCK_TASKS);
-  const [timeEntries, setTimeEntries] = useState(MOCK_TIME_ENTRIES);
-  const [reports, setReports] = useState(MOCK_TIMESHEET_REPORTS);
+  const [projects, setProjects] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [timeEntries, setTimeEntries] = useState([]);
+  const [reports, setReports] = useState([]);
 
   // New Platform Feature States
-  const [notifications, setNotifications] = useState(() => {
-    // Filter mock notifications to exclude watchdog alerts
-    const initialList = MOCK_NOTIFICATIONS.filter(n => n.type !== 'WATCHDOG_LATE' && n.type !== 'WATCHDOG_ABSENT');
-    const todayStr = "2026-05-29";
-    
-    // Dynamically compile Overdue Task Alerts (status not COMPLETED or CANCELLED, and today > etaDate)
-    MOCK_TASKS.filter(t => t.status !== 'Completed' && t.status !== 'Cancelled').forEach(t => {
-      if (t.etaDate && new Date(t.etaDate) < new Date(todayStr)) {
-        const assignee = MOCK_USERS.find(u => u.id === t.assignedTo);
-        
-        // Push notification to assignee
-        initialList.push({
-          id: `overdue-${t.id}-${t.assignedTo}`,
-          recipientId: t.assignedTo,
-          type: "overdue",
-          severity: "danger",
-          title: `Task Overdue (ETA Exceeded)`,
-          message: `${t.taskNumber}: '${t.name}' assigned to you has exceeded its ETA target date (${new Date(t.etaDate).toLocaleDateString()}).`,
-          entityType: "TASK",
-          entityId: t.id,
-          channel: "IN_APP",
-          isRead: false,
-          createdAt: t.etaDate
-        });
-
-        // Also push notification to Admin (user-admin)
-        initialList.push({
-          id: `overdue-${t.id}-admin`,
-          recipientId: "user-admin",
-          type: "overdue",
-          severity: "danger",
-          title: `Task Overdue (ETA Exceeded)`,
-          message: `${t.taskNumber}: '${t.name}' assigned to ${assignee?.name || 'Unassigned'} has exceeded its ETA target date (${new Date(t.etaDate).toLocaleDateString()}).`,
-          entityType: "TASK",
-          entityId: t.id,
-          channel: "IN_APP",
-          isRead: false,
-          createdAt: t.etaDate
-        });
-      }
-    });
-    
-    return initialList;
-  });
-  const [meetings, setMeetings] = useState(MOCK_MEETINGS);
-  const [etaExtensions, setEtaExtensions] = useState(MOCK_ETA_EXTENSIONS);
-  const [taskTransfers, setTaskTransfers] = useState(MOCK_TASK_TRANSFERS);
-  const [taskComments, setTaskComments] = useState(MOCK_TASK_COMMENTS);
-  const [attendanceHistory, setAttendanceHistory] = useState(MOCK_ATTENDANCE_HISTORY);
-  const [announcements, setAnnouncements] = useState(MOCK_ANNOUNCEMENTS);
-  const [teams, setTeams] = useState(MOCK_TEAMS);
+  const [notifications, setNotifications] = useState([]);
+  const [meetings, setMeetings] = useState([]);
+  const [etaExtensions, setEtaExtensions] = useState([]);
+  const [taskTransfers, setTaskTransfers] = useState([]);
+  const [taskComments, setTaskComments] = useState([]);
+  const [attendanceHistory, setAttendanceHistory] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [teams, setTeams] = useState([]);
 
   // Configurable thresholds for Admin alerts
   const [adminSettings, setAdminSettings] = useState({
@@ -215,7 +158,7 @@ export const AppProvider = ({ children }) => {
   }, [theme]);
   useEffect(() => {
     if (!isAuthenticated) {
-      setUsers(MOCK_USERS);
+      setUsers([]);
       return;
     }
     const fetchEmployees = async () => {
@@ -238,7 +181,7 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setTeams(MOCK_TEAMS);
+      setTeams([]);
       return;
     }
     const fetchTeams = async () => {
@@ -254,7 +197,7 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setProjects(MOCK_PROJECTS);
+      setProjects([]);
       return;
     }
     const fetchProjects = async () => {
@@ -270,7 +213,7 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setTasks(MOCK_TASKS);
+      setTasks([]);
       return;
     }
     const fetchTasks = async () => {

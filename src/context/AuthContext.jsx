@@ -63,7 +63,6 @@ export function AuthProvider({children}){
   }
 
   async function login(email, password) {
-    setloading(true);
     seterror(null);
     try {
       const data = await loginapi(email, password);
@@ -72,8 +71,6 @@ export function AuthProvider({children}){
     } catch (err) {
       seterror(err.message ?? "login failed");
       throw err;
-    } finally {
-      setloading(false);
     }
   }
 

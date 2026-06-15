@@ -10,7 +10,11 @@ export async function loginapi(email, password) {
             password: password
         })
     });
-    if (!response.ok) throw new Error("login failed");
+    if (!response.ok) {
+        const error = new Error();
+        error.status = response.status;
+        throw error;
+    }
     return await response.json();
 }
 
@@ -44,9 +48,13 @@ async function request(method, path, body = null) {
   const response = await fetch(`${BASE_URL}${path}`, options);
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || `Request failed: ${response.status}`);
-  }
+  const errorText = await response.text();
+
+  const error = new Error(errorText || `Request failed: ${response.status}`);
+  error.status = response.status;
+
+  throw error;
+}
 
   // Some responses (like delete) return plain text, not JSON
   const contentType = response.headers.get('content-type');

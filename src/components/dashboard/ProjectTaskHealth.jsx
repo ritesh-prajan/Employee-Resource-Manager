@@ -36,7 +36,7 @@ function Modal({ proj, tasks, onClose }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-        borderRadius: '14px', padding: '1.5rem', width: '100%', maxWidth: '540px',
+        borderRadius: '14px', padding: '1.5rem', width: '100%', maxWidth: '850px',
         maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '1rem',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
       }}>

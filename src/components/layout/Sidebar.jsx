@@ -75,7 +75,7 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
     if (currentUser.role === 'Admin' && !isEmployeeMode) {
       return (
         <>
-          {renderSectionHeader('Overview', true)}
+          {renderSectionHeader('Admin view', true)}
           <button className={`sidebar-link ${currentPage === 'admin-dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-dashboard')} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
             <LayoutDashboard size={18} />{!isCollapsed && <span>Dashboard</span>}
           </button>

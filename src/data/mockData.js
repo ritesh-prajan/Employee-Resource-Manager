@@ -1,7 +1,7 @@
 /*MOCKKK USERSSS */
 export const MOCK_USERS = [
 {
-id: "user-abdul-raqeeb",
+id: "user-employee",
 name: "abdul raqeeb",
 email: "[abdul.raqeeb@elite.com](mailto:abdul.raqeeb@elite.com)",
 role: "User",
@@ -29,7 +29,7 @@ employee_code: "EMP-0002",
 notification_preference: "ALL"
 },
 {
-id: "user-alexander",
+id: "user-employee",
 name: "alexander",
 email: "[alexander@elite.com](mailto:alexander@elite.com)",
 role: "User",
@@ -43,7 +43,7 @@ employee_code: "EMP-0003",
 notification_preference: "IN_APP"
 },
 {
-id: "user-althaf-hussain",
+id: "user-employee",
 name: "Althaf Hussain",
 email: "[althaf.hussain@elite.com](mailto:althaf.hussain@elite.com)",
 role: "User",
@@ -57,7 +57,7 @@ employee_code: "EMP-0004",
 notification_preference: "ALL"
 },
 {
-id: "user-alwin",
+id: "user-empoloyee",
 name: "Alwin",
 email: "[alwin@elite.com](mailto:alwin@elite.com)",
 role: "User",

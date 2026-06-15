@@ -32,8 +32,11 @@ export default function Projects() {
     if (!currentUser) return false;
     if (currentUser.role === 'Admin') return true;
     if (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') {
-      const myLedTeamIds = teams.filter(t => t.leadId === currentUser.id).map(t => t.id);
-      return (p.teams || []).some(tId => myLedTeamIds.includes(tId));
+      const myTeams = teams.filter(t => t.leadId === currentUser.id || t.members.includes(currentUser.id));
+      const myTeamIds = myTeams.map(t => t.id);
+      const myMemberIds = myTeams.flatMap(t => t.members);
+      return (p.teams || []).some(tId => myTeamIds.includes(tId)) ||
+            (p.members || []).some(mId => myMemberIds.includes(mId));
     }
     return p.members.includes(currentUser.id);
   });

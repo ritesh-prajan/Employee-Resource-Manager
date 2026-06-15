@@ -14,7 +14,7 @@ import Resetpassword from './pages/Resetpassword.jsx'
 import { useLocation } from 'react-router-dom';
 // Employee Pages
 import Tasks from './pages/employee/Tasks';
-import EmployeeAttendance from './pages/employee/Attendance';
+import Attendance from './pages/employee/Attendance';
 import Meetings from './pages/employee/Meetings';
 
 // Team Lead / Sub Lead Pages
@@ -44,8 +44,6 @@ function MainAppContent() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location=useLocation();
 
-
-  // Automatically adjust view if changing to a user who doesn't have access to the current page
   useEffect(() => {
     if (!isAuthenticated || !currentUser) {
       setPrevUserId(null);
@@ -57,7 +55,6 @@ function MainAppContent() {
     const isSL = currentUser.role === 'Sub Lead';
     const isEmployee = currentUser.role === 'Employee';
 
-    // When the user first logs in or switches users in demo, route to their default view
     if (prevUserId !== currentUser.id) {
       setPrevUserId(currentUser.id);
       if (isAdmin) {
@@ -70,55 +67,40 @@ function MainAppContent() {
       return;
     }
 
-    // Route scoping checks
     if (isAdmin) {
       const adminRoutes = [
-        'admin-dashboard', 'admin-timesheets', 'admin-tasks', 'admin-backlog', 'admin-teams', 'admin-projects', 
+        'admin-dashboard', 'admin-timesheets', 'admin-tasks', 'admin-backlog', 'admin-teams', 'admin-projects',
         'admin-employees', 'admin-approvals', 'admin-announcements', 'admin-meetings', 'settings',
         'dashboard', 'timesheet', 'tasks', 'backlog', 'attendance', 'meetings', 'teams', 'announcements',
         'admin-alerts', 'alerts'
       ];
-      if (!adminRoutes.includes(currentPage)) {
-        setCurrentPage('admin-dashboard');
-      }
+      if (!adminRoutes.includes(currentPage)) setCurrentPage('admin-dashboard');
     } else if (isTL || isSL) {
       const leadRoutes = [
-        'lead-dashboard', 'lead-timesheet', 'lead-tasks', 'lead-backlog', 'lead-attendance', 
+        'lead-dashboard', 'lead-timesheet', 'lead-tasks', 'lead-backlog', 'lead-attendance','lead-projects',
         'lead-approvals', 'lead-requests', 'lead-announcements', 'lead-meetings', 'settings',
         'dashboard', 'timesheet', 'tasks', 'backlog', 'attendance', 'meetings', 'teams', 'lead-teams', 'announcements',
         'lead-alerts', 'alerts'
       ];
-      if (!leadRoutes.includes(currentPage)) {
-        setCurrentPage('lead-dashboard');
-      }
+      if (!leadRoutes.includes(currentPage)) setCurrentPage('lead-dashboard');
     } else if (isEmployee) {
       const employeeRoutes = ['dashboard', 'timesheet', 'tasks', 'backlog', 'attendance', 'meetings', 'settings', 'teams', 'announcements', 'alerts'];
-      if (!employeeRoutes.includes(currentPage)) {
-        setCurrentPage('dashboard');
-      }
+      if (!employeeRoutes.includes(currentPage)) setCurrentPage('dashboard');
     }
   }, [currentUser, isAuthenticated, currentPage, prevUserId]);
 
-  // Global cursor tracking for card border highlights (Liquid Glass feature)
   useEffect(() => {
     const handleGlobalMouseMove = (e) => {
       const card = e.target.closest('.card, .liquid-glass-card');
       if (card) {
         const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        card.style.setProperty('--mouse-x', `${x}px`);
-        card.style.setProperty('--mouse-y', `${y}px`);
+        card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+        card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
       }
     };
     window.addEventListener('mousemove', handleGlobalMouseMove);
-    return () => {
-      window.removeEventListener('mousemove', handleGlobalMouseMove);
-    };
+    return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
   }, []);
-
-
-
 
   if (loading) {
     return (
@@ -134,25 +116,18 @@ function MainAppContent() {
     );
   }
 
-  
-  if(location.pathname==="/reset-password"){
-    return <Resetpassword/>
-  }
+  if (location.pathname === "/reset-password") return <Resetpassword />;
 
-
-  {/*Login guard */}
-   if (!isAuthenticated) {
+  if (!isAuthenticated) {
     return (
       <Routes>
-        <Route path="/login" element={<Login/>}></Route>
-        <Route path="/forgotpassword" element={<Forgotpassword/>}></Route>
-        
-        <Route path="*" element={<Navigate to="/login" replace/>}></Route>
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgotpassword" element={<Forgotpassword />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-    )
+    );
   }
 
-  {/* Page title mapper*/}
   const getPageTitle = () => {
     switch (currentPage) {
       case 'dashboard':
@@ -171,13 +146,15 @@ function MainAppContent() {
         return 'Backlog Tasks';
       case 'attendance':
         return 'Attendance';
+      case 'lead-attendance':
+      case 'team-attendance':
+        return 'Team Attendance';
       case 'meetings':
       case 'admin-meetings':
       case 'lead-meetings':
         return 'Link Room';
       case 'admin-dashboard':
-       
-        return 'Dashboard'
+        return 'Dashboard';
       case 'admin-timesheets':
         return 'Timesheets';
       case 'admin-teams':
@@ -194,17 +171,16 @@ function MainAppContent() {
       case 'admin-approvals':
       case 'lead-approvals':
         return 'Approvals';
-      case 'team-attendance':
-      case 'lead-attendance':
-        return 'Team Attendance';
       case 'lead-requests':
         return 'Requests';
       case 'announcements':
       case 'admin-announcements':
       case 'lead-announcements':
         return 'Announcements';
-      case 'settings': 
-        return <ProfileSettings />;
+      case 'lead-projects':
+        return 'Projects';
+      case 'settings':
+        return 'Profile';
       case 'alerts':
       case 'admin-alerts':
       case 'lead-alerts':
@@ -214,7 +190,6 @@ function MainAppContent() {
     }
   };
 
-  // Render correct page body
   const renderPage = () => {
     switch (currentPage) {
       case 'tasks':
@@ -226,8 +201,10 @@ function MainAppContent() {
       case 'lead-backlog':
         return <Backlog setCurrentPage={setCurrentPage} />;
       case 'attendance':
+        return <Attendance />;
       case 'lead-attendance':
-        return <EmployeeAttendance />;
+      case 'team-attendance':
+        return <TeamAttendance />;
       case 'meetings':
       case 'admin-meetings':
       case 'lead-meetings':
@@ -251,56 +228,57 @@ function MainAppContent() {
       case 'admin-approvals':
       case 'lead-approvals':
         return <Approvals />;
-      case 'team-attendance':
-        return <TeamAttendance />;
       case 'lead-requests':
         return <LeadRequests />;
       case 'announcements':
       case 'admin-announcements':
       case 'lead-announcements':
         return <AdminAnnouncements />;
-      case 'settings': 
+      case 'settings':
         return <ProfileSettings />;
+      case 'lead-projects':
+        return <Projects />;
       case 'alerts':
       case 'admin-alerts':
       case 'lead-alerts':
         return <Alerts setCurrentPage={setCurrentPage} />;
       case 'dashboard':
       case 'lead-dashboard':
-       return <TeamLeadDashboard setCurrentPage={setCurrentPage} />;
+        return <TeamLeadDashboard setCurrentPage={setCurrentPage} />;
       default:
         return <AdminDashboard />;
     }
-  }
-  return (
-      <div className="app-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-        <TopBar title={getPageTitle()} currentPage={currentPage} setCurrentPage={setCurrentPage} isCollapsed={isCollapsed} />
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-          <main className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div className="content-body" style={{ flex: 1, overflowY: 'auto', position: 'relative', overflowX: 'hidden', backgroundColor: 'var(--bg-canvas)', padding: '24px' }}>
-              <AnimatePresence mode="wait">
-                <motion.div key={currentPage} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} style={{ width: '100%' }}>
-                  {renderPage()}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
+  };
 
-  export default function App() {
-    return (
-      <AuthProvider>
-        <AppProvider>
-          <ThemeProvider>
-            <TimerProvider>
-              <MainAppContent />
-            </TimerProvider>
-          </ThemeProvider>
-        </AppProvider>
-      </AuthProvider>
-    );
+  return (
+    <div className="app-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      <TopBar title={getPageTitle()} currentPage={currentPage} setCurrentPage={setCurrentPage} isCollapsed={isCollapsed} />
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <main className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div className="content-body" style={{ flex: 1, overflowY: 'auto', position: 'relative', overflowX: 'hidden', backgroundColor: 'var(--bg-canvas)', padding: '24px' }}>
+            <AnimatePresence mode="wait">
+              <motion.div key={currentPage} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} style={{ width: '100%' }}>
+                {renderPage()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppProvider>
+        <ThemeProvider>
+          <TimerProvider>
+            <MainAppContent />
+          </TimerProvider>
+        </ThemeProvider>
+      </AppProvider>
+    </AuthProvider>
+  );
 }

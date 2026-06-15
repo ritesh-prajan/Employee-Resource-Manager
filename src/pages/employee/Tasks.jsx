@@ -480,11 +480,13 @@ export default function Tasks({ setCurrentPage, initialScope }) {
         </div>
 
         {/* Table */}
-        <DataTable
-          Data={filteredTasks}
-          columns={columns}
-          onRowClick={(task) => setExpandedTaskId(task.id)}
-        />
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '2rem' }}>
+          <DataTable
+            Data={filteredTasks}
+            columns={columns}
+            onRowClick={(task) => setExpandedTaskId(task.id)}
+          />
+        </div>
 
         {/* Modals */}
         <ETAExtensionModal

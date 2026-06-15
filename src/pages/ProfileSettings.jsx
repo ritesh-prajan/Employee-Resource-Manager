@@ -444,25 +444,6 @@ export default function ProfileSettings() {
 
         </div>
       </div>
-
-      {/* ── Read-only account info ── */}
-      <Section title="Account &amp; Security" icon={Shield}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
-          <Field label="Account Status" value={currentUser.status}         editing={false} fieldKey="status" onChange={handleChange} readOnly />
-          <Field label="Role"           value={currentUser.role}           editing={false} fieldKey="role"   onChange={handleChange} readOnly />
-          <Field label="Employee Code"  value={currentUser.employee_code}  editing={false} fieldKey="ec"     onChange={handleChange} readOnly />
-        </div>
-        <div style={{
-          padding: '0.75rem 1rem', borderRadius: '10px',
-          background: 'var(--secondary)', border: '1px solid var(--border)',
-          fontSize: '0.78rem', color: 'var(--muted-foreground)',
-          display: 'flex', alignItems: 'center', gap: '0.5rem',
-        }}>
-          <Lock size={13} />
-          Role, status, and employee code can only be changed by an Admin.
-        </div>
-      </Section>
-
     </div>
   );
 }

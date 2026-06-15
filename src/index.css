@@ -543,16 +543,19 @@ select option {
 
 /* Tasks Page Styles */
 .tasks-page-container {
-  min-height: 100vh;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   background-color: var(--bg-canvas, #f0f2f5);
-  padding: 2rem;
   zoom: 0.8;
 }
 .tasks-toolbar-wrapper {
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 .tasks-filter-card {
   border-radius: 1rem;

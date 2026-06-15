@@ -23,8 +23,8 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name.trim() || !leadId) {
-      alert('Please fill in team name and select a lead.');
+    if (!name.trim() || !leadId || !subLeadId) {
+      alert('Please fill in team name, team lead, and sub lead.');
       return;
     }
     // Auto-include the lead in members if not already there

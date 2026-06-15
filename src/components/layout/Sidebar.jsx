@@ -75,7 +75,7 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
     if (currentUser.role === 'Admin' && !isEmployeeMode) {
       return (
         <>
-          {renderSectionHeader('Overview', true)}
+          {renderSectionHeader('Admin view', true)}
           <button className={`sidebar-link ${currentPage === 'admin-dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-dashboard')} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
             <LayoutDashboard size={18} />{!isCollapsed && <span>Dashboard</span>}
           </button>
@@ -143,7 +143,10 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
             <GitPullRequest size={18} />{!isCollapsed && <span>Requests</span>}
           </button>
           <button className={`sidebar-link ${currentPage === 'lead-teams' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-teams')} style={getLinkStyle()} title={isCollapsed ? 'My Team' : undefined}>
-            <Users size={18} />{!isCollapsed && <span>My Team Directory</span>}
+            <Users size={18} />{!isCollapsed && <span>My Teams </span>}
+          </button>
+          <button className={`sidebar-link ${currentPage === 'lead-projects' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-projects')} style={getLinkStyle()} title={isCollapsed ? 'Projects' : undefined}>
+            <Briefcase size={18} />{!isCollapsed && <span>My Projects</span>}
           </button>
           {renderAlertsLink('lead-alerts')}
 

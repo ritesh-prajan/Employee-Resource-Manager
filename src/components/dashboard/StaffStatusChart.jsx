@@ -123,7 +123,7 @@ export default function StaffStatusChart({ activeTrackers, totalStaffList, users
       {/* Drill-down Modal */}
       {selectedFilter && (
         <div className="modal-overlay" onClick={() => setSelectedFilter(null)}>
-          <div className="modal-content" style={{ maxWidth: '460px' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-content" style={{ maxWidth: '850px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{

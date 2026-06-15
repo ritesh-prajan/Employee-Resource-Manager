@@ -61,10 +61,11 @@ export const teamService = {
 
   // POST create team
   create: async (teamData) => {
-    const body = toBackendTeam(teamData);
-    const data = await api.post('/teams', body);
-    return mapTeam(data);
-  },
+  const body = toBackendTeam(teamData);
+  console.log('CREATE TEAM BODY:', JSON.stringify(body)); // add this
+  const data = await api.post('/teams', body);
+  return mapTeam(data);
+},
 
   // PUT update team
   update: async (id, teamData) => {

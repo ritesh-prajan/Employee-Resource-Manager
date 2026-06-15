@@ -3,7 +3,7 @@ import { api } from './api';
 // Backend → Frontend shape
 function mapProject(proj) {
   return {
-    id:                 proj.id,
+    id:                 proj.id ? Number(proj.id) : proj.id,
     name:               proj.projectName,
     projectName:        proj.projectName,
     description:        proj.description || '',

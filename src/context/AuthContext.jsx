@@ -26,6 +26,7 @@ function normaliseuser(apiuser){
     role: maprole(apiuser.roles),
     roles:apiuser.roles??[],
     permission:apiuser.permissions??[],
+    permissions:apiuser.permissions??[],
     components:apiuser.components??[],
   }
 }

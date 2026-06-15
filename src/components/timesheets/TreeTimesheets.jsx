@@ -1,23 +1,14 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useApp } from "../../context/AppContext";
-import {
-  ChevronRight, Calendar, Briefcase, ChevronLeft, ChevronDown,
-  Search, Layers, Filter, Tag, Clock, X, Users
-} from "lucide-react";
+import { ChevronRight, Calendar, Briefcase, ChevronLeft, ChevronDown, Search, Layers, Filter, Tag, Users, X } from "lucide-react";
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function gettotal(node) {
   if (!node.children || node.children.length === 0) return node.hours ?? 0;
   return node.children.reduce((sum, child) => sum + gettotal(child), 0);
 }
 
-function formatHHMM(hours) {
-  if (!Number.isFinite(hours) || hours <= 0) return "-";
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-
-const AVATAR_COLORS = ["#6366F1", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4", "#EC4899"];
+const AVATAR_COLORS = ["#6366F1", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
 
 function avatarcolor(name) {
   if (!name) return AVATAR_COLORS[0];
@@ -31,308 +22,408 @@ function initials(name) {
   return name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
 }
 
-const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const dayNames   = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const BADGE_COLORS = {
+  Story:   { text: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE" },
+  Bug:     { text: "#B45309", bg: "#FFFBEB", border: "#FDE68A" },
+  Feature: { text: "#065F46", bg: "#ECFDF5", border: "#A7F3D0" },
+  Review:  { text: "#5B21B6", bg: "#F5F3FF", border: "#DDD6FE" },
+  "R&D":   { text: "#9A3412", bg: "#FFF7ED", border: "#FDBA74" },
+  Epic:    { text: "#1E3A8A", bg: "#DBEAFE", border: "#93C5FD" },
+};
 
-function buildTreeFromContext(users, projects, tasks, timeEntries, filters) {
-  const today = new Date();
-  const dow = today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
-  monday.setHours(0, 0, 0, 0);
-
-  const { searchQuery, teamFilter, roleFilter, projectFilter, categoryFilter, statusFilter, teams, customDate, weekMode } = filters;
-  const pad = n => String(n).padStart(2, '0');
-  const weekOffsets = [3, 2, 1, 0];
-
-  if (customDate) {
-    const cd = new Date(customDate);
-    if (!isNaN(cd)) {
-      const cdDow = cd.getDay();
-      const cdMonday = new Date(cd);
-      cdMonday.setDate(cd.getDate() - (cdDow === 0 ? 6 : cdDow - 1));
-      cdMonday.setHours(0, 0, 0, 0);
-      const diffWeeks = Math.round((monday - cdMonday) / (7 * 24 * 60 * 60 * 1000));
-      weekOffsets.length = 0;
-      if (weekMode === "before") {
-        weekOffsets.push(diffWeeks + 3, diffWeeks + 2, diffWeeks + 1, diffWeeks);
-      } else if (weekMode === "after") {
-        weekOffsets.push(diffWeeks, diffWeeks - 1, diffWeeks - 2, diffWeeks - 3);
-      } else {
-        weekOffsets.push(diffWeeks + 2, diffWeeks + 1, diffWeeks, diffWeeks - 1);
-      }
-    }
+const formatWeekLabel = (monday, sunday) => {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const m1 = months[monday.getMonth()];
+  const m2 = months[sunday.getMonth()];
+  const y1 = monday.getFullYear();
+  if (m1 === m2) {
+    return `Week of ${m1} ${monday.getDate()} - ${sunday.getDate()}, ${y1}`;
+  } else {
+    return `Week of ${m1} ${monday.getDate()} - ${m2} ${sunday.getDate()}, ${y1}`;
   }
+};
 
+const buildTreeFromContext = ({ users, projects, tasks, timeEntries, teams }, filters) => {
+  const today = new Date();
+  const day = today.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const mondayOfCurrentWeek = new Date(today);
+  mondayOfCurrentWeek.setDate(today.getDate() + diff);
+  mondayOfCurrentWeek.setHours(0, 0, 0, 0);
+
+  const weeksToGenerate = 4;
   const dynamicWeeks = [];
+  const DN = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-  for (const i of weekOffsets) {
-    const ws = new Date(monday); ws.setDate(monday.getDate() - i * 7);
-    const we = new Date(ws);     we.setDate(ws.getDate() + 6); we.setHours(23, 59, 59, 999);
+  for (let i = 0; i < weeksToGenerate; i++) {
+    const weeksAgo = weeksToGenerate - 1 - i;
+    const weekMonday = new Date(mondayOfCurrentWeek);
+    weekMonday.setDate(mondayOfCurrentWeek.getDate() - (weeksAgo * 7));
 
-    const label = (() => {
-      const s = `${monthNames[ws.getMonth()]} ${ws.getDate()}`;
-      const e = `${monthNames[we.getMonth()]} ${we.getDate()}, ${we.getFullYear()}`;
-      return `Week of ${s} - ${e}`;
-    })();
-    const startStr = `${ws.getFullYear()}-${pad(ws.getMonth()+1)}-${pad(ws.getDate())}`;
-    const endStr   = `${we.getFullYear()}-${pad(we.getMonth()+1)}-${pad(we.getDate())}`;
+    const weekSunday = new Date(weekMonday);
+    weekSunday.setDate(weekMonday.getDate() + 6);
+    weekSunday.setHours(23, 59, 59, 999);
 
-    let weekEntries = timeEntries.filter(e => e.date >= startStr && e.date <= endStr);
-    if (categoryFilter !== "all")  weekEntries = weekEntries.filter(e => (e.workCategory||"Story") === categoryFilter);
-    if (statusFilter   !== "all")  weekEntries = weekEntries.filter(e => (e.status||"Pending")      === statusFilter);
-    if (projectFilter  !== "all")  weekEntries = weekEntries.filter(e => e.projectId                === projectFilter);
+    const label = formatWeekLabel(weekMonday, weekSunday);
 
-    const byProj = {};
-    weekEntries.forEach(e => {
-      const pid = e.projectId || "other";
-      if (!byProj[pid]) byProj[pid] = [];
-      byProj[pid].push(e);
+    const weekEntries = (timeEntries || []).filter(e => {
+      const eDate = new Date(e.date);
+      if (isNaN(eDate) || eDate < weekMonday || eDate > weekSunday) return false;
+
+      // Apply filters:
+      if (filters.statusFilter && filters.statusFilter !== "all" && e.status !== filters.statusFilter) return false;
+      if (filters.categoryFilter && filters.categoryFilter !== "all" && e.workCategory !== filters.categoryFilter) return false;
+      if (filters.projectFilter && filters.projectFilter !== "all" && e.projectId !== filters.projectFilter) return false;
+      if (filters.teamFilter && filters.teamFilter !== "all") {
+        const team = (teams || []).find(t => t.id === filters.teamFilter);
+        if (team && !team.members.includes(e.userId) && team.leadId !== e.userId) return false;
+      }
+      if (filters.roleFilter && filters.roleFilter !== "all") {
+        const u = (users || []).find(u => u.id === e.userId);
+        if (u && u.role !== filters.roleFilter) return false;
+      }
+      if (filters.searchQuery) {
+        const u = (users || []).find(u => u.id === e.userId);
+        const taskObj = (tasks || []).find(t => t.id === e.taskId);
+        const taskLabel = taskObj ? `${taskObj.taskNumber} ${taskObj.name}` : e.description || "";
+        const nameMatch = u && u.name.toLowerCase().includes(filters.searchQuery.toLowerCase());
+        const taskMatch = taskLabel.toLowerCase().includes(filters.searchQuery.toLowerCase());
+        if (!nameMatch && !taskMatch) return false;
+      }
+      return true;
     });
 
-    const projectNodes = [];
-    for (const pid in byProj) {
-      const projEntries = byProj[pid];
-      const projObj  = projects.find(p => p.id === pid);
-      const projName = projObj ? projObj.name : (pid === "other" ? "Internal Tasks" : pid);
+    const projectMap = {};
+    weekEntries.forEach(entry => {
+      const projId = entry.projectId || "internal-rd";
+      const proj = (projects || []).find(p => p.id === projId);
+      const projName = proj ? proj.projectName || proj.name : "Internal R&D";
+      const projLabel = `Project: ${projName}`;
 
-      const byUser = {};
-      projEntries.forEach(e => {
-        if (!byUser[e.userId]) byUser[e.userId] = [];
-        byUser[e.userId].push(e);
-      });
-
-      const personNodes = [];
-      for (const uid in byUser) {
-        const userObj  = users.find(u => u.id === uid);
-        const userName = userObj ? userObj.name : "Unknown";
-        const userRole = userObj ? userObj.role  : "Employee";
-
-        if (roleFilter !== "all" && userRole !== roleFilter) continue;
-        if (teamFilter !== "all") {
-          const team = teams.find(t => t.id === teamFilter);
-          if (team && !team.members.includes(uid) && team.leadId !== uid) continue;
-        }
-        if (searchQuery && !userName.toLowerCase().includes(searchQuery.toLowerCase())) {
-          const hasTaskMatch = byUser[uid].some(e => {
-            const task = tasks.find(t => t.id === e.taskId);
-            return task && task.name.toLowerCase().includes(searchQuery.toLowerCase());
-          });
-          if (!hasTaskMatch) continue;
-        }
-
-        const entryNodes = byUser[uid].map(entry => {
-          const taskObj   = tasks.find(t => t.id === entry.taskId);
-          const taskLabel = taskObj ? `${taskObj.taskNumber} ${taskObj.name}` : entry.description || "Time Entry";
-          let fmtDate = entry.date;
-          try {
-            const d = new Date(entry.date);
-            if (!isNaN(d)) fmtDate = `${dayNames[(d.getDay()+6)%7]} ${d.getDate()}/${d.getMonth()+1}`;
-          } catch(_) {}
-          return {
-            id: entry.id, type: "entry",
-            date: fmtDate, dayKey: entry.date,
-            entryType: entry.workCategory || "Story",
-            task: taskLabel, start: entry.startTime, end: entry.endTime,
-            hours: parseFloat(entry.duration) || 0,
-            description: entry.description, children: []
-          };
-        });
-
-        personNodes.push({
-          id: `person-${uid}-wk${3-i}`, type: "person",
-          label: userName, role: userRole, children: entryNodes
-        });
+      if (!projectMap[projId]) {
+        projectMap[projId] = {
+          id: `week-${i}-proj-${projId}`,
+          type: "project",
+          label: projLabel,
+          projectId: projId,
+          color: proj ? proj.colorHex || proj.color : null,
+          childrenMap: {}
+        };
       }
-      if (personNodes.length === 0) continue;
 
-      projectNodes.push({
-        id: `proj-${pid}-wk${3-i}`, type: "project",
-        label: `Project: ${projName}`, color: projObj?.color,
-        children: personNodes
+      const userId = entry.userId;
+      const user = (users || []).find(u => u.id === userId);
+      const userName = user ? user.name : "Unknown Employee";
+      const userRole = user ? user.role : "Employee";
+
+      if (!projectMap[projId].childrenMap[userId]) {
+        projectMap[projId].childrenMap[userId] = {
+          id: `week-${i}-proj-${projId}-user-${userId}`,
+          type: "person",
+          label: userName,
+          role: userRole,
+          userId: userId,
+          children: []
+        };
+      }
+
+      const taskObj = (tasks || []).find(t => t.id === entry.taskId);
+      const taskLabel = taskObj ? `${taskObj.taskNumber} ${taskObj.name}` : entry.description || "Manual Entry";
+      
+      let dayName = "Mon";
+      try {
+        const d = new Date(entry.date);
+        if (!isNaN(d)) dayName = DN[(d.getDay() + 6) % 7];
+      } catch(_) {}
+      const formattedDate = `${dayName} ${new Date(entry.date).getDate()}/${new Date(entry.date).getMonth() + 1}`;
+
+      projectMap[projId].childrenMap[userId].children.push({
+        id: entry.id,
+        type: "entry",
+        date: formattedDate,
+        dayKey: entry.date,
+        entryType: entry.workCategory || "Story",
+        task: taskLabel,
+        desc: entry.description,
+        start: entry.startTime,
+        end: entry.endTime,
+        hours: parseFloat(entry.duration) || 0
       });
-    }
+    });
+
+    const projectChildren = Object.values(projectMap).map(projNode => {
+      const peopleChildren = Object.values(projNode.childrenMap).map(personNode => {
+        personNode.children.sort((a, b) => a.dayKey.localeCompare(b.dayKey));
+        return personNode;
+      }).filter(p => p.children.length > 0);
+      
+      peopleChildren.sort((a, b) => a.label.localeCompare(b.label));
+      
+      return {
+        id: projNode.id,
+        type: projNode.type,
+        label: projNode.label,
+        color: projNode.color,
+        children: peopleChildren
+      };
+    }).filter(p => p.children.length > 0);
+
+    projectChildren.sort((a, b) => a.label.localeCompare(b.label));
 
     dynamicWeeks.push({
-      id: `dw-${3-i}`, type: "week", label,
-      dateRange: { start: ws, end: we },
-      children: projectNodes
+      id: `dynamic-week-${i}`,
+      type: "week",
+      label,
+      dateRange: { start: weekMonday, end: weekSunday },
+      children: projectChildren
     });
   }
+
   return dynamicWeeks;
-}
+};
 
-function WeekRow({ node, isopen, Ontoggle }) {
+// ─── Row components ───────────────────────────────────────────────────────────
+function weekrow({ node, isopen, Ontoggle }) {
   const total = gettotal(node);
   return (
-    <div onClick={Ontoggle}
-      className="grid items-center px-0 py-[11px] border-b cursor-pointer select-none transition-colors"
-      style={{ gridTemplateColumns: "90px 80px 1fr 1fr 70px 70px 90px 90px 100px", background: "var(--secondary)", borderColor: "var(--border)" }}>
-      <div className="col-span-8 flex items-center gap-2 pl-4">
-        <span className="inline-block transition-transform duration-200"
-          style={{ transform: isopen ? "rotate(90deg)" : "rotate(0deg)", color: "var(--muted-foreground)" }}>
-          <ChevronRight size={12} strokeWidth={2.5} />
+    <div
+      onClick={Ontoggle}
+      className="grid items-center px-4 py-[11px] border-b cursor-pointer select-none hover:bg-slate-100 font-sans"
+      style={{
+        gridTemplateColumns: "120px 80px 100px 1fr 80px 80px 100px 100px 140px",
+        background: "var(--secondary)",
+        borderColor: "var(--border)",
+        color: "var(--foreground)"
+      }}
+    >
+      <div className="col-span-8 flex items-center gap-2.5">
+        <span
+          className="inline-block transition-transform duration-150"
+          style={{ transform: isopen ? "rotate(90deg)" : "rotate(0deg)", color: "var(--muted-foreground)" }}
+        >
+          <ChevronRight size={10} />
         </span>
-        <Calendar size={14} className="shrink-0" style={{ color: "var(--primary)" }} />
-        <span className="text-[13px] font-bold" style={{ color: "var(--foreground)" }}>{node.label}</span>
+        <span className="text-indigo-600"><Calendar size={13} /></span>
+        <span className="text-[13px] font-semibold">{node.label}</span>
       </div>
-      <div className="text-right pr-3">
-        {total > 0
-          ? <span className="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-md" style={{ color: "var(--primary)", background: "var(--accent)", border: "1px solid var(--border)" }}>{total.toFixed(1)} hrs</span>
-          : <span className="text-[11px] italic" style={{ color: "var(--muted-foreground)" }}>No entries</span>}
-      </div>
-    </div>
-  );
-}
-
-function ProjectRow({ node, isopen, Ontoggle }) {
-  const total = gettotal(node);
-  return (
-    <div onClick={Ontoggle}
-      className="grid items-center px-0 py-[10px] border-b cursor-pointer select-none transition-colors"
-      style={{ gridTemplateColumns: "90px 80px 1fr 1fr 70px 70px 90px 90px 100px", background: "var(--secondary)", borderColor: "var(--border)" }}>
-      <div className="col-span-8 flex items-center gap-2 pl-8">
-        <span className="inline-block transition-transform duration-200"
-          style={{ transform: isopen ? "rotate(90deg)" : "rotate(0deg)", color: "var(--muted-foreground)" }}>
-          <ChevronRight size={12} strokeWidth={2.5} />
-        </span>
-        {node.color
-          ? <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: node.color }} />
-          : <Briefcase size={13} className="shrink-0" style={{ color: "var(--primary)" }} />}
-        <span className="text-[13px] font-bold" style={{ color: "var(--foreground)" }}>{node.label}</span>
-      </div>
-      <div className="text-right pr-3">
-        <span className="inline-block text-[11px] font-bold px-2 py-0.5 rounded-md"
-          style={{ color: "var(--primary)", background: "var(--accent)", border: "1px solid var(--border)" }}>
-          {total.toFixed(1)} hrs
+      <div className="text-right pr-4">
+        <span className="text-[11px] font-semibold px-3 py-[3px] rounded-full whitespace-nowrap border"
+          style={{ color: "var(--primary)", background: "var(--accent)", borderColor: "var(--border)" }}>
+          {total.toFixed(1)} hrs logged
         </span>
       </div>
     </div>
   );
 }
 
-function PersonRow({ node, isopen, Ontoggle }) {
+function projectrow({ node, isopen, Ontoggle }) {
+  const total = gettotal(node);
+  return (
+    <div
+      onClick={Ontoggle}
+      className="grid items-center px-4 py-[11px] border-b cursor-pointer select-none hover:bg-slate-100 font-sans"
+      style={{
+        gridTemplateColumns: "120px 80px 100px 1fr 80px 80px 100px 100px 140px",
+        background: "var(--card)",
+        borderColor: "var(--border)",
+        color: "var(--foreground)"
+      }}
+    >
+      <div className="col-span-8 flex items-center gap-2.5 pl-6">
+        <span
+          className="inline-block transition-transform duration-150"
+          style={{ transform: isopen ? "rotate(90deg)" : "rotate(0deg)", color: "var(--muted-foreground)" }}
+        >
+          <ChevronRight size={10} />
+        </span>
+        <span className="text-blue-500"><Briefcase size={13} /></span>
+        <span className="text-[13px] font-semibold">{node.label}</span>
+      </div>
+      <div className="text-right pr-4">
+        <span className="text-[11px] font-semibold px-3 py-[3px] rounded-full whitespace-nowrap border"
+          style={{ color: "var(--primary)", background: "var(--accent)", borderColor: "var(--border)" }}>
+          {total.toFixed(1)} hrs logged
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function personrow({ node, isopen, Ontoggle }) {
   const total = gettotal(node);
   const color = avatarcolor(node.label);
   return (
-    <div onClick={Ontoggle}
-      className="grid items-center px-0 py-[10px] border-b cursor-pointer select-none transition-colors"
-      style={{ gridTemplateColumns: "90px 80px 1fr 1fr 70px 70px 90px 90px 100px", background: "var(--card)", borderColor: "var(--border)" }}>
-      <div className="col-span-8 flex items-center gap-2 pl-12">
-        <span className="inline-block transition-transform duration-200"
-          style={{ transform: isopen ? "rotate(90deg)" : "rotate(0deg)", color: "var(--muted-foreground)" }}>
-          <ChevronRight size={12} strokeWidth={2.5} />
+    <div
+      onClick={Ontoggle}
+      className="grid items-center px-4 py-[11px] border-b cursor-pointer select-none hover:bg-slate-100 font-sans"
+      style={{
+        gridTemplateColumns: "120px 80px 100px 1fr 80px 80px 100px 100px 140px",
+        background: "var(--card)",
+        borderColor: "var(--border)",
+        color: "var(--foreground)"
+      }}
+    >
+      <div className="col-span-8 flex items-center gap-2.5 pl-12 font-medium">
+        <span
+          className="inline-block transition-transform duration-150"
+          style={{ transform: isopen ? "rotate(90deg)" : "rotate(0deg)", color: "var(--muted-foreground)" }}
+        >
+          <ChevronRight size={10} />
         </span>
-        <span className="w-6 h-6 rounded-full text-white flex items-center justify-center text-[10px] font-bold shrink-0 shadow-sm"
-          style={{ background: color }}>
+        <span
+          className="w-[22px] h-[22px] rounded-full text-white flex items-center justify-center text-[9px] font-semibold shrink-0"
+          style={{ background: color }}
+        >
           {initials(node.label)}
         </span>
-        <span className="text-[13px] font-semibold" style={{ color: "var(--foreground)" }}>
+        <span className="text-[13px]">
           {node.label}{" "}
           <span className="text-[11px] font-normal" style={{ color: "var(--muted-foreground)" }}>({node.role})</span>
         </span>
       </div>
-      <div className="text-right pr-4 text-[12px] font-semibold whitespace-nowrap" style={{ color: "var(--muted-foreground)" }}>
-        {total.toFixed(1)} hrs
+      <div className="text-right pr-4 text-[12px] font-medium whitespace-nowrap" style={{ color: "var(--muted-foreground)" }}>
+        {total.toFixed(1)} hrs logged
       </div>
     </div>
   );
 }
 
-function EntryRow({ node, projectLabel }) {
-  const isFirstOfDay   = node.isFirstOfDay  ?? true;
-  const isFirstOverall = node.isFirstOverall ?? false;
-  const dayTotal       = node.dayTotal  ?? 0;
-  const weeklyTotal    = node.weeklyTotal ?? 0;
+function entryrow({ node, isFirstOfDate, isFirstOfPerson, dailyTotal, weeklyTotal, projectLabel, projectColor }) {
+  const badge = BADGE_COLORS[node.entryType] ?? BADGE_COLORS.Feature;
+  const displayColor = projectColor || avatarcolor(projectLabel || "AAM");
+
+  const formatHHMM = (h) => {
+    if (!Number.isFinite(h) || h <= 0) return "";
+    const hrs = Math.floor(h);
+    const mins = Math.round((h - hrs) * 60);
+    return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+  };
 
   return (
-    <div className="grid items-start px-0 py-2.5 border-b transition-colors"
-      style={{ gridTemplateColumns: "90px 80px 1fr 1fr 70px 70px 90px 90px 100px", background: "var(--card)", borderColor: "var(--border)" }}>
-      <span className="pl-4 text-[12px] font-medium whitespace-nowrap" style={{ color: "var(--foreground)" }}>
-        {isFirstOfDay ? node.date : ""}
+    <div
+      className="grid items-center px-4 py-2 border-b hover:bg-slate-50 font-sans"
+      style={{
+        gridTemplateColumns: "120px 80px 100px 1fr 80px 80px 100px 100px 140px",
+        background: "var(--card)",
+        borderColor: "var(--border)",
+        color: "var(--foreground)"
+      }}
+    >
+      <span className="text-[12px] font-medium pl-14 whitespace-nowrap" style={{ color: "var(--foreground)" }}>
+        {isFirstOfDate ? node.date : ""}
       </span>
-      <span className="px-2 text-[11px] font-semibold pt-[2px]" style={{ color: "var(--muted-foreground)" }}>{node.entryType}</span>
-      <div className="px-2 flex items-center gap-1.5 min-w-0">
-        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "var(--primary)" }} />
-        <span className="text-[12px] font-medium truncate" style={{ color: "var(--foreground)" }}>{projectLabel || "General"}</span>
+      <div className="flex items-center">
+        <span
+          className="text-[10px] font-semibold px-2 py-[2px] rounded-full border whitespace-nowrap"
+          style={{ color: badge.text, background: badge.bg, borderColor: badge.border }}
+        >
+          {node.entryType || "Epic"}
+        </span>
       </div>
-      <div className="px-2 min-w-0">
-        <div className="text-[12px] font-semibold truncate" style={{ color: "var(--primary)" }}>{node.task}</div>
-        {node.description && (
-          <div className="text-[11px] italic truncate mt-0.5" style={{ color: "var(--muted-foreground)" }}>{node.description}</div>
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: displayColor }} />
+        <span className="text-[12px] truncate font-medium">{projectLabel || "AAM"}</span>
+      </div>
+      <div className="min-w-0 pr-2">
+        <div className="text-[12px] font-semibold truncate" style={{ color: "var(--primary)" }}>
+          {node.task}
+        </div>
+        {node.desc && (
+          <div className="text-[11px] truncate mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+            {node.desc}
+          </div>
         )}
       </div>
-      <span className="text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>{node.start}</span>
-      <span className="text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>{node.end}</span>
-      <span className="text-center text-[12px] font-bold" style={{ color: "var(--foreground)" }}>{formatHHMM(node.hours)}</span>
-      <span className="text-center text-[12px] font-bold" style={{ color: "var(--foreground)" }}>{isFirstOfDay && dayTotal > 0 ? formatHHMM(dayTotal) : ""}</span>
-      <span className="text-right pr-4 text-[12px] font-bold" style={{ color: "var(--primary)" }}>{isFirstOverall ? formatHHMM(weeklyTotal) : ""}</span>
+      <span className="text-[12px] text-center" style={{ color: "var(--muted-foreground)" }}>{node.start}</span>
+      <span className="text-[12px] text-center" style={{ color: "var(--muted-foreground)" }}>{node.end}</span>
+      <span className="text-[12px] font-semibold text-center">{formatHHMM(node.hours)}</span>
+      <span className="text-[12px] font-semibold text-center">
+        {isFirstOfDate && dailyTotal > 0 ? formatHHMM(dailyTotal) : ""}
+      </span>
+      <span className="text-[12px] font-bold text-right pr-4" style={{ color: "var(--primary)" }}>
+        {isFirstOfPerson && weeklyTotal > 0 ? formatHHMM(weeklyTotal) : ""}
+      </span>
     </div>
   );
 }
 
-function TreeNode({ node, depth = 0, openmap, setopenmap, projectLabel = "" }) {
-  const isopen    = openmap[node.id] ?? false;
-  const hasChildren = (node.children?.length ?? 0) > 0;
-  const toggle    = () => setopenmap(prev => ({ ...prev, [node.id]: !isopen }));
+// ─── Tree node ────────────────────────────────────────────────────────────────
+function Treenode({ node, depth = 0, coloridx = 0, openmap, setopenmap, extraProps = {}, projectLabel = "", projectColor = "" }) {
+  const isopen = openmap[node.id] ?? false;
+  const haschildren = node.children?.length > 0;
+  const toggle = () => setopenmap(prev => ({ ...prev, [node.id]: !isopen }));
 
-  const RowMap = { week: WeekRow, project: ProjectRow, person: PersonRow, entry: EntryRow };
-  const Row    = RowMap[node.type];
-
-  let childrenToRender = node.children || [];
-  if (node.type === "person" && hasChildren) {
-    const byDay = {};
-    node.children.forEach(c => {
-      if (!byDay[c.dayKey || c.date]) byDay[c.dayKey || c.date] = [];
-      byDay[c.dayKey || c.date].push(c);
-    });
-    const weeklyTotal = node.children.reduce((s, e) => s + (e.hours ?? 0), 0);
-    let firstOverall  = true;
-    const processed   = [];
-    Object.values(byDay).forEach(dayEntries => {
-      const dayTotal = dayEntries.reduce((s, e) => s + (e.hours ?? 0), 0);
-      dayEntries.forEach((entry, idx) => {
-        processed.push({ ...entry, isFirstOfDay: idx === 0, dayTotal, isFirstOverall: firstOverall, weeklyTotal });
-        firstOverall = false;
-      });
-    });
-    childrenToRender = processed;
-  }
+  const rowprops = { node, isopen, Ontoggle: toggle, coloridx, depth, ...extraProps, projectLabel, projectColor };
+  const Row = { week: weekrow, project: projectrow, person: personrow, entry: entryrow }[node.type];
 
   return (
     <div>
-      <Row node={node} isopen={isopen} Ontoggle={toggle} projectLabel={projectLabel} />
-      {isopen && hasChildren && childrenToRender.map(child => (
-        <TreeNode
-          key={child.id}
-          node={child}
-          depth={depth + 1}
-          openmap={openmap}
-          setopenmap={setopenmap}
-          projectLabel={node.type === "project" ? node.label.replace("Project: ", "") : projectLabel}
-        />
-      ))}
+      <Row {...rowprops} />
+      {isopen && haschildren && node.children.map((child, i) => {
+        const currentProjLabel = node.type === "project" ? node.label.replace("Project: ", "") : projectLabel;
+        const currentProjColor = node.type === "project" ? (node.color || "") : projectColor;
+        let childExtra = {};
+        if (child.type === "entry") {
+          const siblings = node.children;
+          const firstIdx = siblings.findIndex(s => s.date === child.date);
+          const isFirstOfDate = (firstIdx === i);
+          const dailyTotalVal = siblings
+            .filter(s => s.date === child.date)
+            .reduce((sum, s) => sum + (s.hours || 0), 0);
+          const isFirstOfPerson = (i === 0);
+          const weeklyTotalVal = siblings.reduce((sum, s) => sum + (s.hours || 0), 0);
+          
+          childExtra = {
+            isFirstOfDate,
+            isFirstOfPerson,
+            dailyTotal: dailyTotalVal,
+            weeklyTotal: weeklyTotalVal,
+          };
+        }
+
+        return (
+          <Treenode
+            key={child.id}
+            node={child}
+            depth={depth + 1}
+            coloridx={node.type === "week" ? i : coloridx}
+            openmap={openmap}
+            setopenmap={setopenmap}
+            extraProps={childExtra}
+            projectLabel={currentProjLabel}
+            projectColor={currentProjColor}
+          />
+        );
+      })}
     </div>
   );
 }
 
-function collectIds(node) {
+// ─── Collect all node IDs ─────────────────────────────────────────────────────
+function collectids(node) {
   const ids = [node.id];
-  for (const c of node.children || []) ids.push(...collectIds(c));
+  if (node.children) {
+    for (const c of node.children) ids.push(...collectids(c));
+  }
   return ids;
 }
 
-function ColHeader() {
+// ─── Column header ────────────────────────────────────────────────────────────
+function Colheader() {
   return (
-    <div className="grid px-0 py-2.5 border-b-2"
-      style={{ gridTemplateColumns: "90px 80px 1fr 1fr 70px 70px 90px 90px 100px", background: "var(--card)", borderColor: "var(--border)" }}>
-      {["DATE","TYPE","JOB","SUB JOB","START","END","TOTAL HRS","DAILY","WEEKLY"].map((col, i) => (
-        <span key={col}
+    <div className="grid px-4 py-2 border-b-2 font-sans"
+      style={{
+        gridTemplateColumns: "120px 80px 100px 1fr 80px 80px 100px 100px 140px",
+        background: "var(--secondary)",
+        borderColor: "var(--border)"
+      }}
+    >
+      {["DATE", "TYPE", "JOB", "SUB JOB", "START", "END", "TOTAL HOURS", "DAILY TOTAL", "WEEKLY TOTAL"].map((col, i) => (
+        <span
+          key={col}
+          className={`text-[10px] font-bold uppercase tracking-wider ${i >= 4 && i <= 7 ? "text-center" : ""} ${i === 8 ? "text-right pr-4" : "text-left"}`}
           style={{ color: "var(--muted-foreground)" }}
-          className={`px-2 text-[10px] font-bold uppercase tracking-widest
-            ${i === 0 ? "pl-4" : ""}
-            ${i >= 4 && i <= 7 ? "text-center" : ""}
-            ${i === 8 ? "text-right pr-3" : ""}`}>
+        >
           {col}
         </span>
       ))}
@@ -340,64 +431,64 @@ function ColHeader() {
   );
 }
 
-function WeeksDropdown({ weeks, selectedIds, onToggle, customDate, onCustomDate, weekMode, onWeekMode }) {
+// ─── Weeks dropdown ───────────────────────────────────────────────────────────
+function WeeksDropdown({ weeks, selectedIds, onToggle, customDate, onCustomDate }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
-    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium cursor-pointer transition-colors border"
-        style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-        <Calendar size={13} style={{ color: "var(--primary)" }} />
-        Weeks ({selectedIds.length})
-        <ChevronDown size={12} style={{ color: "var(--muted-foreground)", transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" }} />
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 px-3 hover:bg-slate-100 py-1.5 rounded-lg text-[13px] font-medium cursor-pointer border"
+        style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}
+      >
+        <Calendar size={13} color="#6366F1" />
+        Weeks Displayed ({selectedIds.length})
+        <ChevronDown
+          size={13}
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", color: "var(--muted-foreground)" }}
+          className="transition-transform duration-150"
+        />
       </button>
+
       {open && (
-        <div className="absolute top-[calc(100%+6px)] left-0 z-50 rounded-xl shadow-xl min-w-[240px] pt-2.5"
-          style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-          <div className="text-[10px] font-bold uppercase tracking-widest px-3.5 pb-2"
-            style={{ color: "var(--muted-foreground)" }}>Select Weeks</div>
-          <div className="pb-1" style={{ borderBottom: "1px solid var(--border)" }}>
+        <div className="absolute top-[calc(100%+6px)] left-0 z-50 rounded-xl pt-3 min-w-[240px] shadow-xl border"
+          style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+          <div className="text-[10px] font-bold tracking-widest px-3.5 pb-2" style={{ color: "var(--muted-foreground)" }}>
+            SELECT WEEKS TO AUDIT
+          </div>
+          <div className="max-h-[200px] overflow-y-auto border-b" style={{ borderColor: "var(--border)" }}>
             {weeks.map(w => (
-              <label key={w.id}
-                className="flex items-center gap-2.5 px-3.5 py-2 cursor-pointer text-[12px] hover:opacity-80"
-                style={{ color: selectedIds.includes(w.id) ? "var(--foreground)" : "var(--muted-foreground)" }}>
-                <input type="checkbox" checked={selectedIds.includes(w.id)}
+              <label
+                key={w.id}
+                className={`flex items-center gap-2.5 px-3.5 py-[9px] cursor-pointer text-[13px] ${selectedIds.includes(w.id) ? "font-semibold" : "opacity-60"}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(w.id)}
                   onChange={() => onToggle(w.id)}
-                  className="w-3.5 h-3.5 rounded" style={{ accentColor: "var(--primary)" }} />
+                  className="w-3.5 h-3.5 accent-indigo-500"
+                />
                 <span>{w.label}</span>
               </label>
             ))}
           </div>
-          <div className="px-3.5 py-2.5 flex flex-col gap-2">
-            <div>
-              <div className="text-[10px] font-bold uppercase mb-1.5" style={{ color: "var(--muted-foreground)" }}>Jump to date</div>
-              <input type="date" value={customDate} onChange={e => onCustomDate(e.target.value)}
-                className="input-control text-[12px]" />
-            </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase mb-1.5" style={{ color: "var(--muted-foreground)" }}>Show weeks</div>
-              <div className="flex gap-1">
-                {[["before","← Before"],["both","Both"],["after","After →"]].map(([val, label]) => (
-                  <button key={val} onClick={() => onWeekMode(val)}
-                    className="flex-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition border cursor-pointer"
-                    style={{
-                      background: weekMode === val ? "var(--primary)" : "var(--card)",
-                      color: weekMode === val ? "var(--primary-foreground)" : "var(--muted-foreground)",
-                      borderColor: weekMode === val ? "var(--primary)" : "var(--border)"
-                    }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="px-3.5 py-2.5">
+            <div className="text-[10px] font-bold tracking-wider mb-1.5" style={{ color: "var(--muted-foreground)" }}>PICK CUSTOM DATE:</div>
+            <input
+              type="date"
+              value={customDate}
+              onChange={e => onCustomDate(e.target.value)}
+              className="w-full px-2 py-1.5 rounded-md text-[13px] box-border border"
+              style={{ background: "var(--secondary)", borderColor: "var(--border)", color: "var(--foreground)" }}
+            />
           </div>
         </div>
       )}
@@ -405,216 +496,236 @@ function WeeksDropdown({ weeks, selectedIds, onToggle, customDate, onCustomDate,
   );
 }
 
+// ─── Toolbar ──────────────────────────────────────────────────────────────────
+function Toolbar({ weeks, selectedIds, onToggleWeek, customDate, onCustomDate, currentIdx, onPrev, onNext, onExpandAll, onCollapseAll }) {
+  const iconBtn = "p-1.5 border rounded-lg cursor-pointer flex items-center justify-center transition-colors hover:bg-slate-100";
+
+  return (
+    <div className="flex items-center gap-2 px-4 py-2.5 border-b"
+      style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+      <button onClick={onPrev} disabled={currentIdx <= 0} className={`${iconBtn} ${currentIdx <= 0 ? "opacity-40" : ""}`}
+        style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+        <ChevronLeft size={14} />
+      </button>
+      <button onClick={onNext} disabled={currentIdx >= weeks.length - 1} className={`${iconBtn} ${currentIdx >= weeks.length - 1 ? "opacity-40" : ""}`}
+        style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+        <ChevronRight size={14} />
+      </button>
+
+      <WeeksDropdown
+        weeks={weeks}
+        selectedIds={selectedIds}
+        onToggle={onToggleWeek}
+        customDate={customDate}
+        onCustomDate={onCustomDate}
+      />
+
+      <div className="flex-1" />
+
+      <button onClick={onExpandAll} className="px-3.5 hover:bg-slate-100 py-1.5 rounded-lg text-[13px] font-medium cursor-pointer border"
+        style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>Expand All</button>
+      <button onClick={onCollapseAll} className="px-3.5 hover:bg-slate-100 py-1.5 rounded-lg text-[13px] font-medium cursor-pointer border"
+        style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>Collapse All</button>
+    </div>
+  );
+}
+
+// ─── Root ─────────────────────────────────────────────────────────────────────
 export default function TreeTimesheets() {
   const { users, projects, tasks, timeEntries, teams } = useApp();
 
-  const [searchQuery,    setSearchQuery]    = useState("");
-  const [teamFilter,     setTeamFilter]     = useState("all");
-  const [roleFilter,     setRoleFilter]     = useState("all");
-  const [projectFilter,  setProjectFilter]  = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [teamFilter, setTeamFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [statusFilter,   setStatusFilter]   = useState("all");
-  const [customDate,     setCustomDate]     = useState(() => new Date().toISOString().split("T")[0]);
-  const [weekMode,       setWeekMode]       = useState("before");
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  const activeFilterCount = [teamFilter,roleFilter,projectFilter,categoryFilter,statusFilter,searchQuery]
-    .filter(f => f && f !== "all").length;
+  const weeks = useMemo(() => {
+    return buildTreeFromContext(
+      { users, projects, tasks, timeEntries, teams },
+      { searchQuery, teamFilter, roleFilter, projectFilter, categoryFilter, statusFilter }
+    );
+  }, [users, projects, tasks, timeEntries, teams, searchQuery, teamFilter, roleFilter, projectFilter, categoryFilter, statusFilter]);
 
-  const clearFilters = () => {
-    setSearchQuery(""); setTeamFilter("all"); setRoleFilter("all");
-    setProjectFilter("all"); setCategoryFilter("all"); setStatusFilter("all");
+  const [selectedids, setselectedids] = useState([
+    'dynamic-week-0',
+    'dynamic-week-1',
+    'dynamic-week-2',
+    'dynamic-week-3'
+  ]);
+  const [currentidx, setcurrentidx] = useState(3);
+  const [openmap, setopenmap] = useState({});
+  const [customdate, setcustomdate] = useState("");
+
+  const toggleweek = (id) =>
+    setselectedids(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  const visibleweeks = weeks.filter(w => selectedids.includes(w.id));
+  const allvisibleids = visibleweeks.flatMap(w => collectids(w));
+
+  const expandall = () => {
+    const map = {};
+    allvisibleids.forEach(id => { map[id] = true; });
+    setopenmap(map);
   };
 
-  const weeks = useMemo(() => buildTreeFromContext(
-    users, projects, tasks, timeEntries,
-    { searchQuery, teamFilter, roleFilter, projectFilter, categoryFilter, statusFilter, teams, customDate, weekMode }
-  ), [users, projects, tasks, timeEntries, searchQuery, teamFilter, roleFilter, projectFilter, categoryFilter, statusFilter, teams, customDate, weekMode]);
+  const collapseall = () => {
+    const map = {};
+    allvisibleids.forEach(id => { map[id] = false; });
+    setopenmap(map);
+  };
 
-  const [selectedIds, setSelectedIds] = useState(() => weeks.map(w => w.id));
-  const [currentIdx,  setCurrentIdx]  = useState(0);
-  const [openmap,     setOpenmap]     = useState({});
-
-  useEffect(() => { setSelectedIds(weeks.map(w => w.id)); }, [weeks]);
-
-  const toggleWeek    = id => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  const visibleWeeks  = weeks.filter(w => selectedIds.includes(w.id));
-  const allVisibleIds = visibleWeeks.flatMap(w => collectIds(w));
-  const expandAll     = () => { const m = {}; allVisibleIds.forEach(id => { m[id] = true;  }); setOpenmap(m); };
-  const collapseAll   = () => { const m = {}; allVisibleIds.forEach(id => { m[id] = false; }); setOpenmap(m); };
-
-  const focusRef = useRef(null);
-  const onPrev   = () => setCurrentIdx(i => Math.max(0, i - 1));
-  const onNext   = () => setCurrentIdx(i => Math.min(weeks.length - 1, i + 1));
+  const focusedweekref = useRef(null);
+  const onprev = () => setcurrentidx(i => Math.max(0, i - 1));
+  const onnext = () => setcurrentidx(i => Math.min(weeks.length - 1, i + 1));
 
   useEffect(() => {
-    const targetId = weeks[currentIdx]?.id;
-    if (!targetId) return;
-    if (!selectedIds.includes(targetId)) setSelectedIds(prev => [...prev, targetId]);
-    setTimeout(() => { if (focusRef.current) focusRef.current.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50);
-  }, [currentIdx, weeks]);
+    const targetid = weeks[currentidx]?.id;
+    if (!targetid) return;
+    if (!selectedids.includes(targetid)) setselectedids(prev => [...prev, targetid]);
+    setTimeout(() => {
+      if (focusedweekref.current) focusedweekref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }, [currentidx, weeks]);
 
   useEffect(() => {
-    if (!customDate) return;
-    const d = new Date(customDate);
-    if (isNaN(d)) return;
-    const idx = weeks.findIndex(w => d >= w.dateRange.start && d <= w.dateRange.end);
-    if (idx !== -1) {
-      setCurrentIdx(idx);
-      if (!selectedIds.includes(weeks[idx].id)) setSelectedIds(prev => [...prev, weeks[idx].id]);
-    }
-  }, [customDate, weeks]);
+    if (!customdate) return;
+    const targetDate = new Date(customdate);
+    if (isNaN(targetDate)) return;
 
-  const totalVisibleHours = useMemo(() => visibleWeeks.reduce((s, w) => s + gettotal(w), 0), [visibleWeeks]);
+    const foundIdx = weeks.findIndex(w => {
+      const start = new Date(w.dateRange.start);
+      const end = new Date(w.dateRange.end);
+      return targetDate >= start && targetDate <= end;
+    });
 
-  const totalEntryCount = useMemo(() => {
-    function countEntries(node) {
-      if (node.type === "entry") return 1;
-      return (node.children || []).reduce((s, c) => s + countEntries(c), 0);
+    if (foundIdx !== -1) {
+      setcurrentidx(foundIdx);
     }
-    return visibleWeeks.reduce((s, w) => s + countEntries(w), 0);
-  }, [visibleWeeks]);
+  }, [customdate, weeks]);
 
   return (
-    <div className="font-sans rounded-2xl text-[13px] shadow-sm"
-      style={{ border: "1px solid var(--border)", background: "var(--card)", color: "var(--foreground)" }}>
+    <div className="font-sans border rounded-xl text-[13px] overflow-visible"
+      style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
+      <Toolbar
+        weeks={weeks}
+        selectedIds={selectedids}
+        onToggleWeek={toggleweek}
+        customDate={customdate}
+        onCustomDate={setcustomdate}
+        currentIdx={currentidx}
+        onPrev={onprev}
+        onNext={onnext}
+        onExpandAll={expandall}
+        onCollapseAll={collapseall}
+      />
 
-      <div className="px-5 py-4 border-b rounded-t-2xl" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
+      {/* ── Filter Bar ── */}
+      <div className="px-5 py-4 border-b flex flex-wrap items-center gap-3"
+        style={{ borderColor: "var(--border)", background: "var(--card)" }}>
 
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <button onClick={onPrev} disabled={currentIdx <= 0}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg border cursor-pointer transition ${currentIdx <= 0 ? "opacity-40 cursor-not-allowed" : ""}`}
-            style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-            <ChevronLeft size={14} style={{ color: "var(--foreground)" }} />
-          </button>
-          <button onClick={onNext} disabled={currentIdx >= weeks.length - 1}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg border cursor-pointer transition ${currentIdx >= weeks.length - 1 ? "opacity-40 cursor-not-allowed" : ""}`}
-            style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-            <ChevronRight size={14} style={{ color: "var(--foreground)" }} />
-          </button>
-
-          <WeeksDropdown
-            weeks={weeks} selectedIds={selectedIds} onToggle={toggleWeek}
-            customDate={customDate} onCustomDate={setCustomDate}
-            weekMode={weekMode} onWeekMode={setWeekMode}
+        {/* Search */}
+        <div className="flex items-center gap-2 rounded-xl px-3 py-2 w-56 border transition-all"
+          style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+          <Search size={14} className="shrink-0" style={{ color: "var(--muted-foreground)" }} />
+          <input
+            type="text"
+            placeholder="Search staff or task..."
+            className="bg-transparent border-none outline-none text-[12px] w-full"
+            style={{ color: "var(--foreground)" }}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
           />
-
-          <div className="flex-1" />
-
-          {totalEntryCount > 0 && (
-            <div className="flex items-center gap-2 text-[12px] rounded-xl px-3 py-1.5 border"
-              style={{ color: "var(--muted-foreground)", background: "var(--card)", borderColor: "var(--border)" }}>
-              <span className="font-bold" style={{ color: "var(--primary)" }}>{totalVisibleHours.toFixed(1)} hrs</span>
-              <span style={{ color: "var(--border)" }}>·</span>
-              <span>{totalEntryCount} entries</span>
-            </div>
-          )}
-
-          <button onClick={expandAll}
-            className="px-3 py-1.5 rounded-lg text-[12px] font-medium cursor-pointer transition border"
-            style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-            Expand All
-          </button>
-          <button onClick={collapseAll}
-            className="px-3 py-1.5 rounded-lg text-[12px] font-medium cursor-pointer transition border"
-            style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
-            Collapse All
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-xl px-3 py-2 w-56 border"
-            style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-            <Search size={14} className="shrink-0" style={{ color: "var(--muted-foreground)" }} />
-            <input type="text" placeholder="Search name or task..."
-              className="bg-transparent border-none outline-none text-[12px] w-full"
-              style={{ color: "var(--foreground)" }}
-              value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="cursor-pointer hover:opacity-70" style={{ color: "var(--muted-foreground)" }}>
-                <X size={12} />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <Layers size={13} style={{ color: "var(--muted-foreground)" }} />
-            <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
-              <option value="all">All Teams</option>
-              {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <Filter size={13} style={{ color: "var(--muted-foreground)" }} />
-            <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
-              <option value="all">All Roles</option>
-              <option value="Employee">Employee</option>
-              <option value="Team Lead">Team Lead</option>
-              <option value="Admin">Admin</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <Briefcase size={13} style={{ color: "var(--muted-foreground)" }} />
-            <select value={projectFilter} onChange={e => setProjectFilter(e.target.value)}>
-              <option value="all">All Projects</option>
-              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <Tag size={13} style={{ color: "var(--muted-foreground)" }} />
-            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
-              <option value="all">All Categories</option>
-              <option value="Story">Story</option>
-              <option value="Bug">Bug</option>
-              <option value="Feature">Feature</option>
-              <option value="Review">Review</option>
-              <option value="R&D">R&D</option>
-              <option value="General">General</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <Clock size={13} style={{ color: "var(--muted-foreground)" }} />
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-              <option value="all">All Statuses</option>
-              <option value="Approved">Approved</option>
-              <option value="Pending">Pending</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
-
-          {activeFilterCount > 0 && (
-            <button onClick={clearFilters}
-              className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-semibold rounded-xl cursor-pointer transition-colors"
-              style={{ color: "var(--destructive)", border: "1px solid var(--destructive)" }}>
-              <X size={12} /> Clear {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="cursor-pointer hover:opacity-70" style={{ color: "var(--muted-foreground)" }}>
+              <X size={12} />
             </button>
           )}
         </div>
+
+        {/* Team filter */}
+        <div className="flex items-center gap-1.5">
+          <Layers size={13} style={{ color: "var(--muted-foreground)" }} />
+          <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Team:</span>
+          <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
+            <option value="all">All Teams</option>
+            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </div>
+
+        {/* Role filter */}
+        <div className="flex items-center gap-1.5">
+          <Filter size={13} style={{ color: "var(--muted-foreground)" }} />
+          <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Role:</span>
+          <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+            <option value="all">All Roles</option>
+            <option value="Employee">Employee</option>
+            <option value="Team Lead">Team Lead</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </div>
+
+        {/* Project filter */}
+        <div className="flex items-center gap-1.5">
+          <Briefcase size={13} style={{ color: "var(--muted-foreground)" }} />
+          <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Project:</span>
+          <select value={projectFilter} onChange={e => setProjectFilter(e.target.value)}>
+            <option value="all">All Projects</option>
+            {projects.map(p => <option key={p.id} value={p.id}>{p.projectName || p.name}</option>)}
+          </select>
+        </div>
+
+        {/* Category filter */}
+        <div className="flex items-center gap-1.5">
+          <Tag size={13} style={{ color: "var(--muted-foreground)" }} />
+          <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Category:</span>
+          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+            <option value="all">All Categories</option>
+            <option value="Story">Story</option>
+            <option value="Bug">Bug</option>
+            <option value="Feature">Feature</option>
+            <option value="Review">Review</option>
+            <option value="R&D">R&D</option>
+            <option value="General">General</option>
+          </select>
+        </div>
+
+        {/* Status filter */}
+        <div className="flex items-center gap-1.5">
+          <Filter size={13} style={{ color: "var(--muted-foreground)" }} />
+          <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Status:</span>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="all">All Statuses</option>
+            <option value="Approved">Approved</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </div>
       </div>
 
-      <ColHeader />
+      <Colheader />
 
-      <div className="overflow-hidden rounded-b-2xl">
-        {visibleWeeks.length === 0 ? (
-          <div className="px-5 py-12 text-center">
-            <div className="text-[14px] font-medium" style={{ color: "var(--muted-foreground)" }}>No weeks selected</div>
-            <div className="text-[12px] mt-1" style={{ color: "var(--muted-foreground)" }}>Use the Weeks dropdown above to select weeks</div>
+      <div className="overflow-hidden rounded-b-xl">
+        {visibleweeks.length === 0 && (
+          <div className="px-4 py-8 text-center text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+            No weeks selected. Use the dropdown to pick weeks.
           </div>
-        ) : totalEntryCount === 0 ? (
-          <div className="px-5 py-12 text-center">
-            <div className="text-[14px] font-medium" style={{ color: "var(--muted-foreground)" }}>No entries match your filters</div>
-            <div className="text-[12px] mt-1" style={{ color: "var(--muted-foreground)" }}>Try adjusting the filters or clearing them</div>
-          </div>
-        ) : (
-          visibleWeeks.map((week) => (
-            <div key={week.id} ref={week.id === weeks[currentIdx]?.id ? focusRef : null}>
-              <TreeNode node={week} depth={0} openmap={openmap} setopenmap={setOpenmap} />
-            </div>
-          ))
         )}
+        {visibleweeks.map((week, i) => (
+          <div
+            key={week.id}
+            ref={week.id === weeks[currentidx]?.id ? focusedweekref : null}
+          >
+            <Treenode
+              node={week}
+              depth={0}
+              coloridx={i}
+              openmap={openmap}
+              setopenmap={setopenmap}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

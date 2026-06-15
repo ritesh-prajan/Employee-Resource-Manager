@@ -19,7 +19,7 @@ function mapRole(apiRoles = []) {
 // Converts backend employee shape → frontend shape your components expect
 function mapEmployee(emp) {
   return {
-    id:                    emp.id,
+    id:                    emp.id ? Number(emp.id) : emp.id,
     name:                  emp.name,
     employee_code:         emp.employeeCode,
     email:                 emp.workEmail,

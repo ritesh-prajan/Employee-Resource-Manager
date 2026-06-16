@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { MOCK_ANNOUNCEMENTS } from "../../components/mock_dataset/Data_admin_alert";
 import Feedpage from "../../components/Announcements/Feedpage";
+import CreatePage from "#components/Announcements/CreatePage.jsx";
 
 const tabs = ["Feed", "New announcement"];
 
@@ -15,35 +16,40 @@ export default function Announcements() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="max-w-2xl mx-auto px-4 py-8">
-                <div className="mb-6">
-                    <h1 className="text-xl font-semibold text-gray-900">Announcements</h1>
-                    <p className="text-sm text-gray-400 mt-0.5">
-                        {announcements.length} announcement{announcements.length !== 1 ? "s" : ""}
-                    </p>
+        <div className="w-full flex flex-col gap-4" style={{ zoom: 0.8 }}>
+            <div className="mx-auto w-full flex flex-col gap-4" style={{ maxWidth: "1000px" }}>
+                {/* Header */}
+                <div className="flex items-center justify-between mb-1">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Announcements</h1>
+                        <p className="text-sm text-slate-500 mt-1">
+                            Review internal company announcements and publish new alerts to your teams
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer ${
+                                    activeTab === tab
+                                        ? "bg-slate-900 text-white shadow-sm font-medium"
+                                        : "text-slate-600 hover:bg-slate-50"
+                                }`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                <div className="flex border-b border-gray-200 mb-6">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`px-4 py-2.5 text-sm border-b-2 transition-colors
-                            ${
-                                activeTab === tab
-                                    ? "border-gray-900 text-gray-900 font-medium"
-                                    : "border-transparent text-gray-400 hover:text-gray-600"
-                            }
-                            `}
-                        >
-                            {tab}
-                        </button>
-                    ))}
-                </div>
+
+                {/* Render Active View */}
                 {activeTab === "Feed" ? (
                     <Feedpage announcement={announcements} />
                 ) : (
-                    <div>TEST 2</div>
+                    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                        <CreatePage onPublish={handlePublish} />
+                    </div>
                 )}
             </div>
         </div>

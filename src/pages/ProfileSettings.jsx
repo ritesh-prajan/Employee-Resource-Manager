@@ -153,49 +153,56 @@ function ChangePasswordBlock({ currentUser, editEmployee, verifyPassword }) {
 
 // ─── Main page ──────────────────────────────────────────────────────────────
 export default function ProfileSettings() {
-    const { currentUser, editEmployee, verifyPassword } = useApp();
+    const { currentUser, editEmployee, verifyPassword, users } = useApp();
     const { theme, toggleTheme } = useTheme();
+
+    // Resolve full profile from the employees list — currentUser right after login
+    // is a thin auth object (id, email, role only). The users[] array has the real data.
+    const profile = users.find(u => Number(u.id) === Number(currentUser?.id)) || currentUser;
 
   const [editing, setEditing]   = useState(false);
   const [form, setForm]         = useState({});
   const [saved, setSaved]       = useState(false);
 
-  // Seed form from currentUser whenever it changes (e.g. after save syncs back)
+  // Seed form from profile whenever it changes (e.g. after save syncs back)
   useEffect(() => {
-    if (currentUser) {
+    if (profile) {
       setForm({
-        name:                    currentUser.name ?? '',
-        email:                   currentUser.email ?? '',
-        phone:                   currentUser.phone ?? '',
-        whatsapp_number:         currentUser.whatsapp_number ?? '',
-        department:              currentUser.department ?? '',
-        designation:             currentUser.designation ?? currentUser.department ?? '',
-        notification_preference: currentUser.notification_preference ?? 'ALL',
+        name:                    profile.name ?? '',
+        email:                   profile.email ?? profile.workEmail ?? '',
+        phone:                   profile.phone ?? '',
+        whatsapp_number:         profile.whatsapp_number ?? '',
+        department:              profile.department ?? '',
+        designation:             profile.designation ?? profile.department ?? '',
+        notification_preference: profile.notification_preference ?? 'ALL',
+        employee_code:           profile.employee_code ?? '',
       });
     }
-  }, [currentUser]);
+  }, [profile]);
 
   if (!currentUser) return null;
+  // Show loader if profile still empty (employees haven't loaded yet)
+  if (!profile?.name && !profile?.email) return null;
 
   const handleChange = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
   const handleSave = () => {
-    editEmployee(currentUser.id, form);
+    editEmployee(profile.id, form);
     setEditing(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
   const handleCancel = () => {
-    // reset form to current saved state
     setForm({
-      name:                    currentUser.name ?? '',
-      email:                   currentUser.email ?? '',
-      phone:                   currentUser.phone ?? '',
-      whatsapp_number:         currentUser.whatsapp_number ?? '',
-      department:              currentUser.department ?? '',
-      designation:             currentUser.designation ?? currentUser.department ?? '',
-      notification_preference: currentUser.notification_preference ?? 'ALL',
+      name:                    profile.name ?? '',
+      email:                   profile.email ?? profile.workEmail ?? '',
+      phone:                   profile.phone ?? '',
+      whatsapp_number:         profile.whatsapp_number ?? '',
+      department:              profile.department ?? '',
+      designation:             profile.designation ?? profile.department ?? '',
+      notification_preference: profile.notification_preference ?? 'ALL',
+      employee_code:           profile.employee_code ?? '',
     });
     setEditing(false);
   };

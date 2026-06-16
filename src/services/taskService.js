@@ -169,6 +169,14 @@ export const taskService = {
     return api.patch(`/tasks/${id}/unassign`);
   },
 
+  assignTask: async (taskId, userId) => {
+    return taskService.update(taskId, { assignedTo: userId });
+  },
+
+  unassignTask: async (taskId) => {
+    return taskService.unassign(taskId);
+  },
+
   // GET backlog tasks (assignedTo is null)
   getBacklog: async () => {
     const data = await api.get('/tasks');

@@ -17,13 +17,13 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     clockIn, clockOut, taskComments, addTaskComment,
     updateTaskProgress, submitTaskForReview, requestETAExtension,
     requestTaskTransfer, reviewETAExtension, reviewTaskTransfer,
-    createTask, deleteTask, editTask, setTasks, teams,
+    createTask, deleteTask, editTask, teams,
     etaExtensions, taskTransfers, claimBacklogTask
   } = useApp();
 
   const isLeader = currentUser.role === 'Admin' || currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead';
   const isAdmin = currentUser.role === 'Admin';
-  const ledTeams = teams ? teams.filter(t => t.leadId === currentUser.id) : [];
+  const ledTeams = teams ? teams.filter(t => t.leadId === currentUser.id || t.subLeadId === currentUser.id) : [];
   const ledMemberIds = new Set(ledTeams.flatMap(t => t.members));
   const ledTeamIds = ledTeams.map(t => t.id);
   const ledProjectIds = projects ? projects.filter(p => (p.teams || []).some(tId => ledTeamIds.includes(tId))).map(p => p.id) : [];
@@ -120,17 +120,20 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   };
 
   const handleDirectReassign = (taskId, newAssigneeId) => {
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, assignedTo: newAssigneeId || '' } : t));
+    const taskObj = tasks.find(t => t.id === taskId);
+    if (taskObj) {
+      editTask(taskId, { ...taskObj, assignedTo: newAssigneeId || '' });
+    }
   };
 
   const handleDirectUpdateETA = (taskId, newEtaDate, newEtaHours) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id !== taskId) return t;
-      const updated = { ...t };
+    const taskObj = tasks.find(t => t.id === taskId);
+    if (taskObj) {
+      const updated = { ...taskObj };
       if (newEtaDate !== undefined) updated.etaDate = newEtaDate ? new Date(newEtaDate).toISOString() : null;
       if (newEtaHours !== undefined) updated.eta = parseFloat(newEtaHours) || 0;
-      return updated;
-    }));
+      editTask(taskId, updated);
+    }
   };
 
   const resolveETARequest = (taskId, approve) => {
@@ -147,7 +150,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
 
   const handleStartTask = (task) => {
     if (timerState.isClockedIn) { alert("You are currently tracking another task. Please pause or finish it first."); return; }
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'In Progress' } : t));
+    editTask(task.id, { ...task, status: 'In Progress' });
     clockIn(task.id, task.projectId, task.name, task.type);
     addTaskComment(task.id, `[Started task tracking]`);
   };
@@ -163,11 +166,11 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     const commentsText = overrunComments.trim();
     if (overrunActionType === 'pause') {
       if (timerState.isClockedIn && timerState.taskId === task.id) clockOut(commentsText);
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'Paused', etaExceededComment: commentsText || t.etaExceededComment } : t));
+      editTask(task.id, { ...task, status: 'Paused', etaExceededComment: commentsText || task.etaExceededComment });
       addTaskComment(task.id, commentsText ? `[Paused task - Overrun Comment]: ${commentsText}` : `[Paused task]`);
     } else {
       if (timerState.isClockedIn && timerState.taskId === task.id) clockOut(commentsText);
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'Pending Review', etaExceededComment: commentsText || t.etaExceededComment } : t));
+      editTask(task.id, { ...task, status: 'Pending Review', etaExceededComment: commentsText || task.etaExceededComment });
       addTaskComment(task.id, commentsText ? `[Submitted for Review - Comment]: ${commentsText}` : `[Submitted for Review]`);
       submitTaskForReview(task.id);
     }
@@ -203,7 +206,10 @@ export default function Tasks({ setCurrentPage, initialScope }) {
       if (staged.isNew) {
         createTask({ name: staged.name, projectId: taskData.projectId, assignedTo: staged.assignedTo, eta: parseFloat(staged.eta) || 8, type: staged.type || 'Story', priority: staged.priority || 'Medium', epic: 'Backlog', taskNumber: staged.taskNumber, etaDate: staged.etaDate, bugNumber: staged.bugNumber });
       } else {
-        setTasks(prev => prev.map(t => t.id === staged.backlogTaskId ? { ...t, assignedTo: staged.assignedTo, status: 'Open' } : t));
+        const backlogTask = tasks.find(t => t.id === staged.backlogTaskId);
+        if (backlogTask) {
+          editTask(staged.backlogTaskId, { ...backlogTask, assignedTo: staged.assignedTo, status: 'Open' });
+        }
       }
     });
     setShowTaskModal(false); setSelectedEmployeeIds([]); setStagedTasks([]); setShowAssignForm(false);
@@ -236,7 +242,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   ];
 
   const filteredTasks = tasks.filter(t => {
-    if (!isAdmin && currentUser.role === 'Team Lead') {
+    if (!isAdmin && (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead')) {
       if (!ledMemberIds.has(t.assignedTo) && !ledProjectIds.includes(t.projectId)) return false;
     }
     if (scope === 'my' && t.assignedTo !== currentUser.id) return false;

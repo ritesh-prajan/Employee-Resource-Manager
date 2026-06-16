@@ -19,8 +19,8 @@ export default function MemberLoadChart({ members, tasks, users }) {
   }, []);
 
   const data = members.map(memberId => {
-    const user = users.find(u => u.id === memberId);
-    const memberTasks = tasks.filter(t => t.assignedTo === memberId);
+    const user = users.find(u => Number(u.id) === Number(memberId));
+    const memberTasks = tasks.filter(t => Number(t.assignedTo) === Number(memberId));
     return {
       name: user ? user.name.split(' ')[0] : `#${memberId}`,
       Open: memberTasks.filter(t => t.status?.toUpperCase() === 'OPEN').length,

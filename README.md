@@ -1,12 +1,27 @@
 # Employee Resource Manager
 
-> A full-stack HR platform for managing employees, projects, teams, tasks, timesheets, attendance, and meetings.
+> A full-stack, enterprise-grade HR platform for managing employees, projects, teams, tasks, and core HR operations. Built with modern React and Spring Boot.
 
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
-[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=black)](https://vitejs.dev)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![TanStack Query](https://img.shields.io/badge/TanStack_Query-5-FF4154?logo=reactquery&logoColor=white)](https://tanstack.com/query)
+
+---
+
+## 📸 Screenshots
+
+*(Replace these placeholder links with actual screenshots of your application)*
+
+<p align="center">
+  <img src="https://via.placeholder.com/800x450?text=Admin+Dashboard" alt="Admin Dashboard" width="48%">
+  <img src="https://via.placeholder.com/800x450?text=Team+Lead+View" alt="Team Lead View" width="48%">
+</p>
+<p align="center">
+  <img src="https://via.placeholder.com/800x450?text=Employee+Directory" alt="Employee Directory" width="48%">
+  <img src="https://via.placeholder.com/800x450?text=Task+Board" alt="Task Board" width="48%">
+</p>
 
 ---
 

@@ -8,8 +8,8 @@ function getInitials(name = '') {
 
 export default function MemberPerformanceTable({ members, tasks, users, timeEntries }) {
   const rows = members.map(memberId => {
-    const user = users.find(u => u.id === memberId);
-    const memberTasks = tasks.filter(t => t.assignedTo === memberId);
+    const user = users.find(u => Number(u.id) === Number(memberId));
+    const memberTasks = tasks.filter(t => Number(t.assignedTo) === Number(memberId));
     const completed = memberTasks.filter(t => t.status?.toUpperCase() === 'COMPLETED').length;
     const total = memberTasks.length;
     const overdue = memberTasks.filter(t => {
@@ -17,7 +17,7 @@ export default function MemberPerformanceTable({ members, tasks, users, timeEntr
       return s !== 'COMPLETED' && s !== 'REJECTED' && t.etaDate && new Date(t.etaDate) < new Date(TODAY);
     }).length;
     const hoursThisWeek = timeEntries
-      .filter(e => e.userId === memberId && e.date >= getLast7Days()[0])
+      .filter(e => Number(e.userId) === Number(memberId) && e.date >= getLast7Days()[0])
       .reduce((sum, e) => sum + parseFloat(e.duration || 0), 0);
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { memberId, user, total, completed, overdue, hoursThisWeek: parseFloat(hoursThisWeek.toFixed(1)), completionRate };

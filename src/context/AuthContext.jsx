@@ -19,15 +19,39 @@ function maprole(apirole=[]){
 }
 
 function normaliseuser(apiuser){
-  return{
-    id:apiuser.id,
-    email:apiuser.email,
-    role: maprole(apiuser.roles),
-    roles:apiuser.roles??[],
-    permission:apiuser.permissions??[],
-    permissions:apiuser.permissions??[],
-    components:apiuser.components??[],
+  const ROLE_MAP_LOCAL = { ADMIN:'Admin', TEAM_LEAD:'Team Lead', SUB_LEAD:'Sub Lead', EMPLOYEE:'Employee' };
+  function mapRoleLocal(roles=[]) {
+    for(const code of ["ADMIN","TEAM_LEAD","SUB_LEAD","EMPLOYEE"]) {
+      if(roles.includes(code)) return ROLE_MAP_LOCAL[code];
+    }
+    return 'Employee';
   }
+  // The login/refresh response may embed the employee object or its fields directly
+  const emp = apiuser.employee ?? apiuser;
+  return {
+    id:                   apiuser.id ?? emp.id,
+    email:                apiuser.email ?? emp.workEmail ?? emp.email ?? '',
+    workEmail:            emp.workEmail ?? apiuser.email ?? '',
+    // Profile fields — available immediately after login if backend returns them
+    name:                 emp.name ?? apiuser.name ?? '',
+    employee_code:        emp.employeeCode ?? emp.employee_code ?? '',
+    phone:                emp.phone ?? '',
+    personalEmail:        emp.personalEmail ?? '',
+    designation:          emp.designation ?? '',
+    department:           emp.designation ?? '',
+    avatar:               emp.profileImage ?? emp.avatar ?? '',
+    profileImage:         emp.profileImage ?? emp.avatar ?? '',
+    passwordLastUpdated:  emp.passwordLastUpdated ?? null,
+    joiningDate:          emp.joiningDate ?? null,
+    status:               emp.status ?? 'Active',
+    notification_preference: emp.notificationPreference ?? 'ALL',
+    // Auth fields
+    role:                 maprole(apiuser.roles ?? []),
+    roles:                apiuser.roles ?? [],
+    permission:           apiuser.permissions ?? [],
+    permissions:          apiuser.permissions ?? [],
+    components:           apiuser.components ?? [],
+  };
 }
 
 const interceptors={

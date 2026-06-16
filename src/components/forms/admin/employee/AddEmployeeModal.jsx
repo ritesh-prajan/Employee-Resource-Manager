@@ -101,6 +101,7 @@ export default function AddEmployeeModal({ show, onClose, users, teams, projects
               <label className="form-label">ORGANIZATIONAL ROLE</label>
               <select className="input-control" value={empData.role} onChange={(e) => setEmpData(prev => ({ ...prev, role: e.target.value }))}>
                 <option value="Employee">Employee</option>
+                <option value="Sub Lead">Sub Team Lead</option>
                 <option value="Team Lead">Team Lead</option>
                 <option value="Admin">Administrator</option>
               </select> 

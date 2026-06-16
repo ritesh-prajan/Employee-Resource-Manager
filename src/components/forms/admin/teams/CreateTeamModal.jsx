@@ -94,7 +94,12 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
           <SearchableSelect
             options={userOptions}
             value={subLeadId}
-            onChange={(val) => setSubLeadId(val)}
+            onChange={(val) => {
+              setSubLeadId(val);
+              if (val && !members.includes(val)) {
+                setMembers(prev => [...prev, val]);
+              }
+            }}
             placeholder="Search and select sub lead..."
           />
         </div>

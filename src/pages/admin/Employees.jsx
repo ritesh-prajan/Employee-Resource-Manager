@@ -11,7 +11,7 @@ import AssignTaskModal from '../../components/forms/admin/employee/AssignTaskMod
 import ViewProfileModal from '../../components/forms/admin/employee/ViewProfileModal';
 
 export default function EmployeesPage() {
-  const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee, currentUser, createTask, editTask } = useApp();
+  const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee, currentUser, createTask, editTask, employeesLoading, employeesError } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterProjectBy, setFilterProjectBy] = useState('');
@@ -53,7 +53,7 @@ export default function EmployeesPage() {
     setEditingUser(prev => ({ ...prev, password: pass }));
   };
 
-  const handleAddSubmit = (e) => {
+  const handleAddSubmit = async (e) => {
     e.preventDefault();
     setValidationError('');
     const empCodeTrimmed = empData.employee_code.trim();
@@ -71,13 +71,17 @@ export default function EmployeesPage() {
     if (users.some(u => u.phone && u.phone.trim().replace(/\s+/g, '') === phoneTrimmed.replace(/\s+/g, ''))) {
       setValidationError('Phone number must be unique.'); return;
     }
-    addEmployee({ name: empData.name, employee_code: empCodeTrimmed, email: emailTrimmed, personalEmail: empData.personalEmail.trim(), phone: phoneTrimmed, password: empData.password, passwordLastUpdated: empData.password ? new Date().toISOString() : '', designation: empData.designation.trim() || 'General', role: empData.role, teams: empData.teams, projects: empData.projects });
-    setShowAddModal(false);
-    setEmpData({ name: '', employee_code: '', email: '', personalEmail: '', phone: '', password: '', designation: '', role: 'Employee', teams: [], projects: [] });
-    setShowPassword(false);
+    try {
+      await addEmployee({ name: empData.name, employee_code: empCodeTrimmed, email: emailTrimmed, personalEmail: empData.personalEmail.trim(), phone: phoneTrimmed, password: empData.password, passwordLastUpdated: empData.password ? new Date().toISOString() : '', designation: empData.designation.trim() || 'General', role: empData.role, teams: empData.teams, projects: empData.projects });
+      setShowAddModal(false);
+      setEmpData({ name: '', employee_code: '', email: '', personalEmail: '', phone: '', password: '', designation: '', role: 'Employee', teams: [], projects: [] });
+      setShowPassword(false);
+    } catch (err) {
+      setValidationError('Failed to add employee: ' + (err.message || 'Server error'));
+    }
   };
 
-  const handleEditSubmit = (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
     setValidationError('');
     const empCodeTrimmed = editingUser.employee_code.trim();
@@ -96,10 +100,14 @@ export default function EmployeesPage() {
       setValidationError('Phone number must be unique.'); return;
     }
     const oldUser = users.find(u => u.id === editingUser.id);
-    editEmployee(editingUser.id, { name: editingUser.name, employee_code: empCodeTrimmed, email: emailTrimmed, personalEmail: editingUser.personalEmail.trim(), phone: phoneTrimmed, password: editingUser.password, passwordLastUpdated: oldUser?.password !== editingUser.password ? new Date().toISOString() : (oldUser?.passwordLastUpdated || ''), designation: editingUser.designation.trim() || 'General', role: editingUser.role, status: editingUser.status, teams: editingUser.teams, projects: editingUser.projects });
-    setShowEditModal(false);
-    setEditingUser(null);
-    setShowEditPassword(false);
+    try {
+      await editEmployee(editingUser.id, { name: editingUser.name, employee_code: empCodeTrimmed, email: emailTrimmed, personalEmail: editingUser.personalEmail.trim(), phone: phoneTrimmed, password: editingUser.password, passwordLastUpdated: oldUser?.password !== editingUser.password ? new Date().toISOString() : (oldUser?.passwordLastUpdated || ''), designation: editingUser.designation.trim() || 'General', role: editingUser.role, status: editingUser.status, teams: editingUser.teams, projects: editingUser.projects });
+      setShowEditModal(false);
+      setEditingUser(null);
+      setShowEditPassword(false);
+    } catch (err) {
+      setValidationError('Failed to update employee: ' + (err.message || 'Server error'));
+    }
   };
 
   const handleOpenAssignModal = (user) => {
@@ -278,8 +286,22 @@ export default function EmployeesPage() {
     },
   ], []);
 
+  if (employeesLoading) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', color: 'var(--muted-foreground)' }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--primary)', animation: 'spin 0.8s linear infinite' }} />
+        <span style={{ fontSize: '0.9rem' }}>Loading employees…</span>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--canvas)', padding: '0', zoom: 0.9 }}>
+      {employeesError && (
+        <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '0.75rem', backgroundColor: 'color-mix(in oklch, var(--destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--destructive) 30%, transparent)', color: 'var(--destructive)', fontSize: '0.875rem' }}>
+          ⚠️ Could not load employees from server: {employeesError}. Showing cached data.
+        </div>
+      )}
       <div>
         {/* Toolbar */}
         <div style={{ marginBottom: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem' }}>
@@ -315,8 +337,8 @@ export default function EmployeesPage() {
         <DataTable Data={filteredUsers} columns={columns} />
       </div>
 
-      <AddEmployeeModal show={showAddModal} onClose={() => setShowAddModal(false)} users={users} teams={teams} projects={projects} onSubmit={addEmployee} />
-      <EditEmployeeModal show={showEditModal} onClose={() => { setShowEditModal(false); setEditingUser(null); }} user={editingUser} users={users} teams={teams} projects={projects} onSubmit={editEmployee} />
+      <AddEmployeeModal show={showAddModal} onClose={() => setShowAddModal(false)} users={users} teams={teams} projects={projects} onSubmit={handleAddSubmit} />
+      <EditEmployeeModal show={showEditModal} onClose={() => { setShowEditModal(false); setEditingUser(null); }} user={editingUser} users={users} teams={teams} projects={projects} onSubmit={handleEditSubmit} />
       <AssignTaskModal show={showAssignModal} onClose={() => { setShowAssignModal(false); setAssigneeForTask(null); }} assignee={assigneeForTask} tasks={tasks} projects={projects} onSubmit={createTask} onAssignExisting={editTask} />
       <ViewProfileModal show={showProfileModal} onClose={() => { setShowProfileModal(false); setProfileUser(null); }} user={profileUser} users={users} teams={teams} projects={projects} />
     </div>

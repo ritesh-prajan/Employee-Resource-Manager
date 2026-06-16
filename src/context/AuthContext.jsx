@@ -1,6 +1,5 @@
 import {createContext,useContext,useCallback,useState,useEffect, useRef} from "react";
 import {loginapi,refreshapi} from "../services/api.js"
-const BASE_URL=import.meta.env.VITE_API_KEY;
 
 const ROLE_MAP = {
   ADMIN:     "Admin",

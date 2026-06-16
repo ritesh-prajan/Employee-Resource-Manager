@@ -18,20 +18,26 @@ function mapRole(apiRoles = []) {
 
 // Converts backend employee shape → frontend shape your components expect
 function mapEmployee(emp) {
+  const id = emp.id != null ? Number(emp.id) : emp.id;
   return {
-    id:                    emp.id ? Number(emp.id) : emp.id,
+    id,
     name:                  emp.name,
-    employee_code:         emp.employeeCode,
-    email:                 emp.workEmail,
-    workEmail:             emp.workEmail,
+    employee_code:         emp.employeeCode ?? emp.employee_code ?? '',
+    email:                 emp.workEmail ?? emp.email ?? '',
+    workEmail:             emp.workEmail ?? emp.email ?? '',
     personalEmail:         emp.personalEmail || '',
     phone:                 emp.phone || '',
     designation:           emp.designation || 'General',
     department:            emp.designation || 'General',
     status:                mapStatus(emp.status),
+    // avatar used by ViewProfileModal header; profileImage used elsewhere
+    avatar:                emp.profileImage || emp.avatar || '',
+    profileImage:          emp.profileImage || emp.avatar || '',
     notification_preference: emp.notificationPreference || 'ALL',
-    profileImage:          emp.profileImage || '',
-    role:                  mapRole(emp.roles),
+    // passwordLastUpdated used in ViewProfileModal — map from backend
+    passwordLastUpdated:   emp.passwordLastUpdated || emp.user?.passwordLastUpdated || null,
+    joiningDate:           emp.joiningDate || null,
+    role:                  mapRole(emp.roles ?? (emp.role ? [emp.role] : [])),
     roles:                 emp.roles || [],
   };
 }

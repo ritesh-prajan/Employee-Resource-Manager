@@ -701,7 +701,7 @@ export const AppProvider = ({ children }) => {
         setUsers(prev => [...prev, created]);
       } catch (err) {
         console.error('Failed to add employee:', err);
-        alert('Failed to add employee: ' + err.message);
+        throw err; // let the caller surface the error
       }
     };
 
@@ -1378,7 +1378,7 @@ export const AppProvider = ({ children }) => {
       })));
     } catch (err) {
       console.error('Failed to delete employee:', err);
-      alert('Failed to delete employee: ' + err.message);
+      throw err;
     }
   };
 
@@ -1469,7 +1469,7 @@ const editProject = async (projectId, updatedData) => {
       }
     } catch (err) {
       console.error('Failed to update employee:', err);
-      alert('Failed to update employee: ' + err.message);
+      throw err;
     }
   };
   const verifyPassword = (userId, password) => {

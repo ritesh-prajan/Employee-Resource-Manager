@@ -12,6 +12,9 @@ import {Route,Routes,Navigate} from 'react-router-dom'
 import Forgotpassword from './pages/Forgotpassword.jsx';
 import Resetpassword from './pages/Resetpassword.jsx'
 import { useLocation } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
+import GlobalLoader from './components/GlobalLoader';
+
 // Employee Pages
 import Tasks from './pages/employee/Tasks';
 import Attendance from './pages/employee/Attendance';
@@ -108,17 +111,7 @@ function MainAppContent() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-canvas)] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <svg className="animate-spin h-8 w-8 text-primary" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-          </svg>
-          <span className="text-[14px] text-muted-foreground font-medium">Loading Elite...</span>
-        </div>
-      </div>
-    );
+    return <GlobalLoader />;
   }
 
   if (location.pathname === "/reset-password") return <Resetpassword />;
@@ -262,11 +255,13 @@ function MainAppContent() {
         <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} isMobileSidebarOpen={isMobileSidebarOpen} setIsMobileSidebarOpen={setIsMobileSidebarOpen} />
         <main className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div className="content-body" style={{ flex: 1, overflowY: 'auto', position: 'relative', overflowX: 'hidden', backgroundColor: 'var(--bg-canvas)', padding: '24px' }}>
-            <AnimatePresence mode="wait">
-              <motion.div key={currentPage} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} style={{ width: '100%' }}>
-                {renderPage()}
-              </motion.div>
-            </AnimatePresence>
+            <ErrorBoundary>
+              <AnimatePresence mode="wait">
+                <motion.div key={currentPage} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} style={{ width: '100%' }}>
+                  {renderPage()}
+                </motion.div>
+              </AnimatePresence>
+            </ErrorBoundary>
           </div>
         </main>
       </div>
@@ -276,14 +271,16 @@ function MainAppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <ThemeProvider>
-          <TimerProvider>
-            <MainAppContent />
-          </TimerProvider>
-        </ThemeProvider>
-      </AppProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppProvider>
+          <ThemeProvider>
+            <TimerProvider>
+              <MainAppContent />
+            </TimerProvider>
+          </ThemeProvider>
+        </AppProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

@@ -45,7 +45,10 @@ if (team) {
       alert('Please fill in team name and select a lead.');
       return;
     }
-    const finalMembers = members.includes(leadId) ? members : [leadId, ...members];
+    let finalMembers = members.includes(leadId) ? members : [leadId, ...members];
+    if (subLeadId && !finalMembers.includes(subLeadId)) {
+      finalMembers = [subLeadId, ...finalMembers];
+    }
       onSave(team.id, { 
         name: name.trim(), 
         leadId,

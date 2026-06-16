@@ -101,17 +101,21 @@ function toBackendStatus(status) {
 
 // Frontend → Backend task shape for create
 function toBackendTask(data) {
+  const taskTypeStr = (data.taskType || data.type || 'TASK').toUpperCase();
+  const validTypes = ['FEATURE', 'BUG', 'STORY', 'RND', 'CRC', 'COC', 'SUPPORT', 'TASK', 'POC'];
+  const finalTaskType = validTypes.includes(taskTypeStr) ? taskTypeStr : 'TASK';
+
   const body = {
     taskNumber: data.taskNumber,
     title:      data.title || data.name,
     description: data.description || '',
     project:    { id: data.projectId || data.project?.id },
-    taskType:   data.taskType || 'TASK',
+    taskType:   finalTaskType,
     priority:   toBackendPriority(data.priority),
     status:     toBackendStatus(data.status),
-    etaHours:   data.etaHours || data.eta || 0,
+    etaHours:   parseFloat(data.etaHours || data.eta || 0),
     etaDate:    data.etaDate,
-    epic:       data.epic || '',
+    epic:       data.epic || 'Backlog',
   };
 
   // Only include assignedTo if provided
@@ -120,8 +124,8 @@ function toBackendTask(data) {
   }
 
   // Only include bugNumber if task type is BUG
-  if ((data.taskType || '').toUpperCase() === 'BUG') {
-    body.bugNumber = data.bugNumber || '';
+  if (finalTaskType === 'BUG') {
+    body.bugNumber = data.bugNumber;
   }
 
   return body;
@@ -198,6 +202,26 @@ export const taskService = {
   // DELETE comment
   deleteComment: async (commentId) => {
     return api.delete(`/task-comments/${commentId}`);
+  },
+
+  // GET progress logs for a task
+  getProgress: async (taskId) => {
+    return api.get(`/tasks/${taskId}/progress`);
+  },
+
+  // POST add progress log
+  addProgress: async (taskId, employeeId, progressPercentage, progressNote) => {
+    return api.post('/task-progress', {
+      task:               { id: taskId },
+      employee:           { id: employeeId },
+      progressPercentage: parseInt(progressPercentage, 10),
+      notes:              progressNote,
+    });
+  },
+
+  // DELETE progress log
+  deleteProgress: async (progressId) => {
+    return api.delete(`/task-progress/${progressId}`);
   },
 
 };

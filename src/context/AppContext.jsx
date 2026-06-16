@@ -187,7 +187,18 @@ export const AppProvider = ({ children }) => {
     const fetchTeams = async () => {
       try {
         const data = await teamService.getAll();
-        setTeams(data);
+        const teamsWithMembers = await Promise.all(
+          data.map(async (team) => {
+            try {
+              const members = await teamService.getMembers(team.id);
+              return { ...team, members: members.map(m => m.id) };
+            } catch (err) {
+              console.error(`Failed to fetch members for team ${team.id}:`, err);
+              return { ...team, members: [] };
+            }
+          })
+        );
+        setTeams(teamsWithMembers);
       } catch (err) {
         console.error('Failed to fetch teams:', err);
       }
@@ -214,12 +225,51 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (!isAuthenticated) {
       setTasks([]);
+      setTaskComments([]);
       return;
     }
     const fetchTasks = async () => {
       try {
-        const data = await taskService.getAll();
-        setTasks(data);
+        const tasksData = await taskService.getAll();
+        
+        const enrichedTasks = await Promise.all(
+          tasksData.map(async (task) => {
+            try {
+              const [comments, progressLogs] = await Promise.all([
+                taskService.getComments(task.id),
+                taskService.getProgress(task.id)
+              ]);
+              
+              let latestProgress = 0;
+              if (progressLogs && progressLogs.length > 0) {
+                const sortedLogs = [...progressLogs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                latestProgress = sortedLogs[0]?.progressPercentage ?? 0;
+              }
+              
+              return {
+                ...task,
+                progress: latestProgress,
+                comments: comments || []
+              };
+            } catch (err) {
+              console.error(`Failed to enrich task ${task.id}:`, err);
+              return { ...task, progress: 0, comments: [] };
+            }
+          })
+        );
+        
+        setTasks(enrichedTasks);
+        
+        const allComments = enrichedTasks.flatMap(t => 
+          (t.comments || []).map(c => ({
+            id: c.id,
+            taskId: t.id,
+            authorId: c.author?.id || null,
+            commentText: c.commentText,
+            createdAt: c.createdAt
+          }))
+        );
+        setTaskComments(allComments);
       } catch (err) {
         console.error('Failed to fetch tasks:', err);
       }
@@ -560,7 +610,7 @@ export const AppProvider = ({ children }) => {
     setTasks(prevTasks => 
       prevTasks.map(t => {
         if (t.id === entryData.taskId) {
-          const status = t.status === 'Open' ? 'In Progress' : t.status;
+          const status = entryData.taskStatus || (t.status === 'Open' ? 'In Progress' : t.status);
           return { 
             ...t, 
             status,
@@ -741,59 +791,71 @@ export const AppProvider = ({ children }) => {
     );
   };
 
-  const claimBacklogTask = (taskId) => {
-    const taskObj = tasks.find(t => t.id === taskId);
-    if (!taskObj) return;
+  const claimBacklogTask = async (taskId) => {
+    try {
+      const taskObj = tasks.find(t => t.id === taskId);
+      if (!taskObj) return;
 
-    // Assign task to current user
-    setTasks(prev => prev.map(t => {
-      if (t.id === taskId) {
-        return { ...t, assignedTo: currentUser.id, status: 'In Progress' };
-      }
-      return t;
-    }));
-
-    // Notify all admins
-    const admins = users.filter(u => u.role === 'Admin');
-    admins.forEach(admin => {
-      const notif = {
-        id: `notif-${Date.now()}-${admin.id}`,
-        recipientId: admin.id,
-        type: "BACKLOG_CLAIMED",
-        title: "Backlog Task Claimed",
-        message: `${currentUser.name} has claimed backlog task ${taskObj.taskNumber}: ${taskObj.name}.`,
-        entityType: "TASK",
-        entityId: taskId,
-        channel: "IN_APP",
-        isRead: false,
-        createdAt: new Date().toISOString()
-      };
-      setNotifications(prev => [notif, ...prev]);
-    });
-
-    // Notify team leads of the project's teams
-    const proj = projects.find(p => p.id === taskObj.projectId);
-    if (proj && proj.teams) {
-      const projectTeams = teams.filter(t => proj.teams.includes(t.id));
-      const notifiedLeadIds = new Set(admins.map(a => a.id));
-      projectTeams.forEach(team => {
-        if (team.leadId && !notifiedLeadIds.has(team.leadId) && team.leadId !== currentUser.id) {
-          notifiedLeadIds.add(team.leadId);
-          const notif = {
-            id: `notif-${Date.now()}-${team.leadId}`,
-            recipientId: team.leadId,
-            type: "BACKLOG_CLAIMED",
-            title: "Backlog Task Claimed",
-            message: `${currentUser.name} has claimed backlog task ${taskObj.taskNumber}: ${taskObj.name} from project ${proj.name.split(' (')[0]}.`,
-            entityType: "TASK",
-            entityId: taskId,
-            channel: "IN_APP",
-            isRead: false,
-            createdAt: new Date().toISOString()
-          };
-          setNotifications(prev => [notif, ...prev]);
-        }
+      // Assign task to current user in the backend
+      const updated = await taskService.update(taskId, {
+        ...taskObj,
+        assignedTo: currentUser.id,
+        status: 'In Progress'
       });
+
+      // Update task in state
+      setTasks(prev => prev.map(t => {
+        if (t.id === taskId) {
+          return { ...t, ...updated, assignedTo: currentUser.id, status: 'In Progress' };
+        }
+        return t;
+      }));
+
+      // Notify all admins
+      const admins = users.filter(u => u.role === 'Admin');
+      admins.forEach(admin => {
+        const notif = {
+          id: `notif-${Date.now()}-${admin.id}`,
+          recipientId: admin.id,
+          type: "BACKLOG_CLAIMED",
+          title: "Backlog Task Claimed",
+          message: `${currentUser.name} has claimed backlog task ${taskObj.taskNumber}: ${taskObj.name}.`,
+          entityType: "TASK",
+          entityId: taskId,
+          channel: "IN_APP",
+          isRead: false,
+          createdAt: new Date().toISOString()
+        };
+        setNotifications(prev => [notif, ...prev]);
+      });
+
+      // Notify team leads of the project's teams
+      const proj = projects.find(p => p.id === taskObj.projectId);
+      if (proj && proj.teams) {
+        const projectTeams = teams.filter(t => proj.teams.includes(t.id));
+        const notifiedLeadIds = new Set(admins.map(a => a.id));
+        projectTeams.forEach(team => {
+          if (team.leadId && !notifiedLeadIds.has(team.leadId) && team.leadId !== currentUser.id) {
+            notifiedLeadIds.add(team.leadId);
+            const notif = {
+              id: `notif-${Date.now()}-${team.leadId}`,
+              recipientId: team.leadId,
+              type: "BACKLOG_CLAIMED",
+              title: "Backlog Task Claimed",
+              message: `${currentUser.name} has claimed backlog task ${taskObj.taskNumber}: ${taskObj.name} from project ${proj.name.split(' (')[0]}.`,
+              entityType: "TASK",
+              entityId: taskId,
+              channel: "IN_APP",
+              isRead: false,
+              createdAt: new Date().toISOString()
+            };
+            setNotifications(prev => [notif, ...prev]);
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Failed to claim backlog task:', err);
+      alert('Failed to claim backlog task: ' + err.message);
     }
   };
 
@@ -1101,102 +1163,145 @@ export const AppProvider = ({ children }) => {
   };
 
   // Task Comments
-  const addTaskComment = (taskId, commentText) => {
-    const newComment = {
-      id: `comm-${Date.now()}`,
-      taskId,
-      authorId: currentUser.id,
-      commentText,
-      createdAt: new Date().toISOString()
-    };
-    setTaskComments(prev => [...prev, newComment]);
+  const addTaskComment = async (taskId, commentText) => {
+    try {
+      const savedComment = await taskService.addComment(taskId, currentUser.id, commentText);
+      const newComment = {
+        id: savedComment.id,
+        taskId,
+        authorId: savedComment.author?.id || currentUser.id,
+        commentText: savedComment.commentText,
+        createdAt: savedComment.createdAt || new Date().toISOString()
+      };
+      setTaskComments(prev => [...prev, newComment]);
+    } catch (err) {
+      console.error('Failed to add task comment:', err);
+    }
   };
 
   // Task Progress & Status
-  const updateTaskProgress = (taskId, percentage, notes) => {
-    setTasks(prev => 
-      prev.map(t => {
-        if (t.id === taskId) {
-          // If first progress update, auto-transition to In Progress
-          const status = t.status === 'Open' && percentage > 0 ? 'In Progress' : t.status;
-          return { ...t, status, progress: percentage };
-        }
-        return t;
-      })
-    );
+  const updateTaskProgress = async (taskId, percentage, notes) => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
 
-    // Track in comments or progress history
-    if (notes) {
-      addTaskComment(taskId, `[Progress Update ${percentage}%]: ${notes}`);
+      const newStatus = task.status === 'Open' && percentage > 0 ? 'In Progress' : task.status;
+      
+      // 1. Post the progress log to the backend
+      await taskService.addProgress(taskId, currentUser.id, percentage, notes);
+
+      // 2. If status is changing, also update the task status in backend
+      let updatedTask = task;
+      if (newStatus !== task.status) {
+        updatedTask = await taskService.update(taskId, { ...task, status: newStatus });
+      }
+
+      // 3. Update the tasks state with new progress and status
+      setTasks(prev => 
+        prev.map(t => {
+          if (t.id === taskId) {
+            return { ...t, ...updatedTask, status: newStatus, progress: percentage };
+          }
+          return t;
+        })
+      );
+
+      // 4. Add the comment (it will save to backend and update taskComments locally)
+      if (notes) {
+        await addTaskComment(taskId, `[Progress Update ${percentage}%]: ${notes}`);
+      }
+    } catch (err) {
+      console.error('Failed to update task progress:', err);
+      alert('Failed to update task progress: ' + err.message);
     }
   };
 
-  const submitTaskForReview = (taskId) => {
-    setTasks(prev => 
-      prev.map(t => {
-        if (t.id === taskId) {
-          return { ...t, status: 'Pending Review' };
-        }
-        return t;
-      })
-    );
+  const submitTaskForReview = async (taskId) => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
 
-    // Notify Lead
-    const tlUser = users.find(u => u.role === 'Team Lead');
-    if (tlUser) {
-      const taskObj = tasks.find(t => t.id === taskId);
-      const newNotif = {
-        id: `notif-${Date.now()}`,
-        recipientId: tlUser.id,
-        type: "TASK_UPDATED",
-        title: "Task Submitted for Review",
-        message: `${currentUser.name} completed and submitted ${taskObj?.taskNumber || 'Task'} for review.`,
-        entityType: "TASK",
-        entityId: taskId,
-        channel: "IN_APP",
-        isRead: false,
-        createdAt: new Date().toISOString()
-      };
-      setNotifications(prev => [newNotif, ...prev]);
+      const updated = await taskService.update(taskId, { ...task, status: 'Pending Review' });
+      
+      setTasks(prev => 
+        prev.map(t => {
+          if (t.id === taskId) {
+            return { ...t, ...updated, status: 'Pending Review' };
+          }
+          return t;
+        })
+      );
+
+      // Notify Lead
+      const tlUser = users.find(u => u.role === 'Team Lead');
+      if (tlUser) {
+        const taskObj = tasks.find(t => t.id === taskId);
+        const newNotif = {
+          id: `notif-${Date.now()}`,
+          recipientId: tlUser.id,
+          type: "TASK_UPDATED",
+          title: "Task Submitted for Review",
+          message: `${currentUser.name} completed and submitted ${taskObj?.taskNumber || 'Task'} for review.`,
+          entityType: "TASK",
+          entityId: taskId,
+          channel: "IN_APP",
+          isRead: false,
+          createdAt: new Date().toISOString()
+        };
+        setNotifications(prev => [newNotif, ...prev]);
+      }
+    } catch (err) {
+      console.error('Failed to submit task for review:', err);
+      alert('Failed to submit task for review: ' + err.message);
     }
   };
 
-  const approveTaskCompletion = (taskId, approve = true, comments = '') => {
-    setTasks(prev => 
-      prev.map(t => {
-        if (t.id === taskId) {
-          const status = approve ? 'Completed' : 'In Progress';
-          
-          // Notify employee
-          const newNotif = {
-            id: `notif-${Date.now()}`,
-            recipientId: t.assignedTo,
-            type: approve ? "TASK_UPDATED" : "TASK_UPDATED",
-            title: approve ? "Task Approved" : "Task Re-opened",
-            message: approve
-              ? `Your completion of ${t.taskNumber} has been approved by ${currentUser.name}.`
-              : `Your completion of ${t.taskNumber} has been rejected. Reason: ${comments}`,
-            entityType: "TASK",
-            entityId: taskId,
-            channel: "WHATSAPP",
-            isRead: false,
-            createdAt: new Date().toISOString()
-          };
-          setNotifications(prevNotif => [newNotif, ...prevNotif]);
+  const approveTaskCompletion = async (taskId, approve = true, comments = '') => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
 
-          return { 
-            ...t, 
-            status, 
-            completionReviewStatus: approve ? 'Approved' : 'Rejected',
-            reviewComment: comments
-          };
-        }
-        return t;
-      })
-    );
+      const status = approve ? 'Completed' : 'In Progress';
+      const updated = await taskService.update(taskId, { ...task, status });
 
-    if (comments) {
-      addTaskComment(taskId, `[Review Comment by ${currentUser.name}]: ${comments}`);
+      setTasks(prev => 
+        prev.map(t => {
+          if (t.id === taskId) {
+            // Notify employee
+            const newNotif = {
+              id: `notif-${Date.now()}`,
+              recipientId: t.assignedTo,
+              type: "TASK_UPDATED",
+              title: approve ? "Task Approved" : "Task Re-opened",
+              message: approve
+                ? `Your completion of ${t.taskNumber} has been approved by ${currentUser.name}.`
+                : `Your completion of ${t.taskNumber} has been rejected. Reason: ${comments}`,
+              entityType: "TASK",
+              entityId: taskId,
+              channel: "WHATSAPP",
+              isRead: false,
+              createdAt: new Date().toISOString()
+            };
+            setNotifications(prevNotif => [newNotif, ...prevNotif]);
+
+            return { 
+              ...t, 
+              ...updated,
+              status, 
+              completionReviewStatus: approve ? 'Approved' : 'Rejected',
+              reviewComment: comments
+            };
+          }
+          return t;
+        })
+      );
+
+      if (comments) {
+        await addTaskComment(taskId, `[Review Comment by ${currentUser.name}]: ${comments}`);
+      }
+    } catch (err) {
+      console.error('Failed to resolve task completion:', err);
+      alert('Failed to resolve task completion: ' + err.message);
     }
   };
 
@@ -1578,6 +1683,23 @@ const editProject = async (projectId, updatedData) => {
   return { ...t, logged: parseFloat(logged.toFixed(2)) };
 }), [tasks, timeEntries]);
 
+  // Group task comments by taskId and map to frontend shape for UI compatibility
+  const taskCommentsMap = useMemo(() => {
+    const map = {};
+    taskComments.forEach(c => {
+      if (!map[c.taskId]) {
+        map[c.taskId] = [];
+      }
+      map[c.taskId].push({
+        id: c.id,
+        userId: c.authorId,
+        text: c.commentText,
+        timestamp: c.createdAt
+      });
+    });
+    return map;
+  }, [taskComments]);
+
   return (
     <AppContext.Provider
       value={{
@@ -1602,7 +1724,7 @@ const editProject = async (projectId, updatedData) => {
         meetings,
         etaExtensions,
         taskTransfers,
-        taskComments,
+        taskComments: taskCommentsMap,
         attendanceHistory,
         announcements,
         teams,

@@ -35,6 +35,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedPriority, setSelectedPriority] = useState('');
+  const [showExceededETA, setShowExceededETA] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showEditTaskModal, setShowEditTaskModal] = useState(false);
@@ -59,7 +60,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [stagedTasks, setStagedTasks] = useState([]);
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [showBacklogDropdown, setShowBacklogDropdown] = useState(false);
-  const [assignForm, setAssignForm] = useState({ name: '', backlogTaskId: '', eta: '8', type: 'Story', priority: 'Medium', assignedTo: '' });
+  const [assignForm, setAssignForm] = useState({ name: '', backlogTaskId: '', eta: '8', type: 'Story', priority: 'Medium', assignedTo: '', taskNumber: '', etaDate: '', bugNumber: '' });
   const [backlogCreateData, setBacklogCreateData] = useState({ name: '', projectId: '', eta: '8', type: 'Story', priority: 'Medium' });
 
   const getProjectInfo = (projectId) => projects.find(p => p.id === projectId);
@@ -199,7 +200,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     if (stagedTasks.length === 0) { alert("Please stage at least one task."); return; }
     stagedTasks.forEach(staged => {
       if (staged.isNew) {
-        createTask({ name: staged.name, projectId: taskData.projectId, assignedTo: staged.assignedTo, eta: parseFloat(staged.eta) || 8, type: staged.type || 'Story', priority: staged.priority || 'Medium', epic: 'Backlog' });
+        createTask({ name: staged.name, projectId: taskData.projectId, assignedTo: staged.assignedTo, eta: parseFloat(staged.eta) || 8, type: staged.type || 'Story', priority: staged.priority || 'Medium', epic: 'Backlog', taskNumber: staged.taskNumber, etaDate: staged.etaDate, bugNumber: staged.bugNumber });
       } else {
         setTasks(prev => prev.map(t => t.id === staged.backlogTaskId ? { ...t, assignedTo: staged.assignedTo, status: 'Open' } : t));
       }
@@ -212,7 +213,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     e.preventDefault();
     if (!backlogCreateData.projectId) { alert("Please select a project."); return; }
     if (!backlogCreateData.name.trim()) { alert("Please enter a task summary."); return; }
-    createTask({ name: backlogCreateData.name, projectId: backlogCreateData.projectId, assignedTo: '', eta: parseFloat(backlogCreateData.eta) || 8, type: backlogCreateData.type, priority: backlogCreateData.priority, epic: 'Backlog' });
+    createTask({ name: backlogCreateData.name, projectId: backlogCreateData.projectId, assignedTo: '', eta: parseFloat(backlogCreateData.eta) || 8, type: backlogCreateData.type, priority: backlogCreateData.priority, epic: 'Backlog', taskNumber: backlogCreateData.taskNumber, etaDate: backlogCreateData.etaDate, bugNumber: backlogCreateData.bugNumber });
     setShowBacklogCreateModal(false);
     setBacklogCreateData({ name: '', projectId: '', eta: '8', type: 'Story', priority: 'Medium' });
   };
@@ -247,6 +248,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     if (selectedProject && t.projectId !== selectedProject) return false;
     if (selectedStatus && t.status !== selectedStatus) return false;
     if (selectedPriority && t.priority !== selectedPriority) return false;
+    if (showExceededETA && !checkTaskExceedsETA(t)) return false;
     return true;
   });
 
@@ -416,6 +418,18 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                   style={{ width: '150px' }}
                 />
               </div>
+              
+              <button
+                onClick={() => setShowExceededETA(!showExceededETA)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all border ${
+                  showExceededETA
+                    ? 'bg-red-50 text-red-600 border-red-200 shadow-sm'
+                    : 'bg-transparent text-slate-500 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <AlertTriangle size={14} className={showExceededETA ? 'text-red-500' : 'text-slate-400'} />
+                Exceeded ETA
+              </button>
             </div>
 
             {/* Filters Right Side */}
@@ -441,7 +455,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                   <button
                     className="rounded-xl px-5 py-2 text-sm font-semibold text-white transition tasks-create-btn"
                     style={{ backgroundColor: '#0010ae' }}
-                    onClick={() => { setBacklogCreateData({ name: '', projectId: projects[0]?.id || '', eta: '8', type: 'Story', priority: 'Medium' }); setShowBacklogCreateModal(true); }}
+                    onClick={() => { setBacklogCreateData({ name: '', projectId: projects[0]?.id || '', eta: '8', type: 'Story', priority: 'Medium', taskNumber: '', etaDate: '', bugNumber: '' }); setShowBacklogCreateModal(true); }}
                   >
                     <Plus size={14} /> Create Backlog Task
                   </button>
@@ -532,7 +546,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
         />
         <CreateTaskModal
           show={showTaskModal}
-          onClose={() => { setShowTaskModal(false); setStagedTasks([]); setShowAssignForm(false); }}
+          onClose={() => { setShowTaskModal(false); setStagedTasks([]); setShowAssignForm(false); setShowBacklogDropdown(false); }}
           onSubmit={handlePublishTasks}
           projects={projects}
           tasks={tasks}

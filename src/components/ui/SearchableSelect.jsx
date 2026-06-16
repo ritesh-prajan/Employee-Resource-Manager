@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, ChevronDown, X } from 'lucide-react';
 
-export default function SearchableSelect({ options, value, onChange, placeholder, style }) {
+export default function SearchableSelect({ options, value, onChange, placeholder, style, creatable }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const wrapperRef = useRef(null);
@@ -30,8 +30,8 @@ export default function SearchableSelect({ options, value, onChange, placeholder
           cursor: 'pointer'
         }}
       >
-        <span style={{ color: selectedOption ? 'var(--foreground)' : 'var(--muted-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {selectedOption ? selectedOption.label : placeholder}
+        <span style={{ color: (selectedOption || value) ? 'var(--foreground)' : 'var(--muted-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {selectedOption ? selectedOption.label : (value ? value : placeholder)}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           {value && (
@@ -72,23 +72,46 @@ export default function SearchableSelect({ options, value, onChange, placeholder
               {placeholder}
             </div>
             {filteredOptions.length === 0 ? (
-              <div style={{ padding: '8px 12px', fontSize: '0.75rem', color: 'var(--muted-foreground)', textAlign: 'center' }}>No results</div>
-            ) : (
-              filteredOptions.map(opt => (
+              creatable && search.trim() ? (
                 <div 
-                  key={opt.value}
-                  onClick={() => { onChange(opt.value); setIsOpen(false); setSearch(''); }}
-                  style={{
-                    padding: '8px 12px', fontSize: '0.75rem', cursor: 'pointer',
-                    backgroundColor: value === opt.value ? 'rgba(0,16,174,0.05)' : 'transparent',
-                    color: value === opt.value ? '#0010AE' : 'var(--foreground)'
-                  }}
+                  onClick={() => { onChange(search.trim()); setIsOpen(false); setSearch(''); }}
+                  style={{ padding: '8px 12px', fontSize: '0.75rem', cursor: 'pointer', color: '#0010AE', fontWeight: 600 }}
                   onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = value === opt.value ? 'rgba(0,16,174,0.05)' : 'transparent'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  {opt.label}
+                  Create "{search}"
                 </div>
-              ))
+              ) : (
+                <div style={{ padding: '8px 12px', fontSize: '0.75rem', color: 'var(--muted-foreground)', textAlign: 'center' }}>No results</div>
+              )
+            ) : (
+              <>
+                {filteredOptions.map(opt => (
+                  <div 
+                    key={opt.value}
+                    onClick={() => { onChange(opt.value); setIsOpen(false); setSearch(''); }}
+                    style={{
+                      padding: '8px 12px', fontSize: '0.75rem', cursor: 'pointer',
+                      backgroundColor: value === opt.value ? 'rgba(0,16,174,0.05)' : 'transparent',
+                      color: value === opt.value ? '#0010AE' : 'var(--foreground)'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = value === opt.value ? 'rgba(0,16,174,0.05)' : 'transparent'}
+                  >
+                    {opt.label}
+                  </div>
+                ))}
+                {creatable && search.trim() && !filteredOptions.find(opt => opt.label.toLowerCase() === search.trim().toLowerCase()) && (
+                  <div 
+                    onClick={() => { onChange(search.trim()); setIsOpen(false); setSearch(''); }}
+                    style={{ padding: '8px 12px', fontSize: '0.75rem', cursor: 'pointer', color: '#0010AE', fontWeight: 600, borderTop: '1px solid var(--border-color)' }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    Create "{search}"
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

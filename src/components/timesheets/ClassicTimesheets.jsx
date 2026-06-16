@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { ChevronRight, ChevronDown, Search, Layers, Filter, Briefcase, Tag, Clock, Users, X } from "lucide-react";
+import { ChevronRight, ChevronDown, Search, Layers, Filter, Briefcase, Tag, Clock, Users, X, Plus, AlertTriangle } from "lucide-react";
 import { useApp } from "../../context/AppContext";
+import ManualTimeEntryModal from "../forms/timesheets/ManualTimeEntryModal";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function toHHMM(h) {
@@ -17,6 +18,7 @@ const TYPE_STYLES = {
   Review:  { text:"#5B21B6", bg:"#F5F3FF", border:"#DDD6FE" },
   "R&D":   { text:"#9A3412", bg:"#FFF7ED", border:"#FDBA74" },
   General: { text:"#374151", bg:"#F9FAFB", border:"#D1D5DB" },
+  Break:   { text:"#854d0e", bg:"#fef9c3", border:"#fde047" },
 };
 
 const AVATAR_COLORS = ["#6366F1","#10B981","#F59E0B","#EF4444","#8B5CF6","#06B6D4","#EC4899"];
@@ -165,7 +167,10 @@ function WeekBlock({ week, entries, openWeeks, toggleWeek, projectColors }) {
                   <span className="text-[12px] truncate" style={{ color: "var(--foreground)" }}>{entry.job}</span>
                 </div>
                 <div className="px-2 py-2 min-w-0">
-                  <div className="text-[12px] font-semibold truncate" style={{ color: "var(--primary)" }}>{entry.task}</div>
+                  <div className="text-[12px] font-semibold truncate flex items-center gap-1" style={{ color: entry.isOverEta ? "#ef4444" : "var(--primary)" }}>
+                    {entry.isOverEta && <AlertTriangle size={12} className="shrink-0 text-red-500 animate-pulse" />}
+                    {entry.task}
+                  </div>
                   <div className="text-[11px] italic truncate" style={{ color: "var(--muted-foreground)" }}>{entry.desc}</div>
                 </div>
                 <span className="px-2 py-2.5 text-[12px] text-center" style={{ color: "var(--muted-foreground)" }}>{entry.start}</span>
@@ -188,9 +193,10 @@ function WeekBlock({ week, entries, openWeeks, toggleWeek, projectColors }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function ClassicTimesheet() {
-  const { users, projects, tasks, timeEntries, teams } = useApp();
+  const { users, projects, tasks, timeEntries, teams, currentUser } = useApp();
 
   const [classifyBy, setClassifyBy] = useState("employee");
+  const [showManualModal, setShowManualModal] = useState(false);
 
   const [searchQuery,     setSearchQuery]     = useState("");
   const [teamFilter,      setTeamFilter]      = useState("all");
@@ -241,12 +247,23 @@ export default function ClassicTimesheet() {
     }
   }, [dynamicWeeks]);
 
+  const isEmployee = currentUser?.role === 'Employee';
+
   const subjectOptions = useMemo(() => {
-    if (classifyBy === "employee") return users.map(u => ({ id: u.id, name: u.name, role: u.role }));
-    if (classifyBy === "project")  return projects.map(p => ({ id: p.id, name: p.name, color: p.color }));
-    if (classifyBy === "team")     return teams.map(t => ({ id: t.id, name: t.name }));
+    if (classifyBy === "employee") {
+      const list = isEmployee ? [currentUser].filter(Boolean) : users;
+      return list.map(u => ({ id: u.id, name: u.name, role: u.role }));
+    }
+    if (classifyBy === "project") {
+      const list = isEmployee ? projects.filter(p => p.members?.includes(currentUser.id)) : projects;
+      return list.map(p => ({ id: p.id, name: p.name, color: p.color }));
+    }
+    if (classifyBy === "team") {
+      const list = isEmployee ? teams.filter(t => t.members?.includes(currentUser.id) || t.leadId === currentUser.id) : teams;
+      return list.map(t => ({ id: t.id, name: t.name }));
+    }
     return [];
-  }, [classifyBy, users, projects, teams]);
+  }, [classifyBy, users, projects, teams, currentUser, isEmployee]);
 
   useEffect(() => {
     setSelectedSubjectId(subjectOptions[0]?.id ?? null);
@@ -270,6 +287,10 @@ export default function ClassicTimesheet() {
           const projName = proj ? proj.name : "Internal R&D";
           const taskObj  = tasks.find(t => t.id === e.taskId);
           const taskLabel = taskObj ? `${taskObj.taskNumber} ${taskObj.name}` : e.description || "Manual Entry";
+          
+          // Check if task exceeds ETA
+          const isOverEta = taskObj && parseFloat(taskObj.logged || 0) > parseFloat(taskObj.eta || 0);
+
           let dayName = "Mon";
           try {
             const d = new Date(e.date);
@@ -286,6 +307,7 @@ export default function ClassicTimesheet() {
             totalHours: parseFloat(e.duration) || 0,
             status: e.status || "Pending",
             userId: user.id,
+            isOverEta
           };
         }).filter(Boolean);
     });
@@ -300,6 +322,7 @@ export default function ClassicTimesheet() {
   );
 
   const targetUserIds = useMemo(() => {
+    if (isEmployee) return [currentUser?.id].filter(Boolean);
     if (!selectedSubject) return [];
     if (classifyBy === "employee") return [selectedSubject.id];
     if (classifyBy === "project") {
@@ -312,7 +335,7 @@ export default function ClassicTimesheet() {
       return [...new Set([...(team.members || []), team.leadId].filter(Boolean))];
     }
     return [];
-  }, [classifyBy, selectedSubject, projects, teams]);
+  }, [classifyBy, selectedSubject, projects, teams, isEmployee, currentUser]);
 
   const filteredEntries = useMemo(() => {
     let entries = [];
@@ -380,28 +403,31 @@ export default function ClassicTimesheet() {
         <div className="flex flex-wrap items-center gap-3 mb-3">
 
           {/* Classify By toggle */}
-          <div className="flex items-center gap-1 rounded-xl p-1 border shadow-sm"
-            style={{ background: "var(--card)", borderColor: "var(--border)" }}>
-            {[
-              { val: "employee", label: "Employee", icon: <Users size={12}/> },
-              { val: "project",  label: "Project",  icon: <Briefcase size={12}/> },
-              { val: "team",     label: "Team",      icon: <Layers size={12}/> },
-            ].map(({ val, label, icon }) => (
-              <button
-                key={val}
-                onClick={() => setClassifyBy(val)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all cursor-pointer"
-                style={classifyBy === val
-                  ? { background: "var(--primary)", color: "var(--primary-foreground)" }
-                  : { color: "var(--muted-foreground)", background: "transparent" }}
-              >
-                {icon}{label}
-              </button>
-            ))}
-          </div>
+          {!isEmployee && (
+            <div className="flex items-center gap-1 rounded-xl p-1 border shadow-sm"
+              style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+              {[
+                { val: "employee", label: "Employee", icon: <Users size={12}/> },
+                { val: "project",  label: "Project",  icon: <Briefcase size={12}/> },
+                { val: "team",     label: "Team",      icon: <Layers size={12}/> },
+              ].map(({ val, label, icon }) => (
+                <button
+                  key={val}
+                  onClick={() => setClassifyBy(val)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all cursor-pointer"
+                  style={{
+                    background: classifyBy === val ? "var(--primary)" : "transparent",
+                    color: classifyBy === val ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                  }}
+                >
+                  {icon}{label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Subject dropdown */}
-          {selectedSubject && (
+          {!isEmployee && selectedSubject && (
             <Select
               value={selectedSubject}
               options={subjectOptions}
@@ -463,6 +489,11 @@ export default function ClassicTimesheet() {
 
           <div className="flex-1" />
 
+          <button onClick={() => setShowManualModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg cursor-pointer transition-all text-white hover:opacity-90 animate-fade-in"
+            style={{ background: "var(--primary)", border: "none", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+            <Plus size={12} /> Add Time Log
+          </button>
           <button onClick={expandAll}
             className="px-3 py-1.5 text-[12px] font-medium rounded-lg cursor-pointer transition-colors border"
             style={{ color: "var(--foreground)", borderColor: "var(--border)", background: "var(--card)" }}>
@@ -484,7 +515,7 @@ export default function ClassicTimesheet() {
             <Search size={14} className="shrink-0" style={{ color: "var(--muted-foreground)" }} />
             <input
               type="text"
-              placeholder="Search name or task..."
+              placeholder={isEmployee ? "Search task..." : "Search name or task..."}
               className="bg-transparent border-none outline-none text-[12px] w-full"
               style={{ color: "var(--foreground)" }}
               value={searchQuery}
@@ -498,7 +529,7 @@ export default function ClassicTimesheet() {
           </div>
 
           {/* Team filter */}
-          {classifyBy !== "team" && (
+          {!isEmployee && classifyBy !== "team" && (
             <div className="flex items-center gap-1.5">
               <Layers size={13} style={{ color: "var(--muted-foreground)" }} />
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Team:</span>
@@ -510,7 +541,7 @@ export default function ClassicTimesheet() {
           )}
 
           {/* Role filter */}
-          {classifyBy !== "employee" && (
+          {!isEmployee && classifyBy !== "employee" && (
             <div className="flex items-center gap-1.5">
               <Filter size={13} style={{ color: "var(--muted-foreground)" }} />
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Role:</span>
@@ -642,6 +673,12 @@ export default function ClassicTimesheet() {
           ))
         )}
       </div>
+
+      <ManualTimeEntryModal
+        show={showManualModal}
+        onClose={() => setShowManualModal(false)}
+        defaultDate={new Date().toISOString().split('T')[0]}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, ChevronDown } from 'lucide-react';
+import SearchableSelect from '../../ui/SearchableSelect';
 
 export default function CreateTaskModal({
   show, onClose, onSubmit,
@@ -13,7 +14,12 @@ export default function CreateTaskModal({
   showBacklogDropdown, setShowBacklogDropdown,
 }) {
   const availableProjects = projects.filter(p => isAdmin || ledProjectIds.includes(p.id));
-  const availableUsers = users.filter(u => u.status === 'Active');
+  const availableUsers = taskData.projectId
+    ? users.filter(u => {
+        const proj = projects.find(p => p.id === taskData.projectId);
+        return proj ? (proj.members || []).includes(u.id) : true;
+      })
+    : users;
 
   const backlogTasks = tasks.filter(t =>
     (!t.assignedTo || t.assignedTo === '') &&
@@ -39,6 +45,9 @@ export default function CreateTaskModal({
         assignedTo: assignForm.assignedTo
       }]);
     } else {
+      if (!assignForm.taskNumber?.trim()) { alert("Please enter a Task Number."); return; }
+      if (!assignForm.etaDate) { alert("Please enter an ETA Date."); return; }
+      if (assignForm.type === 'Bug' && !assignForm.bugNumber?.trim()) { alert("Please enter a Bug Number."); return; }
       setStagedTasks(prev => [...prev, {
         id: `staged-new-${Date.now()}`,
         isNew: true,
@@ -46,11 +55,14 @@ export default function CreateTaskModal({
         eta: parseFloat(assignForm.eta) || 8,
         type: assignForm.type,
         priority: assignForm.priority,
-        assignedTo: assignForm.assignedTo
+        assignedTo: assignForm.assignedTo,
+        taskNumber: assignForm.taskNumber,
+        etaDate: assignForm.etaDate,
+        bugNumber: assignForm.bugNumber
       }]);
     }
 
-    setAssignForm(prev => ({ ...prev, name: '', backlogTaskId: '', eta: '8', assignedTo: '' }));
+    setAssignForm(prev => ({ ...prev, name: '', backlogTaskId: '', eta: '8', assignedTo: '', taskNumber: '', etaDate: '', bugNumber: '' }));
     setShowAssignForm(false);
     setShowBacklogDropdown(false);
   };
@@ -128,53 +140,38 @@ export default function CreateTaskModal({
               {showAssignForm ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
 
-                  {/* Backlog or New toggle */}
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => { setAssignForm(prev => ({ ...prev, backlogTaskId: '', name: '' })); setShowBacklogDropdown(false); }}
-                      style={{ flex: 1, padding: '0.4rem', fontSize: '0.75rem', fontWeight: 600, borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer', backgroundColor: !assignForm.backlogTaskId ? 'var(--pastel-blue)' : 'transparent', color: !assignForm.backlogTaskId ? '#fff' : 'var(--text-secondary)' }}
-                    >
-                      New Task
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowBacklogDropdown(true); setAssignForm(prev => ({ ...prev, name: '' })); }}
-                      style={{ flex: 1, padding: '0.4rem', fontSize: '0.75rem', fontWeight: 600, borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer', backgroundColor: showBacklogDropdown ? 'var(--pastel-blue)' : 'transparent', color: showBacklogDropdown ? '#fff' : 'var(--text-secondary)' }}
-                    >
-                      From Backlog
-                    </button>
+                  <div className="form-group">
+                    <label className="form-label">Task Summary / Search Backlog</label>
+                    <SearchableSelect
+                      options={backlogTasks.map(t => ({ value: t.id, label: `${t.taskNumber}: ${t.name}` }))}
+                      creatable={true}
+                      value={assignForm.backlogTaskId || assignForm.name}
+                      onChange={(val) => {
+                        const t = backlogTasks.find(bt => bt.id === val);
+                        if (t) {
+                          setAssignForm(prev => ({ ...prev, backlogTaskId: t.id, name: `${t.taskNumber}: ${t.name}`, taskNumber: t.taskNumber }));
+                        } else {
+                          setAssignForm(prev => ({ ...prev, backlogTaskId: '', name: val }));
+                        }
+                      }}
+                      placeholder="Search backlog or type new task summary..."
+                    />
                   </div>
 
-                  {showBacklogDropdown ? (
-                    <div className="form-group">
-                      <label className="form-label">Select Backlog Task</label>
-                      <select
-                        className="form-input"
-                        value={assignForm.backlogTaskId}
-                        onChange={(e) => {
-                          const t = tasks.find(t => t.id === e.target.value);
-                          setAssignForm(prev => ({ ...prev, backlogTaskId: e.target.value, name: t ? `${t.taskNumber}: ${t.name}` : '' }));
-                        }}
-                      >
-                        <option value="">Select backlog task...</option>
-                        {backlogTasks.map(t => (
-                          <option key={t.id} value={t.id}>{t.taskNumber}: {t.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  ) : (
+                  {!assignForm.backlogTaskId && (
                     <>
                       <div className="form-group">
-                        <label className="form-label">Task Summary / Ticket</label>
+                        <label className="form-label">Task Number (ID)</label>
                         <input
                           type="text"
                           className="form-input"
-                          placeholder="e.g. PROJ-42: Build dashboard UI"
-                          value={assignForm.name}
-                          onChange={(e) => setAssignForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="e.g. TSK-100"
+                          value={assignForm.taskNumber || ''}
+                          onChange={(e) => setAssignForm(prev => ({ ...prev, taskNumber: e.target.value }))}
+                          required
                         />
                       </div>
+
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                         <div className="form-group">
                           <label className="form-label">Estimate (hrs)</label>
@@ -198,6 +195,31 @@ export default function CreateTaskModal({
                             {['Low', 'Medium', 'High', 'Critical'].map(p => <option key={p} value={p}>{p}</option>)}
                           </select>
                         </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                        <div className="form-group">
+                          <label className="form-label">ETA Date</label>
+                          <input
+                            type="date"
+                            className="form-input"
+                            value={assignForm.etaDate || ''}
+                            onChange={(e) => setAssignForm(prev => ({ ...prev, etaDate: e.target.value }))}
+                            required
+                          />
+                        </div>
+                        {assignForm.type === 'Bug' && (
+                          <div className="form-group">
+                            <label className="form-label">Bug Number</label>
+                            <input
+                              type="text"
+                              className="form-input"
+                              placeholder="e.g. BUG-404"
+                              value={assignForm.bugNumber || ''}
+                              onChange={(e) => setAssignForm(prev => ({ ...prev, bugNumber: e.target.value }))}
+                              required
+                            />
+                          </div>
+                        )}
                       </div>
                     </>
                   )}

@@ -14,6 +14,7 @@ function mapTeam(team) {
     teamsChannelId:  team.teamsChannelId || '',
     status:          mapStatus(team.status),
     members:         [], // loaded separately via getMembers()
+    createdAt:       team.createdAt,
   };
 }
 

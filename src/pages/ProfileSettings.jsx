@@ -367,10 +367,6 @@ export default function ProfileSettings() {
             <Field label="Full Name"   value={form.name}  editing={editing} fieldKey="name"  onChange={handleChange} />
             <Field label="Email"       value={form.email} editing={editing} fieldKey="email" onChange={handleChange} type="email"
               hint="Changing email will update your login address." />
-          </Section>
-
-          {/* Contact */}
-          <Section title="Contact Details" icon={Phone}>
             <Field label="Phone Number"    value={form.phone}           editing={editing} fieldKey="phone"           onChange={handleChange} type="tel" />
             <Field label="WhatsApp Number" value={form.whatsapp_number} editing={editing} fieldKey="whatsapp_number" onChange={handleChange} type="tel" />
           </Section>
@@ -399,6 +395,7 @@ export default function ProfileSettings() {
               <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Notification Preference
               </label>
+              
               {editing ? (
                 <select
                   value={form.notification_preference}
@@ -415,6 +412,24 @@ export default function ProfileSettings() {
                   {form.notification_preference}
                 </div>
               )}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+              <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Auto Clockin 
+              </label>
+              <label>
+                Yes
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+              <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Show Activity Status 
+              </label>
+              <label>
+                Yes 
+              </label>
             </div>
 
             {/* Theme toggle */}

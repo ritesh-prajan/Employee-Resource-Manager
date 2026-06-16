@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useApp } from "../../context/AppContext";
-import { ChevronRight, Calendar, Briefcase, ChevronLeft, ChevronDown, Search, Layers, Filter, Tag, Users, X } from "lucide-react";
+import { ChevronRight, Calendar, Briefcase, ChevronLeft, ChevronDown, Search, Layers, Filter, Tag, Users, X, Plus, AlertTriangle } from "lucide-react";
+import ManualTimeEntryModal from "../forms/timesheets/ManualTimeEntryModal";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function gettotal(node) {
@@ -29,6 +30,7 @@ const BADGE_COLORS = {
   Review:  { text: "#5B21B6", bg: "#F5F3FF", border: "#DDD6FE" },
   "R&D":   { text: "#9A3412", bg: "#FFF7ED", border: "#FDBA74" },
   Epic:    { text: "#1E3A8A", bg: "#DBEAFE", border: "#93C5FD" },
+  Break:   { text: "#854d0e", bg: "#fef9c3", border: "#fde047" },
 };
 
 const formatWeekLabel = (monday, sunday) => {
@@ -43,7 +45,7 @@ const formatWeekLabel = (monday, sunday) => {
   }
 };
 
-const buildTreeFromContext = ({ users, projects, tasks, timeEntries, teams }, filters) => {
+const buildTreeFromContext = ({ users, projects, tasks, timeEntries, teams, currentUser }, filters) => {
   const today = new Date();
   const day = today.getDay();
   const diff = day === 0 ? -6 : 1 - day;
@@ -54,6 +56,7 @@ const buildTreeFromContext = ({ users, projects, tasks, timeEntries, teams }, fi
   const weeksToGenerate = 4;
   const dynamicWeeks = [];
   const DN = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const isEmployee = currentUser?.role === 'Employee';
 
   for (let i = 0; i < weeksToGenerate; i++) {
     const weeksAgo = weeksToGenerate - 1 - i;
@@ -69,6 +72,8 @@ const buildTreeFromContext = ({ users, projects, tasks, timeEntries, teams }, fi
     const weekEntries = (timeEntries || []).filter(e => {
       const eDate = new Date(e.date);
       if (isNaN(eDate) || eDate < weekMonday || eDate > weekSunday) return false;
+
+      if (isEmployee && e.userId !== currentUser?.id) return false;
 
       // Apply filters:
       if (filters.statusFilter && filters.statusFilter !== "all" && e.status !== filters.statusFilter) return false;
@@ -137,6 +142,9 @@ const buildTreeFromContext = ({ users, projects, tasks, timeEntries, teams }, fi
       } catch(_) {}
       const formattedDate = `${dayName} ${new Date(entry.date).getDate()}/${new Date(entry.date).getMonth() + 1}`;
 
+      // Check if task exceeds ETA
+      const isOverEta = taskObj && parseFloat(taskObj.logged || 0) > parseFloat(taskObj.eta || 0);
+
       projectMap[projId].childrenMap[userId].children.push({
         id: entry.id,
         type: "entry",
@@ -147,7 +155,8 @@ const buildTreeFromContext = ({ users, projects, tasks, timeEntries, teams }, fi
         desc: entry.description,
         start: entry.startTime,
         end: entry.endTime,
-        hours: parseFloat(entry.duration) || 0
+        hours: parseFloat(entry.duration) || 0,
+        isOverEta
       });
     });
 
@@ -325,7 +334,8 @@ function entryrow({ node, isFirstOfDate, isFirstOfPerson, dailyTotal, weeklyTota
         <span className="text-[12px] truncate font-medium">{projectLabel || "AAM"}</span>
       </div>
       <div className="min-w-0 pr-2">
-        <div className="text-[12px] font-semibold truncate" style={{ color: "var(--primary)" }}>
+        <div className="text-[12px] font-semibold truncate flex items-center gap-1" style={{ color: node.isOverEta ? "#ef4444" : "var(--primary)" }}>
+          {node.isOverEta && <AlertTriangle size={12} className="shrink-0 text-red-500 animate-pulse" />}
           {node.task}
         </div>
         {node.desc && (
@@ -497,7 +507,7 @@ function WeeksDropdown({ weeks, selectedIds, onToggle, customDate, onCustomDate 
 }
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
-function Toolbar({ weeks, selectedIds, onToggleWeek, customDate, onCustomDate, currentIdx, onPrev, onNext, onExpandAll, onCollapseAll }) {
+function Toolbar({ weeks, selectedIds, onToggleWeek, customDate, onCustomDate, currentIdx, onPrev, onNext, onExpandAll, onCollapseAll, onAddClick }) {
   const iconBtn = "p-1.5 border rounded-lg cursor-pointer flex items-center justify-center transition-colors hover:bg-slate-100";
 
   return (
@@ -522,6 +532,10 @@ function Toolbar({ weeks, selectedIds, onToggleWeek, customDate, onCustomDate, c
 
       <div className="flex-1" />
 
+      <button onClick={onAddClick} className="px-3.5 flex items-center gap-1.5 rounded-lg text-[13px] font-semibold text-white cursor-pointer transition-all hover:opacity-90"
+        style={{ background: "var(--primary)", border: "none", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", height: "32px" }}>
+        <Plus size={13} /> Add Time Log
+      </button>
       <button onClick={onExpandAll} className="px-3.5 hover:bg-slate-100 py-1.5 rounded-lg text-[13px] font-medium cursor-pointer border"
         style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>Expand All</button>
       <button onClick={onCollapseAll} className="px-3.5 hover:bg-slate-100 py-1.5 rounded-lg text-[13px] font-medium cursor-pointer border"
@@ -532,8 +546,9 @@ function Toolbar({ weeks, selectedIds, onToggleWeek, customDate, onCustomDate, c
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 export default function TreeTimesheets() {
-  const { users, projects, tasks, timeEntries, teams } = useApp();
+  const { users, projects, tasks, timeEntries, teams, currentUser } = useApp();
 
+  const [showManualModal, setShowManualModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [teamFilter, setTeamFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -541,12 +556,14 @@ export default function TreeTimesheets() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  const isEmployee = currentUser?.role === 'Employee';
+
   const weeks = useMemo(() => {
     return buildTreeFromContext(
-      { users, projects, tasks, timeEntries, teams },
+      { users, projects, tasks, timeEntries, teams, currentUser },
       { searchQuery, teamFilter, roleFilter, projectFilter, categoryFilter, statusFilter }
     );
-  }, [users, projects, tasks, timeEntries, teams, searchQuery, teamFilter, roleFilter, projectFilter, categoryFilter, statusFilter]);
+  }, [users, projects, tasks, timeEntries, teams, currentUser, searchQuery, teamFilter, roleFilter, projectFilter, categoryFilter, statusFilter]);
 
   const [selectedids, setselectedids] = useState([
     'dynamic-week-0',
@@ -619,6 +636,7 @@ export default function TreeTimesheets() {
         onNext={onnext}
         onExpandAll={expandall}
         onCollapseAll={collapseall}
+        onAddClick={() => setShowManualModal(true)}
       />
 
       {/* ── Filter Bar ── */}
@@ -631,7 +649,7 @@ export default function TreeTimesheets() {
           <Search size={14} className="shrink-0" style={{ color: "var(--muted-foreground)" }} />
           <input
             type="text"
-            placeholder="Search staff or task..."
+            placeholder={isEmployee ? "Search task..." : "Search staff or task..."}
             className="bg-transparent border-none outline-none text-[12px] w-full"
             style={{ color: "var(--foreground)" }}
             value={searchQuery}
@@ -645,26 +663,30 @@ export default function TreeTimesheets() {
         </div>
 
         {/* Team filter */}
-        <div className="flex items-center gap-1.5">
-          <Layers size={13} style={{ color: "var(--muted-foreground)" }} />
-          <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Team:</span>
-          <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
-            <option value="all">All Teams</option>
-            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-        </div>
+        {!isEmployee && (
+          <div className="flex items-center gap-1.5">
+            <Layers size={13} style={{ color: "var(--muted-foreground)" }} />
+            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Team:</span>
+            <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
+              <option value="all">All Teams</option>
+              {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+        )}
 
         {/* Role filter */}
-        <div className="flex items-center gap-1.5">
-          <Filter size={13} style={{ color: "var(--muted-foreground)" }} />
-          <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Role:</span>
-          <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
-            <option value="all">All Roles</option>
-            <option value="Employee">Employee</option>
-            <option value="Team Lead">Team Lead</option>
-            <option value="Admin">Admin</option>
-          </select>
-        </div>
+        {!isEmployee && (
+          <div className="flex items-center gap-1.5">
+            <Filter size={13} style={{ color: "var(--muted-foreground)" }} />
+            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Role:</span>
+            <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+              <option value="all">All Roles</option>
+              <option value="Employee">Employee</option>
+              <option value="Team Lead">Team Lead</option>
+              <option value="Admin">Admin</option>
+            </select>
+          </div>
+        )}
 
         {/* Project filter */}
         <div className="flex items-center gap-1.5">
@@ -727,6 +749,12 @@ export default function TreeTimesheets() {
           </div>
         ))}
       </div>
+
+      <ManualTimeEntryModal
+        show={showManualModal}
+        onClose={() => setShowManualModal(false)}
+        defaultDate={new Date().toISOString().split('T')[0]}
+      />
     </div>
   );
 }

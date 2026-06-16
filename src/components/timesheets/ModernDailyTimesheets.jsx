@@ -5,8 +5,9 @@ import "react-calendar-timeline/style.css";
 import "../../timeline.css";
 import { useApp } from "../../context/AppContext";
 import ModernWeeklyTimesheets from "./ModernWeeklyTimesheets";
-import { Coffee, X, Clock, Tag, FileText, CheckCircle, Search, Layers, Filter, Briefcase, Activity, Calendar, AlertTriangle } from "lucide-react";
+import { Coffee, X, Clock, Tag, FileText, CheckCircle, Search, Layers, Filter, Briefcase, Activity, Calendar, AlertTriangle, Plus } from "lucide-react";
 import ModernMonthlyTimesheets from "./ModernMonthlyTimesheets";
+import ManualTimeEntryModal from "../forms/timesheets/ManualTimeEntryModal";
 
 const keys = {
   groupIdKey: "id",
@@ -37,9 +38,10 @@ const STATUS_META = {
 };
 
 export default function Timesheets() {
-  const { users, timeEntries, tasks, teams, projects } = useApp();
+  const { users, timeEntries, tasks, teams, projects, currentUser, editTimeEntry } = useApp();
 
   const [popup, setPopup] = useState(null);
+  const [showManualModal, setShowManualModal] = useState(false);
   const [viewMode, setViewMode] = useState(VIEW_MODES.DAY);
   const [currentDate, setCurrentDate] = useState(moment().startOf("day"));
   const [currentPage, setCurrentPage] = useState(1);
@@ -52,7 +54,10 @@ export default function Timesheets() {
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const [statusFilter, setStatusFilter] = useState("All Statuses");
 
+  const isEmployee = currentUser?.role === 'Employee';
+
   const filteredUsers = users.filter((u) => {
+    if (isEmployee && u.id !== currentUser.id) return false;
     if (searchQuery && !u.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (teamFilter !== "All Teams") {
       const team = teams.find(t => t.id === teamFilter);
@@ -81,6 +86,7 @@ export default function Timesheets() {
   });
 
   const filteredEntries = timeEntries.filter(e => {
+    if (isEmployee && e.userId !== currentUser.id) return false;
     if (statusFilter !== "All Statuses" && e.status !== statusFilter) return false;
     if (categoryFilter !== "All Categories" && e.workCategory !== categoryFilter) return false;
     if (projectFilter !== "All Projects" && e.projectId !== projectFilter) return false;
@@ -92,7 +98,13 @@ export default function Timesheets() {
     const endStr   = `${e.date}T${e.endTime}:00`;
     let type = "pending";
     if (e.status === "Approved") type = "completed";
+    if (e.workCategory === "Break") type = "break";
     const taskObj = tasks.find((t) => t.id === e.taskId);
+
+    // Check if task exceeds ETA
+    const isOverEta = taskObj && parseFloat(taskObj.logged || 0) > parseFloat(taskObj.eta || 0);
+    const isOwnItem = e.userId === currentUser?.id;
+
     return {
       id: e.id,
       group: e.userId,
@@ -100,9 +112,12 @@ export default function Timesheets() {
       start: moment(startStr).valueOf(),
       end: moment(endStr).valueOf(),
       type,
-      taskTitle: taskObj?.name || "Manual Entry",
+      taskTitle: taskObj ? `${taskObj.taskNumber ? taskObj.taskNumber + ': ' : ''}${taskObj.name}` : (e.description || "Manual Entry"),
       category: e.workCategory || "General",
       description: e.description,
+      isOverEta,
+      canMove: isOwnItem,
+      canResize: isOwnItem ? "both" : false
     };
   });
 
@@ -139,6 +154,45 @@ export default function Timesheets() {
     setCurrentPage(1);
   };
 
+  const onItemMove = (itemId, dragTime, newGroupOrder) => {
+    const entry = timeEntries.find(e => e.id === itemId);
+    if (!entry || entry.userId !== currentUser?.id) return;
+
+    const durationHrs = parseFloat(entry.duration) || 0.5;
+    const newStart = moment(dragTime);
+    const newEnd = newStart.clone().add(durationHrs, 'hours');
+
+    editTimeEntry(itemId, {
+      date: newStart.format("YYYY-MM-DD"),
+      startTime: newStart.format("HH:mm"),
+      endTime: newEnd.format("HH:mm"),
+      duration: durationHrs.toString()
+    });
+  };
+
+  const onItemResize = (itemId, newResizeTime, edge) => {
+    const entry = timeEntries.find(e => e.id === itemId);
+    if (!entry || entry.userId !== currentUser?.id) return;
+
+    const startVal = moment(`${entry.date}T${entry.startTime}:00`).valueOf();
+    const endVal = moment(`${entry.date}T${entry.endTime}:00`).valueOf();
+
+    const newStart = edge === "left" ? moment(newResizeTime) : moment(startVal);
+    const newEnd = edge === "right" ? moment(newResizeTime) : moment(endVal);
+    
+    const durationMs = newEnd.valueOf() - newStart.valueOf();
+    if (durationMs < 900000) return; // Min 15 minutes
+
+    const durationHrs = parseFloat((durationMs / 3600000).toFixed(2));
+
+    editTimeEntry(itemId, {
+      date: newStart.format("YYYY-MM-DD"),
+      startTime: newStart.format("HH:mm"),
+      endTime: newEnd.format("HH:mm"),
+      duration: durationHrs.toString()
+    });
+  };
+
   const getDateLabel = () => {
     if (viewMode === VIEW_MODES.DAY) return currentDate.format("MMM D, YYYY");
     if (viewMode === VIEW_MODES.WEEK) {
@@ -173,12 +227,18 @@ export default function Timesheets() {
   };
 
   const itemRenderer = ({ item, getItemProps }) => {
+    const baseStyle = ITEM_STYLES[item.type] ?? ITEM_STYLES.pending;
     const { key, ...restProps } = getItemProps({
       style: {
-        ...(ITEM_STYLES[item.type] ?? ITEM_STYLES.pending),
+        ...baseStyle,
         borderRadius: "8px",
         fontWeight: 600,
         boxShadow: "none",
+        ...(item.isOverEta ? {
+          background: "#fee2e2",
+          border: "2px solid #ef4444",
+          color: "#b91c1c"
+        } : {})
       },
     });
     return (
@@ -195,7 +255,8 @@ export default function Timesheets() {
           });
         }}
       >
-        <div className="h-full flex items-center justify-center text-sm">
+        <div className="h-full flex items-center justify-center gap-1 text-sm">
+          {item.isOverEta && <AlertTriangle size={12} className="shrink-0 text-red-600 animate-pulse" />}
           {item.type === "break" ? <Coffee size={14} strokeWidth={2.4} /> : item.title}
         </div>
       </div>
@@ -210,43 +271,49 @@ export default function Timesheets() {
         style={{ background: "var(--card)", borderColor: "var(--border)" }}>
 
         {/* Search */}
-        <div className="flex items-center gap-2 rounded-xl px-3 py-2 w-56 border transition"
-          style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
-          <Search size={15} style={{ color: "var(--muted-foreground)" }} className="shrink-0" />
-          <input
-            type="text"
-            placeholder="Search staff name..."
-            className="bg-transparent border-none outline-none text-sm w-full"
-            style={{ color: "var(--foreground)" }}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="cursor-pointer hover:opacity-70" style={{ color: "var(--muted-foreground)" }}>
-              <X size={12} />
-            </button>
-          )}
-        </div>
+        {!isEmployee && (
+          <div className="flex items-center gap-2 rounded-xl px-3 py-2 w-56 border transition"
+            style={{ background: "var(--secondary)", borderColor: "var(--border)" }}>
+            <Search size={15} style={{ color: "var(--muted-foreground)" }} className="shrink-0" />
+            <input
+              type="text"
+              placeholder="Search staff name..."
+              className="bg-transparent border-none outline-none text-sm w-full"
+              style={{ color: "var(--foreground)" }}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="cursor-pointer hover:opacity-70" style={{ color: "var(--muted-foreground)" }}>
+                <X size={12} />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Team */}
-        <div className="flex items-center gap-1.5">
-          <Layers size={14} style={{ color: "var(--muted-foreground)" }} />
-          <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
-            <option value="All Teams">All Teams</option>
-            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-        </div>
+        {!isEmployee && (
+          <div className="flex items-center gap-1.5">
+            <Layers size={14} style={{ color: "var(--muted-foreground)" }} />
+            <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
+              <option value="All Teams">All Teams</option>
+              {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+        )}
 
         {/* Role */}
-        <div className="flex items-center gap-1.5">
-          <Filter size={14} style={{ color: "var(--muted-foreground)" }} />
-          <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
-            <option value="All Staff">All Staff</option>
-            <option value="Employee">Employee</option>
-            <option value="Team Lead">Team Lead</option>
-            <option value="Admin">Admin</option>
-          </select>
-        </div>
+        {!isEmployee && (
+          <div className="flex items-center gap-1.5">
+            <Filter size={14} style={{ color: "var(--muted-foreground)" }} />
+            <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+              <option value="All Staff">All Staff</option>
+              <option value="Employee">Employee</option>
+              <option value="Team Lead">Team Lead</option>
+              <option value="Admin">Admin</option>
+            </select>
+          </div>
+        )}
 
         {/* Project */}
         <div className="flex items-center gap-1.5">
@@ -311,21 +378,30 @@ export default function Timesheets() {
             <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{getSubLabel()}</div>
           </div>
         </div>
-        <div className="flex items-center gap-1 rounded-xl p-1" style={{ background: "var(--muted-foreground)", opacity: 0.08, borderRadius: "0.75rem" }}>
-          {[
-            { label: "Day Timeline", value: VIEW_MODES.DAY },
-            { label: "Week Grid",    value: VIEW_MODES.WEEK },
-            { label: "Month Map",    value: VIEW_MODES.MONTH },
-          ].map(({ label, value }) => (
-            <button
-              key={value}
-              onClick={() => { setViewMode(value); setCurrentPage(1); setPopup(null); }}
-              className="px-4 py-1.5 rounded-lg text-sm font-medium transition"
-              style={viewMode === value
-              ? { background: "var(--primary)", color: "var(--primary-foreground)" }
-              : { color: "var(--muted-foreground)", background: "transparent" }}
-            >{label}</button>
-          ))}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowManualModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition text-white hover:opacity-90 cursor-pointer"
+            style={{ background: "var(--primary)", border: "none", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}
+          >
+            <Plus size={14} /> Add Time Log
+          </button>
+          <div className="flex items-center gap-1 p-1" style={{ background: "var(--secondary)", borderRadius: "0.75rem" }}>
+            {[
+              { label: "Day Timeline", value: VIEW_MODES.DAY },
+              { label: "Week Grid",    value: VIEW_MODES.WEEK },
+              { label: "Month Map",    value: VIEW_MODES.MONTH },
+            ].map(({ label, value }) => (
+              <button
+                key={value}
+                onClick={() => { setViewMode(value); setCurrentPage(1); setPopup(null); }}
+                className="px-4 py-1.5 rounded-lg text-sm font-medium transition"
+                style={viewMode === value
+                ? { background: "var(--primary)", color: "var(--primary-foreground)", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }
+                : { color: "var(--muted-foreground)", background: "transparent" }}
+              >{label}</button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -353,8 +429,10 @@ export default function Timesheets() {
               stackItems
               itemHeightRatio={0.6}
               showCursorLine={false}
-              canMove={false}
-              canResize={false}
+              canMove={true}
+              canResize="both"
+              onItemMove={onItemMove}
+              onItemResize={onItemResize}
               groupRenderer={({ group }) => (
                 <div className="flex items-center h-full px-3">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
@@ -493,6 +571,12 @@ export default function Timesheets() {
           </div>
         );
       })()}
+
+      <ManualTimeEntryModal
+        show={showManualModal}
+        onClose={() => setShowManualModal(false)}
+        defaultDate={currentDate.format("YYYY-MM-DD")}
+      />
 
     </div>
   );

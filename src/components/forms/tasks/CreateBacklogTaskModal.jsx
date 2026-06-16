@@ -34,11 +34,23 @@ export default function CreateBacklogTaskModal({ show, onClose, onSubmit, projec
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
               <div className="form-group">
+                <label className="form-label">Task Number (ID)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. TSK-100"
+                  value={backlogCreateData.taskNumber || ''}
+                  onChange={(e) => setBacklogCreateData(prev => ({ ...prev, taskNumber: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Task Summary / Ticket</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. PROJ-101: Implement login flow"
+                  placeholder="e.g. Implement login flow"
                   value={backlogCreateData.name}
                   onChange={(e) => setBacklogCreateData(prev => ({ ...prev, name: e.target.value }))}
                   required
@@ -97,6 +109,33 @@ export default function CreateBacklogTaskModal({ show, onClose, onSubmit, projec
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group">
+                  <label className="form-label">ETA Date</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={backlogCreateData.etaDate || ''}
+                    onChange={(e) => setBacklogCreateData(prev => ({ ...prev, etaDate: e.target.value }))}
+                    required
+                  />
+                </div>
+
+                {backlogCreateData.type === 'Bug' && (
+                  <div className="form-group">
+                    <label className="form-label">Bug Number</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. BUG-404"
+                      value={backlogCreateData.bugNumber || ''}
+                      onChange={(e) => setBacklogCreateData(prev => ({ ...prev, bugNumber: e.target.value }))}
+                      required
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>

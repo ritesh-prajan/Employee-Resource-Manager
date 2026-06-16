@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, AlertTriangle, Coffee, Briefcase, Calendar, CheckCircle } from 'lucide-react';
+import { Clock, AlertTriangle, Coffee, Briefcase, Calendar } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import SearchableSelect from '../../ui/SearchableSelect';
+import moment from 'moment';
 
-export default function ManualTimeEntryModal({ show, onClose, defaultDate }) {
-  const { currentUser, tasks, projects, addManualEntry } = useApp();
+export default function ManualTimeEntryModal({ show, onClose, defaultDate, editingEntry }) {
+  const { currentUser, tasks, projects, addManualEntry, editTimeEntry, timeEntries } = useApp();
 
   const [entryType, setEntryType] = useState('work'); // 'work' or 'break'
   const [date, setDate] = useState('');
@@ -17,27 +18,48 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate }) {
   const [workCategory, setWorkCategory] = useState('Story');
   const [justification, setJustification] = useState('');
 
-  // Reset/Set defaults when shown
+  // Auto-set the start time to the end of the previous task on date change or open
   useEffect(() => {
-    if (show) {
-      setDate(defaultDate || new Date().toISOString().split('T')[0]);
-      setEntryType('work');
-      setStartTime('09:00');
-      setDuration('1');
-      setTaskId('');
-      setDescription('');
-      setTaskStatus('In Progress');
-      setWorkCategory('Story');
-      setJustification('');
+    if (show && currentUser) {
+      if (editingEntry) {
+        setDate(editingEntry.date);
+        setEntryType(editingEntry.workCategory === 'Break' ? 'break' : 'work');
+        setStartTime(editingEntry.startTime);
+        setDuration(editingEntry.duration);
+        setTaskId(editingEntry.taskId);
+        setDescription(editingEntry.description);
+        setTaskStatus(editingEntry.taskStatus || 'In Progress');
+        setWorkCategory(editingEntry.workCategory || 'Story');
+        setJustification(editingEntry.justification || '');
+      } else {
+        const targetDate = date || defaultDate || new Date().toISOString().split('T')[0];
+        setDate(targetDate);
+        setEntryType('work');
+        setDuration('1');
+        setTaskId('');
+        setDescription('');
+        setTaskStatus('In Progress');
+        setWorkCategory('Story');
+        setJustification('');
+
+        // Find last task on this date to set default start time
+        const userEntriesOnDate = timeEntries.filter(
+          e => e.userId === currentUser.id && e.date === targetDate
+        );
+        if (userEntriesOnDate.length > 0) {
+          const sorted = [...userEntriesOnDate].sort((a, b) => a.endTime.localeCompare(b.endTime));
+          setStartTime(sorted[sorted.length - 1].endTime);
+        } else {
+          setStartTime('09:00');
+        }
+      }
     }
-  }, [show, defaultDate]);
+  }, [show, date, defaultDate, editingEntry, timeEntries, currentUser]);
 
   if (!show) return null;
 
-  // Filter tasks to those assigned to the current user OR in projects the user is a member of
-  const userProjects = projects.filter(p => p.members?.includes(currentUser?.id));
-  const userProjectIds = userProjects.map(p => p.id);
-  const relevantTasks = tasks.filter(t => t.assignedTo === currentUser?.id || userProjectIds.includes(t.projectId));
+  // Filter tasks to show only those explicitly assigned to the current user
+  const relevantTasks = tasks.filter(t => t.assignedTo === currentUser?.id);
 
   const taskOptions = relevantTasks.map(t => {
     const proj = projects.find(p => p.id === t.projectId);
@@ -68,9 +90,31 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate }) {
       return;
     }
 
+    // Overlap validation (entries must not overlap)
+    const newStart = moment(`${date}T${startTime}:00`);
+    const newEnd = newStart.clone().add(durationVal, 'hours');
+
+    const hasOverlap = timeEntries.some(e => {
+      if (editingEntry && e.id === editingEntry.id) return false;
+      return (
+        e.userId === currentUser?.id &&
+        e.date === date &&
+        moment(`${e.date}T${e.startTime}:00`).isBefore(newEnd) &&
+        newStart.isBefore(moment(`${e.date}T${e.endTime}:00`))
+      );
+    });
+
+    if (hasOverlap) {
+      alert('This time slot overlaps with an existing time entry on this date. Please enter a non-overlapping time range.');
+      return;
+    }
+
+    const calculatedEndTime = newEnd.format('HH:mm');
+
     let entryData = {
       date,
       startTime,
+      endTime: calculatedEndTime,
       duration: durationVal.toString(),
       description: entryType === 'break' ? (description || 'Break') : description,
       workCategory: entryType === 'break' ? 'Break' : workCategory,
@@ -82,12 +126,15 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate }) {
       entryData.projectId = selectedTask?.projectId || '';
       entryData.taskStatus = taskStatus;
     } else {
-      // For break
       entryData.taskId = 'Break';
       entryData.projectId = 'Break';
     }
 
-    addManualEntry(entryData);
+    if (editingEntry) {
+      editTimeEntry(editingEntry.id, entryData);
+    } else {
+      addManualEntry(entryData);
+    }
     onClose();
   };
 
@@ -106,7 +153,9 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate }) {
             <div className="modal-header" style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Clock className="text-primary" size={20} />
-                <h3 className="modal-title" style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>Log Time Entry</h3>
+                <h3 className="modal-title" style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>
+                  {editingEntry ? 'Edit Time Entry' : 'Log Time Entry'}
+                </h3>
               </div>
               <button 
                 type="button"

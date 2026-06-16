@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, ChevronDown } from 'lucide-react';
-import SearchableSelect from '../../ui/SearchableSelect';
+import { Plus, Trash2, Link2 } from 'lucide-react';
+import { projectService } from '#services/projectService';
 
 export default function CreateTaskModal({
   show, onClose, onSubmit,
@@ -13,18 +13,44 @@ export default function CreateTaskModal({
   showAssignForm, setShowAssignForm,
   showBacklogDropdown, setShowBacklogDropdown,
 }) {
-  const availableProjects = projects.filter(p => isAdmin || ledProjectIds.includes(p.id));
-  const availableUsers = taskData.projectId
-    ? users.filter(u => {
-        const proj = projects.find(p => p.id === taskData.projectId);
-        return proj ? (proj.members || []).includes(u.id) : true;
+  const [projectMembers, setProjectMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [isSummaryFocused, setIsSummaryFocused] = useState(false);
+
+  // Fetch project members dynamically when selected project changes
+  useEffect(() => {
+    if (!taskData.projectId) {
+      setProjectMembers([]);
+      return;
+    }
+    setLoadingMembers(true);
+    projectService.getMembers(taskData.projectId)
+      .then(members => {
+        setProjectMembers(members);
       })
-    : users;
+      .catch(err => {
+        console.error("Failed to load project members:", err);
+      })
+      .finally(() => {
+        setLoadingMembers(false);
+      });
+  }, [taskData.projectId]);
+
+  const availableProjects = projects.filter(p => isAdmin || ledProjectIds.includes(p.id));
+  const availableUsers = projectMembers;
 
   const backlogTasks = tasks.filter(t =>
     (!t.assignedTo || t.assignedTo === '') &&
     (!taskData.projectId || t.projectId === taskData.projectId)
   );
+
+  // Filter backlog suggestion matches as user types
+  const summaryMatches = assignForm.name && isSummaryFocused
+    ? backlogTasks.filter(t => 
+        t.name.toLowerCase().includes(assignForm.name.toLowerCase()) || 
+        t.taskNumber.toLowerCase().includes(assignForm.name.toLowerCase())
+      )
+    : [];
 
   const handleStage = (e) => {
     e?.preventDefault();
@@ -140,22 +166,72 @@ export default function CreateTaskModal({
               {showAssignForm ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
 
-                  <div className="form-group">
+                  {/* Sleek Auto-Suggest Search Input for Task Summary / Backlog */}
+                  <div className="form-group relative">
                     <label className="form-label">Task Summary / Search Backlog</label>
-                    <SearchableSelect
-                      options={backlogTasks.map(t => ({ value: t.id, label: `${t.taskNumber}: ${t.name}` }))}
-                      creatable={true}
-                      value={assignForm.backlogTaskId || assignForm.name}
-                      onChange={(val) => {
-                        const t = backlogTasks.find(bt => bt.id === val);
-                        if (t) {
-                          setAssignForm(prev => ({ ...prev, backlogTaskId: t.id, name: `${t.taskNumber}: ${t.name}`, taskNumber: t.taskNumber }));
-                        } else {
-                          setAssignForm(prev => ({ ...prev, backlogTaskId: '', name: val }));
-                        }
-                      }}
-                      placeholder="Search backlog or type new task summary..."
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Type new task summary or start typing to search backlog..."
+                        value={assignForm.name}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setAssignForm(prev => ({
+                            ...prev,
+                            name: val,
+                            backlogTaskId: '', // clear backlog association on typing custom summary
+                            taskNumber: ''     // clear task number to let user input it
+                          }));
+                        }}
+                        onFocus={() => setIsSummaryFocused(true)}
+                        onBlur={() => {
+                          // Small delay to allow click handlers on search dropdown to execute
+                          setTimeout(() => setIsSummaryFocused(false), 200);
+                        }}
+                        required
+                        style={{ width: '100%' }}
+                      />
+
+                      {/* Dropdown Suggestions */}
+                      {isSummaryFocused && summaryMatches.length > 0 && (
+                        <div 
+                          style={{
+                            position: 'absolute', left: 0, right: 0, top: '100%', marginTop: '4px',
+                            backgroundColor: 'white', border: '1px solid var(--border-color)', borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 100, maxHeight: '200px', overflowY: 'auto'
+                          }}
+                        >
+                          <div style={{ padding: '6px 12px', fontSize: '10px', color: '#94a3b8', borderBottom: '1px solid #f1f5f9', backgroundColor: '#f8fafc', fontWeight: 600, textTransform: 'uppercase' }}>
+                            Matching Backlog Tasks
+                          </div>
+                          {summaryMatches.map(t => (
+                            <div
+                              key={t.id}
+                              onMouseDown={() => {
+                                setAssignForm(prev => ({
+                                  ...prev,
+                                  backlogTaskId: t.id,
+                                  name: `${t.taskNumber}: ${t.name}`,
+                                  taskNumber: t.taskNumber
+                                }));
+                                setIsSummaryFocused(false);
+                              }}
+                              style={{
+                                padding: '8px 12px', fontSize: '11px', cursor: 'pointer',
+                                color: '#334155', borderBottom: '1px solid #f1f5f9',
+                                display: 'flex', flexDirection: 'column'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                              <span style={{ fontWeight: 600, color: '#1e293b' }}>{t.taskNumber}</span>
+                              <span style={{ color: '#64748b' }}>{t.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {!assignForm.backlogTaskId && (
@@ -225,11 +301,15 @@ export default function CreateTaskModal({
                   )}
 
                   <div className="form-group">
-                    <label className="form-label">Assign To</label>
+                    <label className="form-label">
+                      {loadingMembers ? "Loading Project Members..." : "Assign To"}
+                    </label>
                     <select
                       className="form-input"
                       value={assignForm.assignedTo}
                       onChange={(e) => setAssignForm(prev => ({ ...prev, assignedTo: e.target.value }))}
+                      disabled={loadingMembers}
+                      required
                     >
                       <option value="">Select assignee...</option>
                       {availableUsers.map(u => (

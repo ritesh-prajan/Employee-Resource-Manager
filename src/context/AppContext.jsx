@@ -119,7 +119,14 @@ export const AppProvider = ({ children }) => {
   // Core Data States (now managed by TanStack Query hooks)
   const { employees: rawUsers, isLoading: employeesLoading, error: employeesError, createEmployee: mutateCreateEmployee, updateEmployee: mutateUpdateEmployee, removeEmployee: mutateRemoveEmployee } = useEmployees({ enabled: isAuthenticated });
   const { teams, createTeam: mutateCreateTeam, updateTeam: mutateUpdateTeam, removeTeam: mutateRemoveTeam, addTeamMember: mutateAddTeamMember, removeTeamMember: mutateRemoveTeamMember } = useTeams({ enabled: isAuthenticated });
-  const { projects, createProject: mutateCreateProject, updateProject: mutateUpdateProject, removeProject: mutateRemoveProject } = useProjects({ enabled: isAuthenticated });
+  const { 
+    projects, 
+    createProject: mutateCreateProject, 
+    updateProject: mutateUpdateProject, 
+    removeProject: mutateRemoveProject,
+    addProjectMember: mutateAddProjectMember,
+    removeProjectMember: mutateRemoveProjectMember
+  } = useProjects({ enabled: isAuthenticated });
   const { tasks, createTask: mutateCreateTask, updateTask: mutateUpdateTask, removeTask: mutateRemoveTask, assignTask: mutateAssignTask, addTaskComment: mutateAddTaskComment, updateTaskProgress: mutateUpdateTaskProgress } = useTasks({ enabled: isAuthenticated });
 
   // Compute dynamic roles based on team lead assignment

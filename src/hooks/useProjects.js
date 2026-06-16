@@ -8,7 +8,21 @@ export function useProjects(options = {}) {
 
   const query = useQuery({
     queryKey: PROJECTS_KEY,
-    queryFn: () => projectService.getAll(),
+    queryFn: async () => {
+      const data = await projectService.getAll();
+      const projectsWithMembers = await Promise.all(
+        data.map(async (proj) => {
+          try {
+            const members = await projectService.getMembers(proj.id);
+            return { ...proj, members: members.map((m) => m.id ?? m) };
+          } catch (err) {
+            console.error(`Failed to fetch members for project ${proj.id}:`, err);
+            return { ...proj, members: [] };
+          }
+        })
+      );
+      return projectsWithMembers;
+    },
     ...options,
   });
 

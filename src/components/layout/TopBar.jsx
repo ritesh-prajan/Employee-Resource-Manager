@@ -21,6 +21,10 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
 
   if (!currentUser) return null;
 
+  // Resolve full profile: prefer the employee record from users[] (has name/phone/etc)
+  // Fall back to currentUser itself (which may be the thin auth object right after login)
+  const displayUser = users.find(u => Number(u.id) === Number(currentUser.id)) || currentUser;
+
   const userNotifications = notifications.filter(n => n.recipientId === currentUser.id);
   const unreadCount = userNotifications.filter(n => !n.isRead).length;
 
@@ -172,10 +176,10 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
             style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: '8px', outline: 'none' }}
           >
             <div className="user-initials-badge" style={{ width: '34px', height: '34px', fontSize: '0.8rem' }}>
-              {getInitials(currentUser.name)}
+              {getInitials(displayUser.name)}
             </div>
             <span className="topbar-user-name" style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)' }}>
-              {currentUser.name}
+              {displayUser.name || displayUser.email || 'User'}
             </span>
             <ChevronDown size={14} style={{ color: 'var(--muted-foreground)' }} />
           </button>
@@ -191,8 +195,8 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
             }}>
               {/* User info */}
               <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>{currentUser.name}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', wordBreak: 'break-all' }}>{currentUser.email}</div>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>{displayUser.name || displayUser.email}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', wordBreak: 'break-all' }}>{displayUser.email || currentUser.email}</div>
                 <span style={{
                   display: 'inline-block', marginTop: '6px',
                   backgroundColor: 'color-mix(in oklch, var(--primary) 10%, transparent)',
@@ -200,7 +204,7 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
                   fontSize: '0.7rem', fontWeight: 700,
                   padding: '2px 8px', borderRadius: '10px'
                 }}>
-                  {currentUser.role}
+                  {displayUser.role || currentUser.role}
                 </span>
               </div>
 

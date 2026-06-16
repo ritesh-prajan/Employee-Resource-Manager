@@ -65,7 +65,16 @@ function toBackendEmployee(data) {
     notificationPreference: data.notification_preference || 'ALL',
     profileImage:           data.profileImage || data.avatar || '',
     joiningDate:            data.joiningDate || new Date().toISOString().split('T')[0],
-    roles:                  data.role ? [data.role] : ['Employee'],
+    roles:                  (() => {
+      const ROLE_TO_CODE = {
+        'Admin':     'ADMIN',
+        'Team Lead': 'TEAM_LEAD',
+        'Sub Lead':  'SUB_LEAD',
+        'Employee':  'EMPLOYEE',
+      };
+      const r = data.role || 'Employee';
+      return [ROLE_TO_CODE[r] || r.toUpperCase().replace(' ', '_')];
+    })(),
     user: {
       password:             data.password || '',
     },

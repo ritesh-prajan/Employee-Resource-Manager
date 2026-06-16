@@ -6,6 +6,11 @@ import { projectService } from '../services/projectService';
 import { teamService } from '../services/teamService';
 import { taskService } from '../services/taskService';
 
+import { useEmployees } from '../hooks/useEmployees';
+import { useTeams } from '../hooks/useTeams';
+import { useProjects } from '../hooks/useProjects';
+import { useTasks } from '../hooks/useTasks';
+
 // Helper: Convert hex to HSL
 function hexToHsl(hex) {
   hex = hex.replace(/^#/, '');
@@ -111,13 +116,45 @@ export const AppProvider = ({ children }) => {
   }
 
  
-  // Core Data States
-  const [users, setUsers] = useState([]);
-  const [employeesLoading, setEmployeesLoading] = useState(false);
-  const [employeesError, setEmployeesError] = useState(null);
+  // Core Data States (now managed by TanStack Query hooks)
+  const { employees: rawUsers, isLoading: employeesLoading, error: employeesError, createEmployee: mutateCreateEmployee, updateEmployee: mutateUpdateEmployee, removeEmployee: mutateRemoveEmployee } = useEmployees({ enabled: isAuthenticated });
+  const { teams, createTeam: mutateCreateTeam, updateTeam: mutateUpdateTeam, removeTeam: mutateRemoveTeam, addTeamMember: mutateAddTeamMember, removeTeamMember: mutateRemoveTeamMember } = useTeams({ enabled: isAuthenticated });
+  const { projects, createProject: mutateCreateProject, updateProject: mutateUpdateProject, removeProject: mutateRemoveProject } = useProjects({ enabled: isAuthenticated });
+  const { tasks, createTask: mutateCreateTask, updateTask: mutateUpdateTask, removeTask: mutateRemoveTask, assignTask: mutateAssignTask, addTaskComment: mutateAddTaskComment, updateTaskProgress: mutateUpdateTaskProgress } = useTasks({ enabled: isAuthenticated });
 
-  const [projects, setProjects] = useState([]);
-  const [tasks, setTasks] = useState([]);
+  // Compute dynamic roles based on team lead assignment
+  const users = useMemo(() => {
+    if (!rawUsers || !teams) return [];
+    let changed = false;
+    const nextUsers = rawUsers.map(user => {
+      if (user.role === 'Admin') return user;
+      const leadsAnyTeam = teams.some(t => t.leadId === user.id);
+      const subLeadsAnyTeam = teams.some(t => t.subLeadId === user.id);
+      const targetRole = leadsAnyTeam || user.role === 'Team Lead'
+        ? 'Team Lead'
+        : (subLeadsAnyTeam || user.role === 'Sub Lead' ? 'Sub Lead' : 'Employee');
+      if (user.role !== targetRole) {
+        changed = true;
+        return { ...user, role: targetRole };
+      }
+      return user;
+    });
+    return changed ? nextUsers : rawUsers;
+  }, [rawUsers, teams]);
+
+  // Compute task comments from enriched tasks
+  const taskComments = useMemo(() => {
+    if (!tasks) return [];
+    return tasks.flatMap(t => 
+      (t.comments || []).map(c => ({
+        id: c.id,
+        taskId: t.id,
+        authorId: c.author?.id || null,
+        commentText: c.commentText,
+        createdAt: c.createdAt
+      }))
+    );
+  }, [tasks]);
   const [timeEntries, setTimeEntries] = useState([]);
   const [reports, setReports] = useState([]);
 
@@ -126,10 +163,8 @@ export const AppProvider = ({ children }) => {
   const [meetings, setMeetings] = useState([]);
   const [etaExtensions, setEtaExtensions] = useState([]);
   const [taskTransfers, setTaskTransfers] = useState([]);
-  const [taskComments, setTaskComments] = useState([]);
   const [attendanceHistory, setAttendanceHistory] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
-  const [teams, setTeams] = useState([]);
 
   // Configurable thresholds for Admin alerts
   const [adminSettings, setAdminSettings] = useState({
@@ -156,160 +191,40 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     document.body.className = theme === 'dark' ? 'dark-theme' : 'light-theme';
   }, [theme]);
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setUsers([]);
-      return;
-    }
-    const fetchEmployees = async () => {
-      setEmployeesLoading(true);
-      setEmployeesError(null);
-      try {
-        const data = await employeeService.getAll();
-        console.log('fetched employees:', data.length);
-        setUsers(data);
-      } catch (err) {
-        console.error('Failed to fetch employees:', err);
-        setEmployeesError(err.message);
-      } finally {
-        setEmployeesLoading(false);
-      }
-    };
-
-    fetchEmployees();
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setTeams([]);
-      return;
-    }
-    const fetchTeams = async () => {
-      try {
-        const data = await teamService.getAll();
-        const teamsWithMembers = await Promise.all(
-          data.map(async (team) => {
-            try {
-              const members = await teamService.getMembers(team.id);
-              return { ...team, members: members.map(m => m.id) };
-            } catch (err) {
-              console.error(`Failed to fetch members for team ${team.id}:`, err);
-              return { ...team, members: [] };
-            }
-          })
-        );
-        setTeams(teamsWithMembers);
-      } catch (err) {
-        console.error('Failed to fetch teams:', err);
-      }
-    };
-    fetchTeams();
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setProjects([]);
-      return;
-    }
-    const fetchProjects = async () => {
-      try {
-        const data = await projectService.getAll();
-        setProjects(data);
-      } catch (err) {
-        console.error('Failed to fetch projects:', err);
-      }
-    };
-    fetchProjects();
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setTasks([]);
-      setTaskComments([]);
-      return;
-    }
-    const fetchTasks = async () => {
-      try {
-        const tasksData = await taskService.getAll();
-        
-        const enrichedTasks = await Promise.all(
-          tasksData.map(async (task) => {
-            try {
-              const [comments, progressLogs] = await Promise.all([
-                taskService.getComments(task.id),
-                taskService.getProgress(task.id)
-              ]);
-              
-              let latestProgress = 0;
-              if (progressLogs && progressLogs.length > 0) {
-                const sortedLogs = [...progressLogs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                latestProgress = sortedLogs[0]?.progressPercentage ?? 0;
-              }
-              
-              return {
-                ...task,
-                progress: latestProgress,
-                comments: comments || []
-              };
-            } catch (err) {
-              console.error(`Failed to enrich task ${task.id}:`, err);
-              return { ...task, progress: 0, comments: [] };
-            }
-          })
-        );
-        
-        setTasks(enrichedTasks);
-        
-        const allComments = enrichedTasks.flatMap(t => 
-          (t.comments || []).map(c => ({
-            id: c.id,
-            taskId: t.id,
-            authorId: c.author?.id || null,
-            commentText: c.commentText,
-            createdAt: c.createdAt
-          }))
-        );
-        setTaskComments(allComments);
-      } catch (err) {
-        console.error('Failed to fetch tasks:', err);
-      }
-    };
-    fetchTasks();
-  }, [isAuthenticated]);
+  // Replaced with TanStack Query hooks
   // Toggle Theme
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
-  // Dynamically update roles based on team lead assignment
-  useEffect(() => {
-    setUsers(prevUsers => {
-      let changed = false;
-      const nextUsers = prevUsers.map(user => {
-        if (user.role === 'Admin') return user; // Keep Admin as is
-        const leadsAnyTeam = teams.some(t => t.leadId === user.id);
-        const targetRole = leadsAnyTeam ? 'Team Lead' : 'Employee';
-        if (user.role !== targetRole) {
-          changed = true;
-          return { ...user, role: targetRole };
-        }
-        return user;
-      });
-      if (changed) {
-        return nextUsers;
-      }
-      return prevUsers;
-    });
-  }, [teams]);
+
 
   useEffect(() => {
-    if (currentUser && currentUser.email) {
-      const match = users.find(u => u.email && u.email.toLowerCase() === currentUser.email.toLowerCase());
-      if (match && JSON.stringify(match) !== JSON.stringify(currentUser)) {
-        setCurrentUser(match);
+    if (currentUser && (currentUser.email || currentUser.workEmail)) {
+      const needle = (currentUser.email || currentUser.workEmail || '').toLowerCase();
+      const match = users.find(u =>
+        (u.email && u.email.toLowerCase() === needle) ||
+        (u.workEmail && u.workEmail.toLowerCase() === needle)
+      );
+      if (match) {
+        // Merge: take profile data from the employee record, but KEEP auth fields
+        // (role, roles, permissions) from the current auth object — the /employees
+        // endpoint doesn't return roles so mapEmployee() always returns 'Employee'.
+        const dynamicRole = (match.role && match.role !== 'Employee') ? match.role : (authUser?.role || currentUser.role);
+        const merged = {
+          ...match,
+          role:        dynamicRole,
+          roles:       authUser?.roles       || currentUser.roles       || [],
+          permissions: authUser?.permissions || currentUser.permissions || [],
+          permission:  authUser?.permission  || currentUser.permission  || [],
+          components:  authUser?.components  || currentUser.components  || [],
+        };
+        if (JSON.stringify(merged) !== JSON.stringify(currentUser)) {
+          setCurrentUser(merged);
+        }
       }
     }
-  }, [users, currentUser]);
+  }, [users, currentUser, authUser]);
 
   // Auth Actions
   const login = (email, password) => {
@@ -496,21 +411,17 @@ export const AppProvider = ({ children }) => {
       justification
     };
 
-    // Update logged hours on the task
-    setTasks(prevTasks => 
-      prevTasks.map(t => {
-        if (t.id === timerState.taskId) {
-          // If task status was OPEN, auto-transition to IN_PROGRESS
-          const status = t.status === 'Open' ? 'In Progress' : t.status;
-          return { 
-            ...t, 
-            status,
-            logged: parseFloat((t.logged + durationHours).toFixed(2)) 
-          };
+    // Update task status on the backend if it was Open
+    const activeTaskObj = tasks.find(t => t.id === timerState.taskId);
+    if (activeTaskObj && activeTaskObj.status === 'Open') {
+      mutateUpdateTask.mutateAsync({
+        id: timerState.taskId,
+        data: {
+          ...activeTaskObj,
+          status: 'In Progress'
         }
-        return t;
-      })
-    );
+      }).catch(err => console.error("Failed to update task status on clockOut:", err));
+    }
 
     // Save time entry
     setTimeEntries(prev => [newEntry, ...prev]);
@@ -607,19 +518,17 @@ export const AppProvider = ({ children }) => {
       justification: entryData.justification || ''
     };
 
-    setTasks(prevTasks => 
-      prevTasks.map(t => {
-        if (t.id === entryData.taskId) {
-          const status = entryData.taskStatus || (t.status === 'Open' ? 'In Progress' : t.status);
-          return { 
-            ...t, 
-            status,
-            logged: parseFloat((t.logged + duration).toFixed(2)) 
-          };
-        }
-        return t;
-      })
-    );
+    // Update task status on the backend if status is changing
+    const taskObjForManual = tasks.find(t => t.id === entryData.taskId);
+    if (taskObjForManual) {
+      const status = entryData.taskStatus || (taskObjForManual.status === 'Open' ? 'In Progress' : taskObjForManual.status);
+      if (status !== taskObjForManual.status) {
+        mutateUpdateTask.mutateAsync({
+          id: entryData.taskId,
+          data: { ...taskObjForManual, status }
+        }).catch(err => console.error("Failed to update task status in addManualEntry:", err));
+      }
+    }
 
     setTimeEntries(prev => [newEntry, ...prev]);
   };
@@ -629,15 +538,7 @@ export const AppProvider = ({ children }) => {
     const entry = timeEntries.find(e => e.id === entryId);
     if (!entry) return;
 
-    const duration = parseFloat(entry.duration) || 0;
-    setTasks(prevTasks => 
-      prevTasks.map(t => {
-        if (t.id === entry.taskId) {
-          return { ...t, logged: Math.max(0, parseFloat((t.logged - duration).toFixed(2))) };
-        }
-        return t;
-      })
-    );
+    // No manual setTasks update needed; logged hours are dynamically computed via useMemo
 
     setTimeEntries(prev => prev.filter(e => e.id !== entryId));
   };
@@ -645,19 +546,13 @@ export const AppProvider = ({ children }) => {
   // Create Project
   const createProject = async (projData) => {
     try {
-      const created = await projectService.create(projData);
-      setProjects(prev => [...prev, created]);
+      const created = await mutateCreateProject.mutateAsync(projData);
 
       // If members were selected, add them one by one
       if (projData.members && projData.members.length > 0) {
         for (const memberId of projData.members) {
-          await projectService.addMember(created.id, memberId);
+          await mutateAddProjectMember.mutateAsync({ projectId: created.id, userId: memberId });
         }
-        // Refresh the project with updated members
-        const members = await projectService.getMembers(created.id);
-        setProjects(prev => prev.map(p =>
-          p.id === created.id ? { ...p, members: members.map(m => m.id) } : p
-        ));
       }
     } catch (err) {
       console.error('Failed to create project:', err);
@@ -668,8 +563,7 @@ export const AppProvider = ({ children }) => {
   // Create Task
     const createTask = async (taskData) => {
       try {
-        const created = await taskService.create(taskData);
-        setTasks(prev => [...prev, created]);
+        const created = await mutateCreateTask.mutateAsync(taskData);
 
         // Send notification to assignee
         const assignee = users.find(u => u.id === created.assignedTo);
@@ -697,8 +591,7 @@ export const AppProvider = ({ children }) => {
     // Add Employee (Admin only)
     const addEmployee = async (empData) => {
       try {
-        const created = await employeeService.create(empData);
-        setUsers(prev => [...prev, created]);
+        const created = await mutateCreateEmployee.mutateAsync(empData);
       } catch (err) {
         console.error('Failed to add employee:', err);
         throw err; // let the caller surface the error
@@ -733,56 +626,42 @@ export const AppProvider = ({ children }) => {
           const isRejection = status === 'Rejected';
           
           if (wasPendingOrApproved && isRejection) {
-            // Deduct hours from task logged and set task status to 'Rejected'
-            setTasks(prevTasks =>
-              prevTasks.map(t => {
-                if (t.id === e.taskId) {
-                  return { 
-                    ...t, 
-                    logged: Math.max(0, parseFloat((t.logged - parseFloat(e.duration)).toFixed(2))),
-                    status: 'Rejected',
-                    rejectionComment: comment
-                  };
-                }
-                return t;
-              })
-            );
-
-            // Notify the employee about the rejection
+            // Update task status on backend to 'Rejected'
             const taskObj = tasks.find(t => t.id === e.taskId);
-            const newNotif = {
-              id: `notif-${Date.now()}`,
-              recipientId: e.userId,
-              type: "TASK_REJECTED",
-              title: "Time Log Rejected",
-              message: `Your time log for ${taskObj?.taskNumber || 'task'} (${taskObj?.name || ''}) was rejected. Feedback: "${comment}"`,
-              entityType: "TASK",
-              entityId: e.taskId,
-              channel: "IN_APP",
-              isRead: false,
-              createdAt: new Date().toISOString()
-            };
-            setNotifications(prevNotif => [newNotif, ...prevNotif]);
-          } else if (e.status === 'Rejected' && !isRejection) {
-            // Re-add hours to task logged
-            setTasks(prevTasks =>
-              prevTasks.map(t => {
-                if (t.id === e.taskId) {
-                  return { ...t, logged: parseFloat((t.logged + parseFloat(e.duration)).toFixed(2)) };
+            if (taskObj) {
+              mutateUpdateTask.mutateAsync({
+                id: e.taskId,
+                data: {
+                  ...taskObj,
+                  status: 'Rejected',
+                  rejectionComment: comment
                 }
-                return t;
-              })
-            );
+              }).catch(err => console.error("Failed to reject task on updateEntryStatus:", err));
+
+              // Notify the employee about the rejection
+              const newNotif = {
+                id: `notif-${Date.now()}`,
+                recipientId: e.userId,
+                type: "TASK_REJECTED",
+                title: "Time Log Rejected",
+                message: `Your time log for ${taskObj?.taskNumber || 'task'} (${taskObj?.name || ''}) was rejected. Feedback: "${comment}"`,
+                entityType: "TASK",
+                entityId: e.taskId,
+                channel: "IN_APP",
+                isRead: false,
+                createdAt: new Date().toISOString()
+              };
+              setNotifications(prevNotif => [newNotif, ...prevNotif]);
+            }
           } else if (status === 'Approved') {
             // If approved, set task status to Completed if it was Pending Review
-            setTasks(prevTasks =>
-              prevTasks.map(t => {
-                if (t.id === e.taskId && t.status === 'Pending Review') {
-                  return { ...t, status: 'Completed' };
-                }
-                return t;
-              })
-            );
+            const taskObj = tasks.find(t => t.id === e.taskId);
+            if (taskObj && taskObj.status === 'Pending Review') {
+              mutateUpdateTask.mutateAsync({
+                id: e.taskId,
+                data: { ...taskObj, status: 'Completed' }
+              }).catch(err => console.error("Failed to complete task on updateEntryStatus:", err));
+            }
           }
           return { ...e, status, managerComment: comment };
         }
@@ -797,19 +676,14 @@ export const AppProvider = ({ children }) => {
       if (!taskObj) return;
 
       // Assign task to current user in the backend
-      const updated = await taskService.update(taskId, {
-        ...taskObj,
-        assignedTo: currentUser.id,
-        status: 'In Progress'
-      });
-
-      // Update task in state
-      setTasks(prev => prev.map(t => {
-        if (t.id === taskId) {
-          return { ...t, ...updated, assignedTo: currentUser.id, status: 'In Progress' };
+      await mutateUpdateTask.mutateAsync({
+        id: taskId,
+        data: {
+          ...taskObj,
+          assignedTo: currentUser.id,
+          status: 'In Progress'
         }
-        return t;
-      }));
+      });
 
       // Notify all admins
       const admins = users.filter(u => u.role === 'Admin');
@@ -1007,18 +881,17 @@ export const AppProvider = ({ children }) => {
           
           // Update the task status & ETA if approved
           if (approved) {
-            setTasks(prevTasks => 
-              prevTasks.map(t => {
-                if (t.id === req.taskId) {
-                  return { 
-                    ...t, 
-                    status: 'ETA_Extended',
-                    etaDate: req.newEta
-                  };
+            const task = tasks.find(t => t.id === req.taskId);
+            if (task) {
+              mutateUpdateTask.mutateAsync({
+                id: req.taskId,
+                data: {
+                  ...task,
+                  status: 'ETA_Extended',
+                  etaDate: req.newEta
                 }
-                return t;
-              })
-            );
+              }).catch(err => console.error("Failed to update task ETA on review:", err));
+            }
           }
 
           // Send notification
@@ -1100,18 +973,17 @@ export const AppProvider = ({ children }) => {
           
           // Reassign task if approved
           if (approved) {
-            setTasks(prevTasks => 
-              prevTasks.map(t => {
-                if (t.id === req.taskId) {
-                  return { 
-                    ...t, 
-                    assignedTo: req.createdTo,
-                    status: 'Transferred' // or Open
-                  };
+            const task = tasks.find(t => t.id === req.taskId);
+            if (task) {
+              mutateUpdateTask.mutateAsync({
+                id: req.taskId,
+                data: {
+                  ...task,
+                  assignedTo: req.createdTo,
+                  status: 'Transferred'
                 }
-                return t;
-              })
-            );
+              }).catch(err => console.error("Failed to update task assignee on transfer review:", err));
+            }
 
             // Notify recipient
             if (req.createdTo !== 'unassigned') {
@@ -1165,15 +1037,11 @@ export const AppProvider = ({ children }) => {
   // Task Comments
   const addTaskComment = async (taskId, commentText) => {
     try {
-      const savedComment = await taskService.addComment(taskId, currentUser.id, commentText);
-      const newComment = {
-        id: savedComment.id,
+      await mutateAddTaskComment.mutateAsync({
         taskId,
-        authorId: savedComment.author?.id || currentUser.id,
-        commentText: savedComment.commentText,
-        createdAt: savedComment.createdAt || new Date().toISOString()
-      };
-      setTaskComments(prev => [...prev, newComment]);
+        authorEmployeeId: currentUser.id,
+        commentText
+      });
     } catch (err) {
       console.error('Failed to add task comment:', err);
     }
@@ -1185,28 +1053,25 @@ export const AppProvider = ({ children }) => {
       const task = tasks.find(t => t.id === taskId);
       if (!task) return;
 
-      const newStatus = task.status === 'Open' && percentage > 0 ? 'In Progress' : task.status;
+      const newStatus = (task.status === 'Open' || task.status === 'open') && percentage > 0 ? 'In Progress' : task.status;
       
       // 1. Post the progress log to the backend
-      await taskService.addProgress(taskId, currentUser.id, percentage, notes);
+      await mutateUpdateTaskProgress.mutateAsync({
+        taskId,
+        employeeId: currentUser.id,
+        progressPercentage: percentage,
+        remarks: notes
+      });
 
       // 2. If status is changing, also update the task status in backend
-      let updatedTask = task;
       if (newStatus !== task.status) {
-        updatedTask = await taskService.update(taskId, { ...task, status: newStatus });
+        await mutateUpdateTask.mutateAsync({
+          id: taskId,
+          data: { ...task, status: newStatus }
+        });
       }
 
-      // 3. Update the tasks state with new progress and status
-      setTasks(prev => 
-        prev.map(t => {
-          if (t.id === taskId) {
-            return { ...t, ...updatedTask, status: newStatus, progress: percentage };
-          }
-          return t;
-        })
-      );
-
-      // 4. Add the comment (it will save to backend and update taskComments locally)
+      // 3. Add the comment (it will save to backend and update taskComments locally)
       if (notes) {
         await addTaskComment(taskId, `[Progress Update ${percentage}%]: ${notes}`);
       }
@@ -1221,17 +1086,11 @@ export const AppProvider = ({ children }) => {
       const task = tasks.find(t => t.id === taskId);
       if (!task) return;
 
-      const updated = await taskService.update(taskId, { ...task, status: 'Pending Review' });
+      await mutateUpdateTask.mutateAsync({
+        id: taskId,
+        data: { ...task, status: 'Pending Review' }
+      });
       
-      setTasks(prev => 
-        prev.map(t => {
-          if (t.id === taskId) {
-            return { ...t, ...updated, status: 'Pending Review' };
-          }
-          return t;
-        })
-      );
-
       // Notify Lead
       const tlUser = users.find(u => u.role === 'Team Lead');
       if (tlUser) {
@@ -1262,39 +1121,32 @@ export const AppProvider = ({ children }) => {
       if (!task) return;
 
       const status = approve ? 'Completed' : 'In Progress';
-      const updated = await taskService.update(taskId, { ...task, status });
+      await mutateUpdateTask.mutateAsync({
+        id: taskId,
+        data: {
+          ...task,
+          status,
+          completionReviewStatus: approve ? 'Approved' : 'Rejected',
+          reviewComment: comments
+        }
+      });
 
-      setTasks(prev => 
-        prev.map(t => {
-          if (t.id === taskId) {
-            // Notify employee
-            const newNotif = {
-              id: `notif-${Date.now()}`,
-              recipientId: t.assignedTo,
-              type: "TASK_UPDATED",
-              title: approve ? "Task Approved" : "Task Re-opened",
-              message: approve
-                ? `Your completion of ${t.taskNumber} has been approved by ${currentUser.name}.`
-                : `Your completion of ${t.taskNumber} has been rejected. Reason: ${comments}`,
-              entityType: "TASK",
-              entityId: taskId,
-              channel: "WHATSAPP",
-              isRead: false,
-              createdAt: new Date().toISOString()
-            };
-            setNotifications(prevNotif => [newNotif, ...prevNotif]);
-
-            return { 
-              ...t, 
-              ...updated,
-              status, 
-              completionReviewStatus: approve ? 'Approved' : 'Rejected',
-              reviewComment: comments
-            };
-          }
-          return t;
-        })
-      );
+      // Notify employee
+      const newNotif = {
+        id: `notif-${Date.now()}`,
+        recipientId: task.assignedTo,
+        type: "TASK_UPDATED",
+        title: approve ? "Task Approved" : "Task Re-opened",
+        message: approve
+          ? `Your completion of ${task.taskNumber} has been approved by ${currentUser.name}.`
+          : `Your completion of ${task.taskNumber} has been rejected. Reason: ${comments}`,
+        entityType: "TASK",
+        entityId: taskId,
+        channel: "WHATSAPP",
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+      setNotifications(prevNotif => [newNotif, ...prevNotif]);
 
       if (comments) {
         await addTaskComment(taskId, `[Review Comment by ${currentUser.name}]: ${comments}`);
@@ -1308,20 +1160,16 @@ export const AppProvider = ({ children }) => {
   // Create Team Action
   const createTeam = async (teamData) => {
   try {
-    const created = await teamService.create(teamData);
+    const created = await mutateCreateTeam.mutateAsync(teamData);
     
     // Add members one by one after team is created
     if (teamData.members && teamData.members.length > 0) {
       for (const memberId of teamData.members) {
-        await teamService.addMember(created.id, memberId);
+        await mutateAddTeamMember.mutateAsync({ teamId: created.id, userId: memberId });
       }
-      const members = await teamService.getMembers(created.id);
-      setTeams(prev => prev.map(t =>
-        t.id === created.id ? { ...t, members: members.map(m => m.id) } : t
-      ));
     }
-
-    setTeams(prev => [...prev, created]);
+    
+    // members are added via mutateAddTeamMember in hook invalidations
   } catch (err) {
     console.error('Failed to create team:', err);
     alert('Failed to create team: ' + err.message);
@@ -1331,8 +1179,7 @@ export const AppProvider = ({ children }) => {
   // Delete Team Action
   const deleteTeam = async (teamId, reason = 'Removed by admin') => {
   try {
-    await teamService.delete(teamId, reason);
-    setTeams(prev => prev.filter(t => t.id !== teamId));
+    await mutateRemoveTeam.mutateAsync(teamId);
   } catch (err) {
     console.error('Failed to delete team:', err);
     alert('Failed to delete team: ' + err.message);
@@ -1342,9 +1189,7 @@ export const AppProvider = ({ children }) => {
   // Delete Project Action
   const deleteProject = async (projectId, reason = 'Removed by admin') => {
   try {
-    await projectService.delete(projectId, reason);
-    setProjects(prev => prev.filter(p => p.id !== projectId));
-    setTasks(prev => prev.filter(t => t.projectId !== projectId));
+    await mutateRemoveProject.mutateAsync(projectId);
   } catch (err) {
     console.error('Failed to delete project:', err);
     alert('Failed to delete project: ' + err.message);
@@ -1354,8 +1199,7 @@ export const AppProvider = ({ children }) => {
   // Delete Task Action
   const deleteTask = async (taskId, reason = 'Removed by admin') => {
   try {
-    await taskService.delete(taskId, reason);
-    setTasks(prev => prev.filter(t => t.id !== taskId));
+    await mutateRemoveTask.mutateAsync(taskId);
   } catch (err) {
     console.error('Failed to delete task:', err);
     alert('Failed to delete task: ' + err.message);
@@ -1366,16 +1210,7 @@ export const AppProvider = ({ children }) => {
   const deleteEmployee = async (userId, reason = 'Removed by admin') => {
     if (userId === currentUser?.id) return;
     try {
-      await employeeService.delete(userId, reason);
-      setUsers(prev => prev.filter(u => u.id !== userId));
-      setTeams(prev => prev.map(t => ({
-        ...t,
-        members: t.members.filter(mId => mId !== userId)
-      })));
-      setProjects(prev => prev.map(p => ({
-        ...p,
-        members: p.members.filter(mId => mId !== userId)
-      })));
+      await mutateRemoveEmployee.mutateAsync({ id: userId, reason });
     } catch (err) {
       console.error('Failed to delete employee:', err);
       throw err;
@@ -1385,8 +1220,7 @@ export const AppProvider = ({ children }) => {
   // Edit Team Action
 const editTeam = async (teamId, updatedData) => {
   try {
-    const updated = await teamService.update(teamId, updatedData);
-    setTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...updated } : t));
+    await mutateUpdateTeam.mutateAsync({ id: teamId, data: updatedData });
 
     // Sync members: remove all then re-add
     const existingMembers = await teamService.getMembers(teamId);
@@ -1396,21 +1230,15 @@ const editTeam = async (teamId, updatedData) => {
     // Remove members no longer in the list
     for (const id of existingIds) {
       if (!newIds.includes(id)) {
-        await teamService.removeMember(teamId, id);
+        await mutateRemoveTeamMember.mutateAsync({ teamId, userId: id });
       }
     }
     // Add new members not already there
     for (const id of newIds) {
       if (!existingIds.includes(id)) {
-        await teamService.addMember(teamId, id);
+        await mutateAddTeamMember.mutateAsync({ teamId, userId: id });
       }
     }
-
-    // Refresh members on the team in state
-    const finalMembers = await teamService.getMembers(teamId);
-    setTeams(prev => prev.map(t =>
-      t.id === teamId ? { ...t, members: finalMembers.map(m => m.id) } : t
-    ));
   } catch (err) {
     console.error('Failed to update team:', err);
     alert('Failed to update team: ' + err.message);
@@ -1419,8 +1247,7 @@ const editTeam = async (teamId, updatedData) => {
 
 const editProject = async (projectId, updatedData) => {
   try {
-    const updated = await projectService.update(projectId, updatedData);
-    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...updated } : p));
+    await mutateUpdateProject.mutateAsync({ id: projectId, data: updatedData });
 
     // Sync members
     const existingMembers = await projectService.getMembers(projectId);
@@ -1429,19 +1256,14 @@ const editProject = async (projectId, updatedData) => {
 
     for (const id of existingIds) {
       if (!newIds.includes(id)) {
-        await projectService.removeMember(projectId, id);
+        await mutateRemoveProjectMember.mutateAsync({ projectId, userId: id });
       }
     }
     for (const id of newIds) {
       if (!existingIds.includes(id)) {
-        await projectService.addMember(projectId, id);
+        await mutateAddProjectMember.mutateAsync({ projectId, userId: id });
       }
     }
-
-    const finalMembers = await projectService.getMembers(projectId);
-    setProjects(prev => prev.map(p =>
-      p.id === projectId ? { ...p, members: finalMembers.map(m => m.id) } : p
-    ));
   } catch (err) {
     console.error('Failed to update project:', err);
     alert('Failed to update project: ' + err.message);
@@ -1451,8 +1273,7 @@ const editProject = async (projectId, updatedData) => {
   // Edit Task Action
   const editTask = async (taskId, updatedData) => {
     try {
-      const updated = await taskService.update(taskId, updatedData);
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updated } : t));
+      await mutateUpdateTask.mutateAsync({ id: taskId, data: updatedData });
     } catch (err) {
       console.error('Failed to update task:', err);
       alert('Failed to update task: ' + err.message);
@@ -1462,8 +1283,7 @@ const editProject = async (projectId, updatedData) => {
   // Edit Employee Action
   const editEmployee = async (userId, updatedData) => {
     try {
-      const updated = await employeeService.update(userId, updatedData);
-      setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+      const updated = await mutateUpdateEmployee.mutateAsync({ id: userId, data: updatedData });
       if (currentUser?.id === userId) {
         setCurrentUser(updated);
       }
@@ -1481,31 +1301,6 @@ const editProject = async (projectId, updatedData) => {
     setTimeEntries(prev => {
       const oldEntry = prev.find(e => e.id === entryId);
       if (!oldEntry) return prev;
-
-      const oldDuration = parseFloat(oldEntry.duration) || 0;
-      const newDuration = parseFloat(updatedData.duration !== undefined ? updatedData.duration : oldEntry.duration) || 0;
-      const oldTaskId = oldEntry.taskId;
-      const newTaskId = updatedData.taskId !== undefined ? updatedData.taskId : oldEntry.taskId;
-
-      setTasks(prevTasks => 
-        prevTasks.map(t => {
-          let logged = t.logged;
-          if (oldTaskId === newTaskId) {
-            if (t.id === oldTaskId) {
-              logged = Math.max(0, parseFloat((logged - oldDuration + newDuration).toFixed(2)));
-            }
-          } else {
-            if (t.id === oldTaskId) {
-              logged = Math.max(0, parseFloat((logged - oldDuration).toFixed(2)));
-            }
-            if (t.id === newTaskId) {
-              logged = parseFloat((logged + newDuration).toFixed(2));
-            }
-          }
-          return { ...t, logged };
-        })
-      );
-
       return prev.map(e => e.id === entryId ? { ...e, ...updatedData } : e);
     });
   };
@@ -1515,17 +1310,6 @@ const editProject = async (projectId, updatedData) => {
     const entry = timeEntries.find(e => e.id === entryId);
     if (!entry) return;
 
-    if (entry.status === 'Rejected') {
-      // Re-add hours back to task since it is no longer rejected
-      setTasks(prevTasks =>
-        prevTasks.map(t => {
-          if (t.id === entry.taskId) {
-            return { ...t, logged: parseFloat((t.logged + parseFloat(entry.duration)).toFixed(2)) };
-          }
-          return t;
-        })
-      );
-    }
     setTimeEntries(prev => 
       prev.map(e => e.id === entryId ? { ...e, status: 'Pending', managerComment: '' } : e)
     );
@@ -1579,57 +1363,71 @@ const editProject = async (projectId, updatedData) => {
     );
   };
 
-  const revertTaskCompletion = (taskId) => {
-    setTasks(prev => 
-      prev.map(t => t.id === taskId ? { 
-        ...t, 
-        status: 'Pending Review', 
-        completionReviewStatus: null, 
-        reviewComment: '' 
-      } : t)
-    );
+  const revertTaskCompletion = async (taskId) => {
+    try {
+      const taskObj = tasks.find(t => t.id === taskId);
+      if (!taskObj) return;
+
+      await mutateUpdateTask.mutateAsync({
+        id: taskId,
+        data: {
+          ...taskObj,
+          status: 'Pending Review',
+          completionReviewStatus: null,
+          reviewComment: ''
+        }
+      });
+    } catch (err) {
+      console.error("Failed to revert task completion:", err);
+    }
   };
 
-  const revertETAExtension = (reqId) => {
-    const req = etaExtensions.find(e => e.id === reqId);
-    if (req && req.status === 'Approved') {
-      setTasks(prevTasks =>
-        prevTasks.map(t => {
-          if (t.id === req.taskId) {
-            return {
+  const revertETAExtension = async (reqId) => {
+    try {
+      const req = etaExtensions.find(e => e.id === reqId);
+      if (req && req.status === 'Approved') {
+        const t = tasks.find(task => task.id === req.taskId);
+        if (t) {
+          await mutateUpdateTask.mutateAsync({
+            id: req.taskId,
+            data: {
               ...t,
               status: 'In Progress',
               etaDate: req.oldEta
-            };
-          }
-          return t;
-        })
+            }
+          });
+        }
+      }
+      setEtaExtensions(prev => 
+        prev.map(r => r.id === reqId ? { ...r, status: 'Pending', approvedBy: null, approvalDate: null, rejectionReason: null, managerComment: '' } : r)
       );
+    } catch (err) {
+      console.error("Failed to revert ETA extension:", err);
     }
-    setEtaExtensions(prev => 
-      prev.map(r => r.id === reqId ? { ...r, status: 'Pending', approvedBy: null, approvalDate: null, rejectionReason: null, managerComment: '' } : r)
-    );
   };
 
-  const revertTaskTransfer = (reqId) => {
-    const req = taskTransfers.find(t => t.id === reqId);
-    if (req && req.status === 'Approved') {
-      setTasks(prevTasks =>
-        prevTasks.map(t => {
-          if (t.id === req.taskId) {
-            return {
+  const revertTaskTransfer = async (reqId) => {
+    try {
+      const req = taskTransfers.find(t => t.id === reqId);
+      if (req && req.status === 'Approved') {
+        const t = tasks.find(task => task.id === req.taskId);
+        if (t) {
+          await mutateUpdateTask.mutateAsync({
+            id: req.taskId,
+            data: {
               ...t,
               assignedTo: req.requestedBy,
               status: 'In Progress'
-            };
-          }
-          return t;
-        })
+            }
+          });
+        }
+      }
+      setTaskTransfers(prev => 
+        prev.map(r => r.id === reqId ? { ...r, status: 'Pending', reviewedBy: null, reviewedAt: null, rejectionReason: null, managerComment: '' } : r)
       );
+    } catch (err) {
+      console.error("Failed to revert task transfer:", err);
     }
-    setTaskTransfers(prev => 
-      prev.map(r => r.id === reqId ? { ...r, status: 'Pending', reviewedBy: null, reviewedAt: null, rejectionReason: null, managerComment: '' } : r)
-    );
   };
 
   // Create Announcement
@@ -1717,7 +1515,6 @@ const editProject = async (projectId, updatedData) => {
         users,
         projects: adjustedProjects,
         tasks: tasksWithLoggedHours,
-        setTasks,
         timeEntries,
         reports,
         notifications,

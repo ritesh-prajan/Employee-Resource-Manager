@@ -16,12 +16,13 @@ export const EMPLOYEES_KEY = ['employees'];
 
 // ─── Query ───────────────────────────────────────────────────────────────────
 
-export function useEmployees() {
+export function useEmployees(options = {}) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: EMPLOYEES_KEY,
     queryFn: employeeService.getAll,
+    ...options,
   });
 
   // ─── Create ───────────────────────────────────────────────────────────────

@@ -53,55 +53,19 @@ export default function EmployeesPage() {
     setEditingUser(prev => ({ ...prev, password: pass }));
   };
 
-  const handleAddSubmit = async (e) => {
-    e.preventDefault();
+  const handleAddSubmit = async (data) => {
     setValidationError('');
-    const empCodeTrimmed = empData.employee_code.trim();
-    const emailTrimmed = empData.email.trim();
-    const phoneTrimmed = empData.phone.trim();
-    if (!empData.name || !empCodeTrimmed || !emailTrimmed || !phoneTrimmed) {
-      setValidationError('Please fill in all required fields.'); return;
-    }
-    if (users.some(u => u.employee_code?.trim().toLowerCase() === empCodeTrimmed.toLowerCase())) {
-      setValidationError('Employee number must be unique.'); return;
-    }
-    if (users.some(u => u.email.trim().toLowerCase() === emailTrimmed.toLowerCase())) {
-      setValidationError('Work email must be unique.'); return;
-    }
-    if (users.some(u => u.phone && u.phone.trim().replace(/\s+/g, '') === phoneTrimmed.replace(/\s+/g, ''))) {
-      setValidationError('Phone number must be unique.'); return;
-    }
     try {
-      await addEmployee({ name: empData.name, employee_code: empCodeTrimmed, email: emailTrimmed, personalEmail: empData.personalEmail.trim(), phone: phoneTrimmed, password: empData.password, passwordLastUpdated: empData.password ? new Date().toISOString() : '', designation: empData.designation.trim() || 'General', role: empData.role, teams: empData.teams, projects: empData.projects });
-      setShowAddModal(false);
-      setEmpData({ name: '', employee_code: '', email: '', personalEmail: '', phone: '', password: '', designation: '', role: 'Employee', teams: [], projects: [] });
-      setShowPassword(false);
+      await addEmployee(data);
     } catch (err) {
       setValidationError('Failed to add employee: ' + (err.message || 'Server error'));
     }
   };
 
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
+  const handleEditSubmit = async (id, data) => {
     setValidationError('');
-    const empCodeTrimmed = editingUser.employee_code.trim();
-    const emailTrimmed = editingUser.email.trim();
-    const phoneTrimmed = editingUser.phone.trim();
-    if (!editingUser.name || !empCodeTrimmed || !emailTrimmed || !phoneTrimmed) {
-      setValidationError('Please fill in all required fields.'); return;
-    }
-    if (users.some(u => u.id !== editingUser.id && u.employee_code?.trim().toLowerCase() === empCodeTrimmed.toLowerCase())) {
-      setValidationError('Employee number must be unique.'); return;
-    }
-    if (users.some(u => u.id !== editingUser.id && u.email.trim().toLowerCase() === emailTrimmed.toLowerCase())) {
-      setValidationError('Work email must be unique.'); return;
-    }
-    if (users.some(u => u.id !== editingUser.id && u.phone && u.phone.trim().replace(/\s+/g, '') === phoneTrimmed.replace(/\s+/g, ''))) {
-      setValidationError('Phone number must be unique.'); return;
-    }
-    const oldUser = users.find(u => u.id === editingUser.id);
     try {
-      await editEmployee(editingUser.id, { name: editingUser.name, employee_code: empCodeTrimmed, email: emailTrimmed, personalEmail: editingUser.personalEmail.trim(), phone: phoneTrimmed, password: editingUser.password, passwordLastUpdated: oldUser?.password !== editingUser.password ? new Date().toISOString() : (oldUser?.passwordLastUpdated || ''), designation: editingUser.designation.trim() || 'General', role: editingUser.role, status: editingUser.status, teams: editingUser.teams, projects: editingUser.projects });
+      await editEmployee(id, data);
       setShowEditModal(false);
       setEditingUser(null);
       setShowEditPassword(false);
@@ -273,7 +237,20 @@ export default function EmployeesPage() {
               ><Pencil size={14} /></button>
 
               <button
-                onClick={() => { if (window.confirm(`Remove ${user.name}?`)) deleteEmployee(user.id, 'Removed by admin'); }}
+                onClick={async () => {
+                  if (window.confirm(`Remove ${user.name}?`)) {
+                    try {
+                      await deleteEmployee(user.id, 'Removed by admin');
+                    } catch (err) {
+                      try {
+                        const parsed = JSON.parse(err.message);
+                        alert(parsed.message || 'Failed to delete employee.');
+                      } catch {
+                        alert(err.message || 'Failed to delete employee.');
+                      }
+                    }
+                  }
+                }}
                 title="Delete"
                 style={{ background: 'color-mix(in oklch, var(--destructive) 8%, transparent)', border: 'none', color: 'var(--destructive)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 15%, transparent)'}

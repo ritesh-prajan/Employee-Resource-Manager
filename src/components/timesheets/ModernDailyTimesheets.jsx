@@ -38,10 +38,11 @@ const STATUS_META = {
 };
 
 export default function Timesheets() {
-  const { users, timeEntries, tasks, teams, projects, currentUser, editTimeEntry } = useApp();
+  const { users, timeEntries, tasks, teams, projects, currentUser, editTimeEntry, deleteTimeEntry } = useApp();
 
   const [popup, setPopup] = useState(null);
   const [showManualModal, setShowManualModal] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
   const [viewMode, setViewMode] = useState(VIEW_MODES.DAY);
   const [currentDate, setCurrentDate] = useState(moment().startOf("day"));
   const [currentPage, setCurrentPage] = useState(1);
@@ -161,11 +162,28 @@ export default function Timesheets() {
     const durationHrs = parseFloat(entry.duration) || 0.5;
     const newStart = moment(dragTime);
     const newEnd = newStart.clone().add(durationHrs, 'hours');
+    const newStartStr = newStart.format("HH:mm");
+    const newEndStr = newEnd.format("HH:mm");
+    const dateStr = newStart.format("YYYY-MM-DD");
+
+    // Prevent overlap on drag/move
+    const hasOverlap = timeEntries.some(e => 
+      e.id !== itemId &&
+      e.userId === entry.userId &&
+      e.date === dateStr &&
+      moment(`${e.date}T${e.startTime}:00`).isBefore(newEnd) &&
+      newStart.isBefore(moment(`${e.date}T${e.endTime}:00`))
+    );
+
+    if (hasOverlap) {
+      alert("This slot overlaps with an existing time entry!");
+      return;
+    }
 
     editTimeEntry(itemId, {
-      date: newStart.format("YYYY-MM-DD"),
-      startTime: newStart.format("HH:mm"),
-      endTime: newEnd.format("HH:mm"),
+      date: dateStr,
+      startTime: newStartStr,
+      endTime: newEndStr,
       duration: durationHrs.toString()
     });
   };
@@ -184,11 +202,27 @@ export default function Timesheets() {
     if (durationMs < 900000) return; // Min 15 minutes
 
     const durationHrs = parseFloat((durationMs / 3600000).toFixed(2));
+    const newStartStr = newStart.format("HH:mm");
+    const newEndStr = newEnd.format("HH:mm");
+
+    // Prevent overlap on resize
+    const hasOverlap = timeEntries.some(e => 
+      e.id !== itemId &&
+      e.userId === entry.userId &&
+      e.date === entry.date &&
+      moment(`${e.date}T${e.startTime}:00`).isBefore(newEnd) &&
+      newStart.isBefore(moment(`${e.date}T${e.endTime}:00`))
+    );
+
+    if (hasOverlap) {
+      alert("Resized slot overlaps with an existing time entry!");
+      return;
+    }
 
     editTimeEntry(itemId, {
-      date: newStart.format("YYYY-MM-DD"),
-      startTime: newStart.format("HH:mm"),
-      endTime: newEnd.format("HH:mm"),
+      date: entry.date,
+      startTime: newStartStr,
+      endTime: newEndStr,
       duration: durationHrs.toString()
     });
   };
@@ -515,8 +549,24 @@ export default function Timesheets() {
       {popup && (() => {
         const group = groups.find((g) => g.id === popup.item.group);
         const meta  = STATUS_META[popup.item.type] ?? STATUS_META.pending;
+
+        const handleEdit = () => {
+          const entry = timeEntries.find(e => e.id === popup.item.id);
+          if (entry) {
+            setEditingEntry(entry);
+            setPopup(null);
+          }
+        };
+
+        const handleDelete = () => {
+          if (confirm("Are you sure you want to delete this time entry?")) {
+            deleteTimeEntry(popup.item.id);
+            setPopup(null);
+          }
+        };
+
         return (
-          <div className="fixed z-[999] rounded-2xl shadow-xl w-72 p-4"
+          <div className="fixed z-[999] rounded-2xl shadow-xl w-72 p-4 animate-in fade-in zoom-in-95 duration-150"
             style={{ left: popup.x, top: popup.y, background: "var(--card)", border: "1px solid var(--border)" }}>
             <button onClick={() => setPopup(null)}
               className="absolute top-3 right-3 transition cursor-pointer hover:opacity-70"
@@ -568,14 +618,36 @@ export default function Timesheets() {
                 {meta.label}
               </span>
             </div>
+
+            {/* Edit and Delete Buttons for Log Owner / Admin */}
+            {(popup.item.group === currentUser?.id || currentUser?.role === 'Admin') && (
+              <div className="mt-3 pt-3 flex gap-2 border-t" style={{ borderColor: "var(--border)" }}>
+                <button
+                  onClick={handleEdit}
+                  className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                >
+                  Edit Log
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition cursor-pointer"
+                >
+                  Delete Log
+                </button>
+              </div>
+            )}
           </div>
         );
       })()}
 
       <ManualTimeEntryModal
-        show={showManualModal}
-        onClose={() => setShowManualModal(false)}
+        show={showManualModal || !!editingEntry}
+        onClose={() => {
+          setShowManualModal(false);
+          setEditingEntry(null);
+        }}
         defaultDate={currentDate.format("YYYY-MM-DD")}
+        editingEntry={editingEntry}
       />
 
     </div>

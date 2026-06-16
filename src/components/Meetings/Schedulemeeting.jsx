@@ -1,22 +1,19 @@
 import React, { useState } from "react";
-import { CirclePlus, Calendar, Clock, Video, FileText } from "lucide-react";
+import { CirclePlus, ChevronUp } from "lucide-react";
 import { useApp } from "../../context/AppContext";
-import MultiSearchSelect from "../ui/MultiSelectDropdown";
 
 export default function Schedulemeeting({ onSchedule }) {
   const [open, setOpen] = useState(false);
-  const { users, currentUser } = useApp();
+  const { users = [], currentUser = null, projects = [], tasks = [] } = useApp() || {};
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [meetingLink, setMeetingLink] = useState("");
   const [dateTime, setDateTime] = useState("");
-  const [duration, setDuration] = useState("30");
+  const [duration, setDuration] = useState("45");
+  const [selectedProject, setSelectedProject] = useState("");
+  const [selectedTask, setSelectedTask] = useState("");
   const [selectedAttendees, setSelectedAttendees] = useState([]);
-
-  const userOptions = users
-    .filter(u => u.id !== currentUser?.id)
-    .map(u => ({ value: u.id, label: `${u.name} (${u.role})` }));
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -32,6 +29,9 @@ export default function Schedulemeeting({ onSchedule }) {
       return parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
     }).filter(Boolean);
 
+    const projectObj = selectedProject ? projects.find(p => String(p.id) === String(selectedProject)) : null;
+    const taskObj = selectedTask ? tasks.find(t => String(t.id) === String(selectedTask)) : null;
+
     if (onSchedule) {
       onSchedule({
         id: `upcoming-${Date.now()}`,
@@ -39,8 +39,8 @@ export default function Schedulemeeting({ onSchedule }) {
         host: currentUser?.name || "Organizer",
         title: title.trim(),
         description: description.trim(),
-        project: { label: "Project Alpha", color: "blue" },
-        linkedTask: "TASK-0042",
+        project: projectObj ? { label: projectObj.name, color: "blue" } : null,
+        linkedTask: taskObj ? taskObj.taskNumber || "TASK-0000" : null,
         attendees: attendeeInitials,
         scheduledAt: dateTime,
         joinUrl: meetingLink.trim() || "#"
@@ -52,7 +52,9 @@ export default function Schedulemeeting({ onSchedule }) {
     setDescription("");
     setMeetingLink("");
     setDateTime("");
-    setDuration("30");
+    setDuration("45");
+    setSelectedProject("");
+    setSelectedTask("");
     setSelectedAttendees([]);
     setOpen(false);
   };
@@ -62,10 +64,14 @@ export default function Schedulemeeting({ onSchedule }) {
     setDescription("");
     setMeetingLink("");
     setDateTime("");
-    setDuration("30");
+    setDuration("45");
+    setSelectedProject("");
+    setSelectedTask("");
     setSelectedAttendees([]);
     setOpen(false);
   };
+
+  const filteredUsers = users.filter(u => u.id !== currentUser?.id);
 
   return (
     <>
@@ -83,38 +89,38 @@ export default function Schedulemeeting({ onSchedule }) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={handleClose}
         >
-          {/* Prevent close when clicking inside modal */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-8 shadow-xl"
+            className="max-h-[95vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-8 shadow-xl"
+            style={{ fontFamily: "Inter, system-ui, sans-serif" }}
           >
             {/* Header */}
-            <div className="mb-6 flex items-center justify-between border-b pb-4">
-              <div className="flex items-center gap-3">
-                <span className="text-xl text-blue-600 font-bold">+</span>
-                <h2 className="text-2xl font-semibold text-slate-800">
+            <div className="mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CirclePlus size={20} className="text-[#0010AE]" />
+                <h2 className="text-lg font-semibold text-slate-800">
                   Schedule Meeting
                 </h2>
               </div>
 
               <button
                 onClick={handleClose}
-                className="rounded-full bg-gray-100 px-4 py-1.5 hover:bg-gray-200 text-sm font-medium transition"
+                className="rounded-full bg-slate-100 px-4 py-1.5 hover:bg-slate-200 text-xs font-semibold flex items-center gap-1 text-slate-700 transition cursor-pointer"
               >
-                Close
+                <ChevronUp size={14} /> Close
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-4 text-left">
               <div className="form-group">
-                <label className="mb-2 block font-semibold text-sm text-slate-700">
+                <label className="mb-1.5 block font-semibold text-sm text-slate-700">
                   Title
                 </label>
                 <input
                   type="text"
                   required
-                  className="w-full rounded-lg border border-slate-200 p-3 outline-none focus:border-blue-500 transition"
+                  className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                   placeholder="Meeting topic..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -122,12 +128,12 @@ export default function Schedulemeeting({ onSchedule }) {
               </div>
 
               <div className="form-group">
-                <label className="mb-2 block font-semibold text-sm text-slate-700">
+                <label className="mb-1.5 block font-semibold text-sm text-slate-700">
                   Description
                 </label>
                 <textarea
                   rows={3}
-                  className="w-full rounded-lg border border-slate-200 p-3 outline-none focus:border-blue-500 transition"
+                  className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800 resize-none"
                   placeholder="Agenda..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -135,13 +141,14 @@ export default function Schedulemeeting({ onSchedule }) {
               </div>
 
               <div className="form-group">
-                <label className="mb-2 block font-semibold text-sm text-slate-700">
-                  Meeting Link (URL)
+                <label className="mb-1.5 block font-semibold text-sm text-slate-700">
+                  Meeting Link (URL) *
                 </label>
                 <input
                   type="url"
-                  className="w-full rounded-lg border border-slate-200 p-3 outline-none focus:border-blue-500 transition"
-                  placeholder="https://..."
+                  required
+                  className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                  placeholder="E.g. teams.microsoft.com/l/meetup-join/... or zoom.us/..."
                   value={meetingLink}
                   onChange={(e) => setMeetingLink(e.target.value)}
                 />
@@ -149,24 +156,24 @@ export default function Schedulemeeting({ onSchedule }) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="form-group">
-                  <label className="mb-2 block font-semibold text-sm text-slate-700">
+                  <label className="mb-1.5 block font-semibold text-sm text-slate-700">
                     Date & Time
                   </label>
                   <input
                     type="datetime-local"
                     required
-                    className="w-full rounded-lg border border-slate-200 p-3 outline-none focus:border-blue-500 transition"
+                    className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                     value={dateTime}
                     onChange={(e) => setDateTime(e.target.value)}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="mb-2 block font-semibold text-sm text-slate-700">
+                  <label className="mb-1.5 block font-semibold text-sm text-slate-700">
                     Duration
                   </label>
                   <select
-                    className="w-full rounded-lg border border-slate-200 p-3 outline-none focus:border-blue-500 transition"
+                    className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
                   >
@@ -179,32 +186,83 @@ export default function Schedulemeeting({ onSchedule }) {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label className="mb-2 block font-semibold text-sm text-slate-700">
-                  Invite Attendees
-                </label>
-                <MultiSearchSelect
-                  options={userOptions}
-                  selectedValues={selectedAttendees}
-                  onChange={setSelectedAttendees}
-                  placeholder="Search and invite team members..."
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="form-group">
+                  <label className="mb-1.5 block font-semibold text-sm text-slate-700">
+                    Link Project (Optional)
+                  </label>
+                  <select
+                    className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                    value={selectedProject}
+                    onChange={(e) => setSelectedProject(e.target.value)}
+                  >
+                    <option value="">None / General Sync</option>
+                    {projects.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="mb-1.5 block font-semibold text-sm text-slate-700">
+                    Link Task (Optional)
+                  </label>
+                  <select
+                    className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                    value={selectedTask}
+                    onChange={(e) => setSelectedTask(e.target.value)}
+                  >
+                    <option value="">None</option>
+                    {tasks.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.taskNumber ? `${t.taskNumber}: ` : ''}{t.name || t.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="rounded-lg border px-5 py-2 hover:bg-slate-50 transition text-sm font-medium"
-                >
-                  Cancel
-                </button>
+              <div className="form-group">
+                <label className="mb-1.5 block font-semibold text-sm text-slate-700">
+                  Participants
+                </label>
+                <div className="rounded-xl border border-slate-200 p-4 max-h-40 overflow-y-auto space-y-3 bg-white">
+                  {filteredUsers.length === 0 ? (
+                    <span className="text-slate-400 text-xs">No employees found.</span>
+                  ) : (
+                    filteredUsers.map(user => (
+                      <div key={user.id} className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          id={`user-${user.id}`}
+                          checked={selectedAttendees.includes(user.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedAttendees(prev => [...prev, user.id]);
+                            } else {
+                              setSelectedAttendees(prev => prev.filter(id => id !== user.id));
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                        <label
+                          htmlFor={`user-${user.id}`}
+                          className="text-sm font-normal text-slate-700 cursor-pointer select-none"
+                        >
+                          {user.name} ({user.role === 'User' || !user.role ? 'Employee' : user.role})
+                        </label>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
 
+              <div className="pt-2">
                 <button
                   type="submit"
-                  className="rounded-lg bg-blue-600 hover:bg-blue-700 px-5 py-2 text-white transition text-sm font-semibold shadow-sm"
+                  className="w-full rounded-xl bg-[#0010AE] hover:bg-blue-800 py-3.5 text-white font-bold text-center transition shadow-md text-sm tracking-wide cursor-pointer"
                 >
-                  Create Meeting
+                  Schedule Meeting
                 </button>
               </div>
             </form>

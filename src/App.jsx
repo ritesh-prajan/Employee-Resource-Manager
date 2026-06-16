@@ -42,7 +42,12 @@ function MainAppContent() {
   const [currentPage, setCurrentPage] = useState('');
   const [prevUserId, setPrevUserId] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const location=useLocation();
+
+  useEffect(() => {
+    setIsMobileSidebarOpen(false);
+  }, [currentPage]);
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser) {
@@ -252,9 +257,9 @@ function MainAppContent() {
 
   return (
     <div className="app-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      <TopBar title={getPageTitle()} currentPage={currentPage} setCurrentPage={setCurrentPage} isCollapsed={isCollapsed} />
+      <TopBar title={getPageTitle()} currentPage={currentPage} setCurrentPage={setCurrentPage} isCollapsed={isCollapsed} isMobileSidebarOpen={isMobileSidebarOpen} setIsMobileSidebarOpen={setIsMobileSidebarOpen} />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+        <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} isMobileSidebarOpen={isMobileSidebarOpen} setIsMobileSidebarOpen={setIsMobileSidebarOpen} />
         <main className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div className="content-body" style={{ flex: 1, overflowY: 'auto', position: 'relative', overflowX: 'hidden', backgroundColor: 'var(--bg-canvas)', padding: '24px' }}>
             <AnimatePresence mode="wait">

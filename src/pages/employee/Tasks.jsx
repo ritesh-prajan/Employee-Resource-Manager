@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, AlertTriangle } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Filter } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import ETAExtensionModal from '../../components/forms/tasks/ETAExtensionModal';
 import CreateBacklogTaskModal from '../../components/forms/tasks/CreateBacklogTaskModal';
@@ -62,6 +62,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [showBacklogDropdown, setShowBacklogDropdown] = useState(false);
   const [assignForm, setAssignForm] = useState({ name: '', backlogTaskId: '', eta: '8', type: 'Story', priority: 'Medium', assignedTo: '', taskNumber: '', etaDate: '', bugNumber: '' });
   const [backlogCreateData, setBacklogCreateData] = useState({ name: '', projectId: '', eta: '8', type: 'Story', priority: 'Medium' });
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
   const getProjectInfo = (projectId) => projects.find(p => p.id === projectId);
   const getUserInfo = (userId) => users.find(u => u.id === userId);
@@ -373,7 +374,13 @@ export default function Tasks({ setCurrentPage, initialScope }) {
         {/* Toolbar */}
         <div>
         {/* Filters */}
-        <div className="tasks-filter-card">
+        <button
+          className="mobile-filter-toggle-btn"
+          onClick={() => setIsFiltersExpanded(prev => !prev)}
+        >
+          <Filter size={14} /> {isFiltersExpanded ? "Hide Filters" : "Show Filters"}
+        </button>
+        <div className={`tasks-filter-card ${isFiltersExpanded ? 'mobile-filters-open' : ''}`}>
           <div className="tasks-filter-row">
             {/* Filters Left Side */}
             <div className="flex items-center gap-4 flex-wrap">

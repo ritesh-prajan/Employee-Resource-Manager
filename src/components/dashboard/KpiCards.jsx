@@ -61,7 +61,7 @@ const cards = [
 
 export default function KpiCards({ kpis, onNavigate }) {
   return (
-    <div style={{
+    <div className="kpi-cards-grid" style={{
       display: 'grid',
       gridTemplateColumns: 'repeat(6, 1fr)',
       gap: '0.75rem',

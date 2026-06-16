@@ -357,7 +357,7 @@ export default function ProfileSettings() {
       </div>
 
       {/* ── Two-column layout ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+      <div className="settings-two-col-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
 
         {/* Left col */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

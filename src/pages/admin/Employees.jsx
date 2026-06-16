@@ -279,7 +279,7 @@ export default function EmployeesPage() {
   ], []);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--canvas)', padding: '0', zoom: 0.8 }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--canvas)', padding: '0', zoom: 0.9 }}>
       <div>
         {/* Toolbar */}
         <div style={{ marginBottom: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem' }}>

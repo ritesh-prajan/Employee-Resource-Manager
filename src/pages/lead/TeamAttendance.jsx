@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Fingerprint } from 'lucide-react';
 import useTeamAttendance from '../../hooks/useTeamAttendance';
 import AttendanceSummaryCards from '../../components/teamlead/attendance/AttendanceSummaryCards';
 import AttendanceToolbar from '../../components/teamlead/attendance/AttendanceToolbar';
@@ -31,7 +32,22 @@ export default function TeamAttendance() {
   }, [rows, filterStatus, searchQuery]);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--canvas)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+      {/* Page header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ width: 34, height: 34, borderRadius: '9px', background: 'color-mix(in oklch, var(--primary) 12%, transparent)', border: '1px solid color-mix(in oklch, var(--primary) 25%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Fingerprint size={17} style={{ color: 'var(--primary)' }} />
+        </div>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--foreground)' }}>
+            Team Attendance
+          </h2>
+          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+            Monitor daily check-ins, remote hours, and active work statuses of your team
+          </p>
+        </div>
+      </div>
 
       <AttendanceSummaryCards
         summary={summary}

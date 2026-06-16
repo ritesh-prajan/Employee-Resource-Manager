@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {Search, ChevronDown, LogOut, Bell } from 'lucide-react';
+import {Search, ChevronDown, LogOut, Bell, Menu } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 
-export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed }) {
+export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed, isMobileSidebarOpen, setIsMobileSidebarOpen }) {
   const { theme, toggleTheme, currentUser, changeUser, users, notifications = [] } = useApp();
   const { logout } = useAuth();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -60,8 +60,29 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
 
       {/* Left: Logo + Search */}
       <div style={{ display: 'flex', alignItems: 'center' }}>
+        <button
+          className="mobile-menu-btn"
+          onClick={() => setIsMobileSidebarOpen(prev => !prev)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--foreground)',
+            cursor: 'pointer',
+            padding: '8px',
+            marginLeft: '12px',
+            marginRight: '-4px',
+            display: 'none',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '8px',
+            flexShrink: 0
+          }}
+        >
+          <Menu size={20} />
+        </button>
         {/* Logo area — mirrors sidebar width */}
         <div
+          className="topbar-logo-area"
           onClick={() => setCurrentPage('admin-dashboard')}
           style={{
             display: 'flex',
@@ -97,11 +118,12 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
         </div>
 
         {/* Search */}
-        <div style={{ position: 'relative', marginLeft: '16px', display: 'flex', alignItems: 'center' }}>
+        <div className="topbar-search-container" style={{ position: 'relative', marginLeft: '16px', display: 'flex', alignItems: 'center' }}>
           <Search size={16} style={{ position: 'absolute', left: '12px', color: 'var(--muted-foreground)', pointerEvents: 'none' }} />
           <input
             type="text"
             placeholder="Search anything"
+            className="topbar-search-input"
             style={{
               padding: '8px 16px 8px 36px',
               borderRadius: '20px',
@@ -152,7 +174,7 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
             <div className="user-initials-badge" style={{ width: '34px', height: '34px', fontSize: '0.8rem' }}>
               {getInitials(currentUser.name)}
             </div>
-            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)' }}>
+            <span className="topbar-user-name" style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)' }}>
               {currentUser.name}
             </span>
             <ChevronDown size={14} style={{ color: 'var(--muted-foreground)' }} />

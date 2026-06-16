@@ -1,5 +1,5 @@
-// components/teamlead/attendance/AttendanceToolbar.jsx
-import React from 'react';
+import React, { useState } from 'react';
+import { Filter } from 'lucide-react';
 import FilterBar from '../../ui/FilterBar';
 
 const STATUS_OPTIONS = [
@@ -9,34 +9,19 @@ const STATUS_OPTIONS = [
   { value: 'Absent',  label: 'Absent'  },
 ];
 
-/**
- * Props:
- *   searchQuery    — string
- *   onSearchChange — (e) => void
- *   filterStatus   — string
- *   onStatusChange — (e) => void
- *   team           — team object { teamName | name, members[] } | undefined
- */
 export default function AttendanceToolbar({ searchQuery, onSearchChange, filterStatus, onStatusChange, team }) {
-  return (
-    <div style={{
-      marginBottom: '1.5rem', borderRadius: '1rem',
-      border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.25rem 1.5rem',
-    }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+  const [isExpanded, setIsExpanded] = useState(false);
 
-        <FilterBar
-          searchValue={searchQuery}
-          onSearchChange={onSearchChange}
-          placeholder="Search members..."
-          filters={[{
-            key: 'status',
-            value: filterStatus,
-            onChange: onStatusChange,
-            placeholder: 'All Statuses',
-            options: STATUS_OPTIONS,
-          }]}
-        />
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        <button
+          className="mobile-filter-toggle-btn"
+          onClick={() => setIsExpanded(prev => !prev)}
+          style={{ marginBottom: 0 }}
+        >
+          <Filter size={14} /> {isExpanded ? "Hide Filters" : "Show Filters"}
+        </button>
 
         {team && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--muted)', borderRadius: 8, padding: '6px 14px' }}>
@@ -50,6 +35,29 @@ export default function AttendanceToolbar({ searchQuery, onSearchChange, filterS
           </div>
         )}
       </div>
-    </div>
+
+      <div
+        className={`attendance-filter-bar ${isExpanded ? 'mobile-filters-open' : ''}`}
+        style={{
+          marginBottom: '1.5rem', borderRadius: '1rem',
+          border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.25rem 1.5rem',
+        }}
+      >
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <FilterBar
+            searchValue={searchQuery}
+            onSearchChange={onSearchChange}
+            placeholder="Search members..."
+            filters={[{
+              key: 'status',
+              value: filterStatus,
+              onChange: onStatusChange,
+              placeholder: 'All Statuses',
+              options: STATUS_OPTIONS,
+            }]}
+          />
+        </div>
+      </div>
+    </>
   );
 }

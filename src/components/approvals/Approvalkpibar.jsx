@@ -46,7 +46,7 @@ export default function ApprovalKpiBar({ pendingCount, approvedCount, rejectedCo
   ];
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+    <div className="approval-kpi-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
       {tiles.map(({ icon, label, value, color, bg, border }) => (
         <div
           key={label}

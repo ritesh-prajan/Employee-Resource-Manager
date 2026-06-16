@@ -131,7 +131,7 @@ export default function Projects() {
   ], [users, tasks, currentUser]);
 
   return (
-    <div className="min-h-screen  " style={{ zoom: 0.8 }}>
+    <div className="min-h-screen  " style={{ zoom: 0.9 }}>
       <div style={{ marginBottom: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>

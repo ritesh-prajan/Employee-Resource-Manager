@@ -90,7 +90,7 @@ export default function AdminDashboard({ setCurrentPage }) {
       <KpiCards kpis={kpis} onNavigate={setCurrentPage} />
 
       {/* Row 2 — Staff Status | Weekly Hours | Work Category */}
-      <div style={{
+      <div className="admin-dashboard-grid-1" style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1.4fr 1.2fr',
         gap: '0.875rem',
@@ -109,7 +109,7 @@ export default function AdminDashboard({ setCurrentPage }) {
       </div>
 
       {/* Row 3 — Project Task Health | Hour Rankings */}
-      <div style={{
+      <div className="admin-dashboard-grid-2" style={{
         display: 'grid',
         gridTemplateColumns: '2fr 3fr',
         gap: '0.875rem',

@@ -6,7 +6,7 @@ export default function Pagination({ table, pagination, totalRows }) {
   const end = Math.min((pageIndex + 1) * pageSize, totalRows);
 
   return (
-    <div style={{
+    <div className="pagination-container" style={{
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",

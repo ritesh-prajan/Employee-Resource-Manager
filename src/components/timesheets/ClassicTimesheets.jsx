@@ -196,6 +196,7 @@ export default function ClassicTimesheet() {
   const { users, projects, tasks, timeEntries, teams, currentUser } = useApp();
 
   const [classifyBy, setClassifyBy] = useState("employee");
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
 
   const [searchQuery,     setSearchQuery]     = useState("");
@@ -392,11 +393,17 @@ export default function ClassicTimesheet() {
   const toWeek   = dynamicWeeks.find(w => w.id === toWeekId)   || dynamicWeeks[dynamicWeeks.length - 1];
 
   return (
-    <div className="font-sans text-[13px] rounded-2xl overflow-visible shadow-sm border"
+    <div className="timesheet-console font-sans text-[13px] rounded-2xl overflow-visible shadow-sm border"
       style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
 
       {/* ══ Filter Bar ══════════════════════════════════════════════════════ */}
-      <div className="px-5 py-4 border-b rounded-t-2xl"
+      <button
+        className="mobile-filter-toggle-btn"
+        onClick={() => setIsFiltersExpanded(prev => !prev)}
+      >
+        <Filter size={14} /> {isFiltersExpanded ? "Hide Filters" : "Show Filters"}
+      </button>
+      <div className={`timesheet-filter-bar px-5 py-4 border-b rounded-t-2xl ${isFiltersExpanded ? 'mobile-filters-open' : ''}`}
         style={{ borderColor: "var(--border)", background: "var(--card)" }}>
 
         {/* Row 1: Classify By + Subject picker + Week range */}

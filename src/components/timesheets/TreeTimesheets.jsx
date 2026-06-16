@@ -623,7 +623,7 @@ export default function TreeTimesheets() {
   }, [customdate, weeks]);
 
   return (
-    <div className="font-sans border rounded-xl text-[13px] overflow-visible"
+    <div className="timesheet-console font-sans border rounded-xl text-[13px] overflow-visible"
       style={{ background: "var(--card)", borderColor: "var(--border)", color: "var(--foreground)" }}>
       <Toolbar
         weeks={weeks}

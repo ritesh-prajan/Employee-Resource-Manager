@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Filter } from 'lucide-react';
 
 /**
  * ApprovalFilterBar
@@ -31,9 +31,19 @@ export default function ApprovalFilterBar({
   onClear,
   hasActiveFilters,
 }) {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
   return (
-    <div
-      style={{
+    <>
+      <button
+        className="mobile-filter-toggle-btn"
+        onClick={() => setIsExpanded(prev => !prev)}
+      >
+        <Filter size={14} /> {isExpanded ? "Hide Filters" : "Show Filters"}
+      </button>
+      <div
+        className={`approval-filter-bar ${isExpanded ? 'mobile-filters-open' : ''}`}
+        style={{
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
@@ -162,5 +172,6 @@ export default function ApprovalFilterBar({
         </button>
       )}
     </div>
+    </>
   );
 }

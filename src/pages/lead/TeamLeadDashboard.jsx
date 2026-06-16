@@ -93,7 +93,7 @@ export default function TeamLeadDashboard({ setCurrentPage }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '0.875rem', flexWrap: 'wrap', flexShrink: 0 }}>
+      <div className="lead-kpi-grid" style={{ display: 'flex', gap: '0.875rem', flexWrap: 'wrap', flexShrink: 0 }}>
         {CARD_SCHEME.map(({ key, label, icon, accent }) => {
           const kpi = kpis[key];
           return (
@@ -110,7 +110,7 @@ export default function TeamLeadDashboard({ setCurrentPage }) {
         })}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: '0.875rem', height: '260px', flexShrink: 0 }}>
+      <div className="lead-dashboard-grid-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: '0.875rem', height: '260px', flexShrink: 0 }}>
         <ChartCard title="Task Status Breakdown" icon={CheckSquare} accent="#3b82f6">
           <TaskStatusDonut tasks={teamTasks} />
         </ChartCard>
@@ -124,7 +124,7 @@ export default function TeamLeadDashboard({ setCurrentPage }) {
         </ChartCard>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '3fr 1.4fr', gap: '0.875rem', height: '300px', flexShrink: 0 }}>
+      <div className="lead-dashboard-grid-2" style={{ display: 'grid', gridTemplateColumns: '3fr 1.4fr', gap: '0.875rem', height: '300px', flexShrink: 0 }}>
         <ChartCard title="Member Performance" icon={UserCheck} accent="#f59e0b">
           <MemberPerformanceTable members={memberIds} tasks={teamTasks} users={users} timeEntries={timeEntries} />
         </ChartCard>

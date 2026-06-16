@@ -18,7 +18,7 @@ const CARDS = [
  */
 export default function AttendanceSummaryCards({ summary, filterStatus, onFilter }) {
   return (
-    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+    <div className="attendance-kpi-grid" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
       {CARDS.map(({ key, label, icon, accent }) => {
         const active = filterStatus === key;
         return (

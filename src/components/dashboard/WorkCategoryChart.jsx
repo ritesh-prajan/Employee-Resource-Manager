@@ -146,8 +146,7 @@
             <div style={{ display: 'flex', gap: '1rem', flex: 1, minHeight: 0, alignItems: 'center', overflow: 'hidden' }}>
             {/* Donut */}
             <div style={{ width: '110px', height: '110px', flexShrink: 0, cursor: 'pointer' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                <PieChart width={110} height={110}>
                     <Pie
                     data={data} cx="50%" cy="50%"
                     innerRadius={32} outerRadius={50}
@@ -160,7 +159,6 @@
                     </Pie>
                     <Tooltip content={<CustomTooltip />} position={{ x: 115, y: 20 }} />
                 </PieChart>
-                </ResponsiveContainer>
             </div>
 
             {/* Legend list */}

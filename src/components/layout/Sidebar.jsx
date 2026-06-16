@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setIsCollapsed }) {
+export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setIsCollapsed, isMobileSidebarOpen, setIsMobileSidebarOpen }) {
   const { currentUser, notifications = [] } = useApp();
 
   if (!currentUser) return null;
@@ -207,7 +207,22 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
   };
 
   return (
-    <aside
+    <>
+      {isMobileSidebarOpen && (
+        <div
+          className="mobile-sidebar-backdrop"
+          onClick={() => setIsMobileSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 999
+          }}
+        />
+      )}
+      <aside
+        className={`app-sidebar ${isMobileSidebarOpen ? 'mobile-open' : ''}`}
       style={{
         width: isCollapsed ? '64px' : '240px',
         backgroundColor: 'var(--background)',
@@ -270,5 +285,6 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
         )}
       </div>
     </aside>
+    </>
   );
 }

@@ -153,7 +153,7 @@ export default function Approvals() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' , zoom:'0.8'}}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' , zoom:'var(--page-zoom, 0.9)'}}>
 
       {/* Page header */}
       <div

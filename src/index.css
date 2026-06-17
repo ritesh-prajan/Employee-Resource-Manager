@@ -547,7 +547,7 @@ select option {
   display: flex;
   flex-direction: column;
   background-color: var(--bg-canvas, #f0f2f5);
-  zoom: 0.8;
+  zoom: var(--page-zoom, 0.9);
 }
 .tasks-toolbar-wrapper {
   display: flex;

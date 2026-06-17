@@ -9,7 +9,7 @@ export default function Timesheets() {
   const [activeTab, setActiveTab] = useState('modern');
 
   return (
-    <div className="w-full min-h-screen bg-slate-100 p-6 flex flex-col gap-4" style={{ zoom: 0.8 }}>
+    <div className="w-full min-h-screen bg-slate-100 p-6 flex flex-col gap-4" style={{ zoom: 'var(--page-zoom, 0.9)' }}>
       {/* Header */}
       <div className="timesheet-header flex items-center justify-between mb-1">
         <div>

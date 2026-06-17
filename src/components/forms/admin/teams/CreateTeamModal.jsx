@@ -23,7 +23,7 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name.trim() || !leadId || !subLeadId) {
+    if (!name.trim() || !leadId) {
       alert('Please fill in team name, team lead, and sub lead.');
       return;
     }
@@ -55,14 +55,14 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="850px" overflow="hidden">
+    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="850px" overflow="visible">
       <div className="modal-header" style={{ marginBottom: '1rem' }}>
         <h3 className="modal-title">Create New Team</h3>
         <button className="modal-close" onClick={handleClose}>×</button>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', maxH: 'calc(90vh - 80px)' }}>
-        <div style={{ flex: 1, overflowY: 'auto', paddingRight: '6px', display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '1rem' }}>
+        <div style={{ flex: 1, overflowY: 'visible', paddingRight: '6px', display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '1rem' }}>
           <div className="form-group">
             <label className="form-label">TEAM NAME</label>
             <input

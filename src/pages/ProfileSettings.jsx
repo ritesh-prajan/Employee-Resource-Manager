@@ -153,12 +153,16 @@ function ChangePasswordBlock({ currentUser, editEmployee, verifyPassword }) {
 
 // ─── Main page ──────────────────────────────────────────────────────────────
 export default function ProfileSettings() {
-    const { currentUser, editEmployee, verifyPassword, users } = useApp();
+    const { currentUser, editEmployee, verifyPassword, users, pageZoom, setPageZoom } = useApp();
     const { theme, toggleTheme } = useTheme();
 
     // Resolve full profile from the employees list — currentUser right after login
     // is a thin auth object (id, email, role only). The users[] array has the real data.
-    const profile = users.find(u => Number(u.id) === Number(currentUser?.id)) || currentUser;
+    const profile = users.find(u => 
+      String(u.id) === String(currentUser?.id) || 
+      (u.email && currentUser?.email && u.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+      (u.workEmail && currentUser?.email && u.workEmail.toLowerCase() === currentUser.email.toLowerCase())
+    ) || currentUser;
 
   const [editing, setEditing]   = useState(false);
   const [form, setForm]         = useState({});
@@ -307,15 +311,15 @@ export default function ProfileSettings() {
           fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)',
           flexShrink: 0,
         }}>
-          {getInitials(currentUser.name)}
+          {getInitials(profile.name)}
         </div>
 
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)' }}>
-            {currentUser.name}
+            {profile.name}
           </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginTop: 2 }}>
-            {currentUser.email}
+            {profile.email}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
             {/* Role badge */}
@@ -326,27 +330,27 @@ export default function ProfileSettings() {
               color: 'var(--primary)',
               border: '1px solid color-mix(in oklch, var(--primary) 25%, transparent)',
             }}>
-              {currentUser.role}
+              {profile.role}
             </span>
             {/* Status badge */}
             <span style={{
               fontSize: '0.68rem', fontWeight: 700,
               padding: '2px 10px', borderRadius: '20px',
-              background: currentUser.status === 'Active' ? '#22c55e12' : '#ef444412',
-              color: currentUser.status === 'Active' ? '#22c55e' : '#ef4444',
-              border: `1px solid ${currentUser.status === 'Active' ? '#22c55e30' : '#ef444430'}`,
+              background: profile.status === 'Active' ? '#22c55e12' : '#ef444412',
+              color: profile.status === 'Active' ? '#22c55e' : '#ef4444',
+              border: `1px solid ${profile.status === 'Active' ? '#22c55e30' : '#ef444430'}`,
             }}>
-              {currentUser.status ?? 'Active'}
+              {profile.status ?? 'Active'}
             </span>
             {/* Department */}
-            {currentUser.department && (
+            {profile.department && (
               <span style={{
                 fontSize: '0.68rem', fontWeight: 600,
                 padding: '2px 10px', borderRadius: '20px',
                 background: 'var(--secondary)', color: 'var(--muted-foreground)',
                 border: '1px solid var(--border)',
               }}>
-                {currentUser.department}
+                {profile.department}
               </span>
             )}
           </div>
@@ -358,7 +362,7 @@ export default function ProfileSettings() {
             Employee Code
           </div>
           <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--foreground)', fontFamily: 'var(--font-mono, monospace)', marginTop: 2 }}>
-            {currentUser.employee_code ?? '—'}
+            {profile.employee_code ?? '—'}
           </div>
         </div>
       </div>
@@ -379,7 +383,7 @@ export default function ProfileSettings() {
           </Section>
           {/* ── Change Password ── */}
             <Section title="Change Password" icon={Lock}>
-                <ChangePasswordBlock currentUser={currentUser} editEmployee={editEmployee} verifyPassword={verifyPassword} />
+                <ChangePasswordBlock currentUser={profile} editEmployee={editEmployee} verifyPassword={verifyPassword} />
                 </Section>
 
         </div>
@@ -391,8 +395,8 @@ export default function ProfileSettings() {
           <Section title="Work Information" icon={Briefcase}>
             <Field label="Department"   value={form.department}   editing={editing} fieldKey="department"   onChange={handleChange} />
             <Field label="Designation"  value={form.designation}  editing={editing} fieldKey="designation"  onChange={handleChange} />
-            <Field label="Role"         value={currentUser.role}  editing={false}   fieldKey="role"         onChange={handleChange} readOnly hint="Role is managed by admin." />
-            <Field label="Employee Code" value={currentUser.employee_code} editing={false} fieldKey="employee_code" onChange={handleChange} readOnly />
+            <Field label="Role"         value={profile.role}  editing={false}   fieldKey="role"         onChange={handleChange} readOnly hint="Role is managed by admin." />
+            <Field label="Employee Code" value={profile.employee_code} editing={false} fieldKey="employee_code" onChange={handleChange} readOnly />
           </Section>
 
           {/* Preferences */}
@@ -437,6 +441,35 @@ export default function ProfileSettings() {
               <label>
                 Yes 
               </label>
+            </div>
+
+            {/* Page Zoom */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Page Zoom
+                </label>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                  {Math.round(pageZoom * 100)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.7"
+                max="1.3"
+                step="0.05"
+                value={pageZoom}
+                onChange={(e) => setPageZoom(parseFloat(e.target.value))}
+                style={{
+                  width: '100%',
+                  accentColor: 'var(--primary)',
+                  cursor: 'pointer',
+                  height: '6px',
+                  borderRadius: '3px',
+                  backgroundColor: 'var(--border)',
+                  outline: 'none'
+                }}
+              />
             </div>
 
             {/* Theme toggle */}

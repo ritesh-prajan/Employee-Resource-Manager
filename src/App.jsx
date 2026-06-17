@@ -35,9 +35,7 @@ import AdminAnnouncements from './pages/admin/Announcements';
 import AdminTimesheets from './pages/admin/Timesheets';
 
 // Shared / Settings Pages
-import Settings from './pages/Settings';
 import Alerts from './pages/Alerts';
-import Backlog from './pages/Backlog';
 import ProfileSettings from './pages/ProfileSettings';
 
 function MainAppContent() {
@@ -138,10 +136,6 @@ function MainAppContent() {
       case 'admin-tasks':
       case 'lead-tasks':
         return 'Tasks';
-      case 'backlog':
-      case 'admin-backlog':
-      case 'lead-backlog':
-        return 'Backlog Tasks';
       case 'attendance':
         return 'Attendance';
       case 'lead-attendance':
@@ -194,10 +188,6 @@ function MainAppContent() {
       case 'admin-tasks':
       case 'lead-tasks':
         return <Tasks setCurrentPage={setCurrentPage} />;
-      case 'backlog':
-      case 'admin-backlog':
-      case 'lead-backlog':
-        return <Backlog setCurrentPage={setCurrentPage} />;
       case 'attendance':
         return <Attendance />;
       case 'lead-attendance':

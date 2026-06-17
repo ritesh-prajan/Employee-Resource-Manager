@@ -23,7 +23,11 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
 
   // Resolve full profile: prefer the employee record from users[] (has name/phone/etc)
   // Fall back to currentUser itself (which may be the thin auth object right after login)
-  const displayUser = users.find(u => Number(u.id) === Number(currentUser.id)) || currentUser;
+  const displayUser = users.find(u => 
+    String(u.id) === String(currentUser?.id) || 
+    (u.email && currentUser?.email && u.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+    (u.workEmail && currentUser?.email && u.workEmail.toLowerCase() === currentUser.email.toLowerCase())
+  ) || currentUser;
 
   const userNotifications = notifications.filter(n => n.recipientId === currentUser.id);
   const unreadCount = userNotifications.filter(n => !n.isRead).length;

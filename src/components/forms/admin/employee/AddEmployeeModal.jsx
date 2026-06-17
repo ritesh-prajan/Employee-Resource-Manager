@@ -1,17 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect} from 'react';
 import { ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import MultiSearchSelect from '../../../ui/MultiSelectDropdown';
 
 export default function AddEmployeeModal({ show, onClose, users, teams, projects, onSubmit }) {
-  const [empData, setEmpData] = useState({
-    name: '', employee_code: '', email: '', personalEmail: '',
-    phone: '', password: '', designation: '', role: 'Employee', teams: [], projects: []
-  });
+  const generateNextCode = () => {
+  const codes = users
+    .map(u => u.employee_code)
+    .filter(c => c && /^EMP-\d+$/i.test(c))
+    .map(c => parseInt(c.split('-')[1], 10));
+  const next = codes.length > 0 ? Math.max(...codes) + 1 : 1;
+  return `EMP-${String(next).padStart(3, '0')}`;
+};
+
+const [empData, setEmpData] = useState({
+  name: '', employee_code: generateNextCode(), email: '', personalEmail: '',
+  phone: '', password: '', designation: '', role: 'Employee', teams: [], projects: []
+});
   const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState('');
 
   const teamOptions = teams.map(t => ({ value: t.id, label: t.name }));
   const projectOptions = projects.map(p => ({ value: p.id, label: p.name, color: p.color }));
+
+  useEffect(() => {
+    if (show) {
+      setEmpData(prev => ({ ...prev, employee_code: generateNextCode() }));
+    }
+  }, [show]);
 
   const handleGeneratePassword = () => {
     const chars = '0123456789ABCDEF';

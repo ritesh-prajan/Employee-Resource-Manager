@@ -159,16 +159,16 @@ export default function ViewProfileModal({ show, onClose, user, users, teams, pr
                 Team Membership
               </h4>
               {(() => {
-                const uid = Number(user.id);
+                const uid = String(user.id);
                 const userTeams = teams.filter(t =>
-                  t.members.some(mId => Number(mId) === uid) || Number(t.leadId) === uid
+                  t.members.some(mId => String(mId) === uid) || String(t.leadId) === uid
                 );
                 if (userTeams.length === 0) {
                   return <span style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>Not assigned to any teams</span>;
                 }
                 return userTeams.map(t => {
-                  const isLead = t.leadId === user.id;
-                  const teamLeadUser = users.find(u => u.id === t.leadId);
+                  const isLead = String(t.leadId) === String(user.id);
+                  const teamLeadUser = users.find(u => String(u.id) === String(t.leadId));
                   return (
                     <div key={t.id} style={{
                       backgroundColor: 'var(--bg-canvas, #f6f6f6)',
@@ -206,9 +206,9 @@ export default function ViewProfileModal({ show, onClose, user, users, teams, pr
                           <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Members ({t.members.length}):</span>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
                             {t.members.map(mId => {
-                              const mUser = users.find(u => Number(u.id) === Number(mId));
+                              const mUser = users.find(u => String(u.id) === String(mId));
                               if (!mUser) return null;
-                              const isCurrent = mUser.id === user.id;
+                              const isCurrent = String(mUser.id) === String(user.id);
                               return (
                                 <span key={mId} style={{
                                   fontSize: '0.7rem',
@@ -219,7 +219,7 @@ export default function ViewProfileModal({ show, onClose, user, users, teams, pr
                                   color: isCurrent ? '#0010AE' : 'var(--text-primary)',
                                   fontWeight: isCurrent ? 600 : 400
                                 }}>
-                                  {mUser.name} {mUser.id === t.leadId ? '👑' : ''}
+                                  {mUser.name} {String(mUser.id) === String(t.leadId) ? '👑' : ''}
                                 </span>
                               );
                             })}
@@ -238,9 +238,9 @@ export default function ViewProfileModal({ show, onClose, user, users, teams, pr
                 Assigned Projects
               </h4>
               {(() => {
-                const uid = Number(user.id);
+                const uid = String(user.id);
                 const userProjects = projects.filter(p =>
-                  p.members.some(mId => Number(mId) === uid)
+                  p.members.some(mId => String(mId) === uid)
                 );
                 if (userProjects.length === 0) {
                   return <span style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>Not assigned to any projects</span>;
@@ -275,9 +275,9 @@ export default function ViewProfileModal({ show, onClose, user, users, teams, pr
                         <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Members ({p.members.length}):</span>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
                           {p.members.map(mId => {
-                            const mUser = users.find(u => Number(u.id) === Number(mId));
+                            const mUser = users.find(u => String(u.id) === String(mId));
                             if (!mUser) return null;
-                            const isCurrent = Number(mUser.id) === Number(user.id);
+                            const isCurrent = String(mUser.id) === String(user.id);
                             return (
                               <span key={mId} style={{
                                 fontSize: '0.7rem',

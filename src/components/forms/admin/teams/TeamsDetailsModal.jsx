@@ -13,8 +13,9 @@ import Modal from '../../../ui/Modal';
 export default function TeamsDetailsModal({ isOpen, onClose, team, users = [], tasks = [] }) {
   if (!isOpen || !team) return null;
 
-  const lead = users.find(u => u.id === team.leadId);
-  const teamMembers = users.filter(u => team.members.includes(u.id));
+  const lead = users.find(u => String(u.id) === String(team.leadId));
+  const subLead = users.find(u => String(u.id) === String(team.subLeadId));
+  const teamMembers = users.filter(u => team.members.map(m => String(m)).includes(String(u.id)));
 
   const getInitials = (name = '') => {
     const parts = name.trim().split(/\s+/);

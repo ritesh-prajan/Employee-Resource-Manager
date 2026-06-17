@@ -17,15 +17,15 @@ export default function useTeamAttendance() {
   // Find the team this lead owns/co-leads
   const myTeam = useMemo(
     () => teams.find(t =>
-      Number(t.leadId) === Number(currentUser?.id) ||
-      Number(t.subLeadId) === Number(currentUser?.id)
+      String(t.leadId) === String(currentUser?.id) ||
+      String(t.subLeadId) === String(currentUser?.id)
     ),
     [teams, currentUser]
   );
 
   const memberIds = myTeam?.members || [];
   const teamMembers = useMemo(
-    () => users.filter(u => memberIds.some(mid => Number(mid) === Number(u.id))),
+    () => users.filter(u => memberIds.some(mid => String(mid) === String(u.id))),
     [users, memberIds]
   );
 
@@ -53,7 +53,7 @@ export default function useTeamAttendance() {
       const clockStatus = todayAtt?.clockStatus || 'Offline';
 
       const presentDays = attendanceHistory.filter(
-        a => Number(a.employeeId) === Number(member.id) && last30.includes(a.date) && (a.status === 'Present' || a.status === 'WFH')
+        a => String(a.employeeId) === String(member.id) && last30.includes(a.date) && (a.status === 'Present' || a.status === 'WFH')
       ).length;
 
       const attendancePct = workdays30 > 0 ? Math.round((presentDays / workdays30) * 100) : 0;

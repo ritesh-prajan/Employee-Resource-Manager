@@ -28,13 +28,13 @@ export default function TeamLeadDashboard({ setCurrentPage }) {
   if (!currentUser) return null;
 
   const myTeam = teams.find(t =>
-    Number(t.leadId) === Number(currentUser.id) ||
-    Number(t.subLeadId) === Number(currentUser.id)
+    String(t.leadId) === String(currentUser.id) ||
+    String(t.subLeadId) === String(currentUser.id)
   );
   const memberIds = myTeam?.members || [];
 
   const teamTasks = useMemo(() =>
-    tasks.filter(t => memberIds.some(mid => Number(mid) === Number(t.assignedTo))),
+    tasks.filter(t => memberIds.some(mid => String(mid) === String(t.assignedTo))),
     [tasks, memberIds]
   );
 
@@ -61,11 +61,11 @@ export default function TeamLeadDashboard({ setCurrentPage }) {
       }).length,
     },
     pendingApprovals: {
-      value: (reports || []).filter(r => memberIds.some(mid => Number(mid) === Number(r.userId)) && (r.status === 'Submitted' || r.status?.includes('Pending'))).length,
+      value: (reports || []).filter(r => memberIds.some(mid => String(mid) === String(r.userId)) && (r.status === 'Submitted' || r.status?.includes('Pending'))).length,
     },
     hoursThisWeek: {
       value: parseFloat(
-        timeEntries.filter(e => memberIds.some(mid => Number(mid) === Number(e.userId)) && e.date >= weekStart)
+        timeEntries.filter(e => memberIds.some(mid => String(mid) === String(e.userId)) && e.date >= weekStart)
           .reduce((sum, e) => sum + parseFloat(e.duration || 0), 0).toFixed(1)
       ) + 'h',
     },

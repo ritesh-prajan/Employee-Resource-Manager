@@ -618,6 +618,15 @@ export const AppProvider = ({ children }) => {
     const addEmployee = async (empData) => {
       try {
         const created = await mutateCreateEmployee.mutateAsync(empData);
+        const userId = created?.id;
+        if (userId) {
+          const targetTeams = empData.teams || [];
+          const targetProjects = empData.projects || [];
+          await Promise.all([
+            ...targetTeams.map(teamId => mutateAddTeamMember.mutateAsync({ teamId, userId })),
+            ...targetProjects.map(projectId => mutateAddProjectMember.mutateAsync({ projectId, userId }))
+          ]);
+        }
       } catch (err) {
         console.error('Failed to add employee:', err);
         throw err; // let the caller surface the error
@@ -1324,6 +1333,26 @@ const editProject = async (projectId, updatedData) => {
   const editEmployee = async (userId, updatedData) => {
     try {
       const updated = await mutateUpdateEmployee.mutateAsync({ id: userId, data: updatedData });
+      
+      // Calculate team additions and removals
+      const currentTeams = teams.filter(t => t.members.includes(userId)).map(t => t.id);
+      const targetTeams = updatedData.teams || [];
+      const teamsToAdd = targetTeams.filter(id => !currentTeams.includes(id));
+      const teamsToRemove = currentTeams.filter(id => !targetTeams.includes(id));
+
+      // Calculate project additions and removals
+      const currentProjects = projects.filter(p => p.members.includes(userId)).map(p => p.id);
+      const targetProjects = updatedData.projects || [];
+      const projectsToAdd = targetProjects.filter(id => !currentProjects.includes(id));
+      const projectsToRemove = currentProjects.filter(id => !targetProjects.includes(id));
+
+      await Promise.all([
+        ...teamsToAdd.map(teamId => mutateAddTeamMember.mutateAsync({ teamId, userId })),
+        ...teamsToRemove.map(teamId => mutateRemoveTeamMember.mutateAsync({ teamId, userId })),
+        ...projectsToAdd.map(projectId => mutateAddProjectMember.mutateAsync({ projectId, userId })),
+        ...projectsToRemove.map(projectId => mutateRemoveProjectMember.mutateAsync({ projectId, userId }))
+      ]);
+
       if (currentUser?.id === userId) {
         setCurrentUser(updated);
       }

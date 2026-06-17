@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { CirclePlus, ChevronUp } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { CirclePlus, ChevronUp, Search } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 
 export default function Schedulemeeting({ onSchedule }) {
@@ -14,6 +14,9 @@ export default function Schedulemeeting({ onSchedule }) {
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedTask, setSelectedTask] = useState("");
   const [selectedAttendees, setSelectedAttendees] = useState([]);
+  const [participantSearch, setParticipantSearch] = useState("");
+
+  const checkboxRef = useRef(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -56,6 +59,7 @@ export default function Schedulemeeting({ onSchedule }) {
     setSelectedProject("");
     setSelectedTask("");
     setSelectedAttendees([]);
+    setParticipantSearch("");
     setOpen(false);
   };
 
@@ -68,10 +72,36 @@ export default function Schedulemeeting({ onSchedule }) {
     setSelectedProject("");
     setSelectedTask("");
     setSelectedAttendees([]);
+    setParticipantSearch("");
     setOpen(false);
   };
 
   const filteredUsers = users.filter(u => u.id !== currentUser?.id);
+
+  const matchingUsers = filteredUsers.filter(u => {
+    const roleText = u.role === 'User' || !u.role ? 'employee' : String(u.role).toLowerCase();
+    const searchVal = participantSearch.toLowerCase();
+    return u.name.toLowerCase().includes(searchVal) || roleText.includes(searchVal);
+  });
+
+  const isAllSelected = matchingUsers.length > 0 && matchingUsers.every(u => selectedAttendees.includes(u.id));
+  const isSomeSelected = matchingUsers.length > 0 && !isAllSelected && matchingUsers.some(u => selectedAttendees.includes(u.id));
+
+  const handleSelectAllToggle = (checked) => {
+    if (checked) {
+      const toAdd = matchingUsers.filter(u => !selectedAttendees.includes(u.id)).map(u => u.id);
+      setSelectedAttendees(prev => [...prev, ...toAdd]);
+    } else {
+      const matchingIds = matchingUsers.map(u => u.id);
+      setSelectedAttendees(prev => prev.filter(id => !matchingIds.includes(id)));
+    }
+  };
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
 
   return (
     <>
@@ -86,16 +116,16 @@ export default function Schedulemeeting({ onSchedule }) {
       {/* Modal */}
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[6px] p-4"
           onClick={handleClose}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[95vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-8 shadow-xl"
+            className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
             style={{ fontFamily: "Inter, system-ui, sans-serif" }}
           >
             {/* Header */}
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CirclePlus size={20} className="text-[#0010AE]" />
                 <h2 className="text-lg font-semibold text-slate-800">
@@ -112,15 +142,15 @@ export default function Schedulemeeting({ onSchedule }) {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4 text-left">
+            <form onSubmit={handleSubmit} className="space-y-3 text-left">
               <div className="form-group">
-                <label className="mb-1.5 block font-semibold text-sm text-slate-700">
+                <label className="mb-1 block font-semibold text-sm text-slate-700">
                   Title
                 </label>
                 <input
                   type="text"
                   required
-                  className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                  className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                   placeholder="Meeting topic..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -128,12 +158,12 @@ export default function Schedulemeeting({ onSchedule }) {
               </div>
 
               <div className="form-group">
-                <label className="mb-1.5 block font-semibold text-sm text-slate-700">
+                <label className="mb-1 block font-semibold text-sm text-slate-700">
                   Description
                 </label>
                 <textarea
-                  rows={3}
-                  className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800 resize-none"
+                  rows={2}
+                  className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800 resize-none"
                   placeholder="Agenda..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -141,13 +171,13 @@ export default function Schedulemeeting({ onSchedule }) {
               </div>
 
               <div className="form-group">
-                <label className="mb-1.5 block font-semibold text-sm text-slate-700">
+                <label className="mb-1 block font-semibold text-sm text-slate-700">
                   Meeting Link (URL) *
                 </label>
                 <input
                   type="url"
                   required
-                  className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                  className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                   placeholder="E.g. teams.microsoft.com/l/meetup-join/... or zoom.us/..."
                   value={meetingLink}
                   onChange={(e) => setMeetingLink(e.target.value)}
@@ -156,24 +186,24 @@ export default function Schedulemeeting({ onSchedule }) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="form-group">
-                  <label className="mb-1.5 block font-semibold text-sm text-slate-700">
+                  <label className="mb-1 block font-semibold text-sm text-slate-700">
                     Date & Time
                   </label>
                   <input
                     type="datetime-local"
                     required
-                    className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                    className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                     value={dateTime}
                     onChange={(e) => setDateTime(e.target.value)}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="mb-1.5 block font-semibold text-sm text-slate-700">
+                  <label className="mb-1 block font-semibold text-sm text-slate-700">
                     Duration
                   </label>
                   <select
-                    className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                    className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
                   >
@@ -188,11 +218,11 @@ export default function Schedulemeeting({ onSchedule }) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="form-group">
-                  <label className="mb-1.5 block font-semibold text-sm text-slate-700">
+                  <label className="mb-1 block font-semibold text-sm text-slate-700">
                     Link Project (Optional)
                   </label>
                   <select
-                    className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                    className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
                     value={selectedProject}
                     onChange={(e) => setSelectedProject(e.target.value)}
                   >
@@ -204,11 +234,11 @@ export default function Schedulemeeting({ onSchedule }) {
                 </div>
 
                 <div className="form-group">
-                  <label className="mb-1.5 block font-semibold text-sm text-slate-700">
+                  <label className="mb-1 block font-semibold text-sm text-slate-700">
                     Link Task (Optional)
                   </label>
                   <select
-                    className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                    className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
                     value={selectedTask}
                     onChange={(e) => setSelectedTask(e.target.value)}
                   >
@@ -223,15 +253,52 @@ export default function Schedulemeeting({ onSchedule }) {
               </div>
 
               <div className="form-group">
-                <label className="mb-1.5 block font-semibold text-sm text-slate-700">
-                  Participants
-                </label>
-                <div className="rounded-xl border border-slate-200 p-4 max-h-40 overflow-y-auto space-y-3 bg-white">
-                  {filteredUsers.length === 0 ? (
-                    <span className="text-slate-400 text-xs">No employees found.</span>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="font-semibold text-sm text-slate-700">
+                    Participants
+                  </label>
+                  {matchingUsers.length > 0 && (
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600 select-none">
+                      <input
+                        type="checkbox"
+                        ref={checkboxRef}
+                        checked={isAllSelected}
+                        onChange={(e) => handleSelectAllToggle(e.target.checked)}
+                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                      Select All
+                    </label>
+                  )}
+                </div>
+
+                {/* Participant Search Input */}
+                <div className="mb-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus-within:border-blue-500 focus-within:bg-white transition">
+                  <Search size={14} className="text-slate-400 flex-shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search participants..."
+                    value={participantSearch}
+                    onChange={(e) => setParticipantSearch(e.target.value)}
+                    className="w-full bg-transparent border-none outline-none text-slate-800 text-xs"
+                  />
+                  {participantSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setParticipantSearch("")}
+                      className="text-xs text-slate-400 hover:text-slate-600 font-semibold cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {/* Scrollable Checklist */}
+                <div className="rounded-xl border border-slate-200 p-3 max-h-28 overflow-y-auto space-y-2 bg-white">
+                  {matchingUsers.length === 0 ? (
+                    <span className="text-slate-400 text-xs block text-center py-2">No matching employees found.</span>
                   ) : (
-                    filteredUsers.map(user => (
-                      <div key={user.id} className="flex items-center gap-3">
+                    matchingUsers.map(user => (
+                      <div key={user.id} className="flex items-center gap-2.5">
                         <input
                           type="checkbox"
                           id={`user-${user.id}`}
@@ -247,7 +314,7 @@ export default function Schedulemeeting({ onSchedule }) {
                         />
                         <label
                           htmlFor={`user-${user.id}`}
-                          className="text-sm font-normal text-slate-700 cursor-pointer select-none"
+                          className="text-xs font-normal text-slate-700 cursor-pointer select-none"
                         >
                           {user.name} ({user.role === 'User' || !user.role ? 'Employee' : user.role})
                         </label>
@@ -257,10 +324,10 @@ export default function Schedulemeeting({ onSchedule }) {
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-1">
                 <button
                   type="submit"
-                  className="w-full rounded-xl bg-[#0010AE] hover:bg-blue-800 py-3.5 text-white font-bold text-center transition shadow-md text-sm tracking-wide cursor-pointer"
+                  className="w-full rounded-xl bg-[#0010AE] hover:bg-blue-800 py-3 text-white font-bold text-center transition shadow-md text-sm tracking-wide cursor-pointer"
                 >
                   Schedule Meeting
                 </button>

@@ -207,28 +207,6 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
                   {displayUser.role || currentUser.role}
                 </span>
               </div>
-
-              {/* Demo switcher */}
-              <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--secondary)' }}>
-                <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-                  Demo: Switch Persona
-                </div>
-                <select
-                  value={currentUser.id}
-                  onChange={handleUserChange}
-                  style={{
-                    width: '100%', padding: '6px', borderRadius: '6px',
-                    border: '1px solid var(--border)', fontSize: '0.8rem',
-                    outline: 'none', cursor: 'pointer',
-                    backgroundColor: 'var(--background)', color: 'var(--foreground)'
-                  }}
-                >
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-                  ))}
-                </select>
-              </div>
-
               {/* Settings */}
               <button
                 onClick={() => { setCurrentPage('settings'); setShowProfileMenu(false); }}

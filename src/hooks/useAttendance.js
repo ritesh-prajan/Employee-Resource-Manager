@@ -1,40 +1,17 @@
 /**
  * @file useAttendance.js
- * @description Domain hook for tracking clock status, break records, and general check-in history.
+ * @description Domain hook for tracking clock status, break records, and general check-in history, using purely local state.
  */
 
-import { useState, useMemo, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { attendanceService } from '../services/attendanceService';
+import { useState, useCallback } from 'react';
 
-export const ATTENDANCE_KEY = ['attendanceHistory'];
-
-export function useAttendance({ currentUser, enabled = true } = {}) {
-  const queryClient = useQueryClient();
-  const [localAttendance, setLocalAttendance] = useState([]);
-
-  const query = useQuery({
-    queryKey: ATTENDANCE_KEY,
-    queryFn: async () => {
-      try {
-        return await attendanceService.getAll();
-      } catch (err) {
-        console.error("attendanceService.getAll failed, utilizing mock database fallback:", err);
-        return null;
-      }
-    },
-    enabled
-  });
-
-  const attendanceHistory = useMemo(() => {
-    if (query.data && query.data.length > 0) return query.data;
-    return localAttendance;
-  }, [query.data, localAttendance]);
+export function useAttendance() {
+  const [attendanceHistory, setAttendanceHistory] = useState([]);
 
   const clockInAttendance = useCallback((employeeId) => {
     const todayStr = new Date().toISOString().split('T')[0];
     
-    setLocalAttendance(prev => {
+    setAttendanceHistory(prev => {
       const alreadyExists = prev.some(a => String(a.employeeId) === String(employeeId) && a.date === todayStr);
       if (alreadyExists) {
         return prev.map(a => {
@@ -58,15 +35,11 @@ export function useAttendance({ currentUser, enabled = true } = {}) {
         }, ...prev];
       }
     });
-
-    attendanceService.clockIn(employeeId).catch(err => {
-      console.error("Failed to clock in on backend attendanceService:", err);
-    });
   }, []);
 
   const toggleBreakAttendance = useCallback((employeeId, isBreakStart, now, diffMinutes, breakEnd, breakStart) => {
     const todayStr = new Date().toISOString().split('T')[0];
-    setLocalAttendance(prev => 
+    setAttendanceHistory(prev => 
       prev.map(a => {
         if (String(a.employeeId) === String(employeeId) && a.date === todayStr) {
           if (isBreakStart) {
@@ -92,7 +65,7 @@ export function useAttendance({ currentUser, enabled = true } = {}) {
   const clockOutAttendance = useCallback((employeeId, displayEndTime) => {
     const todayStr = new Date().toISOString().split('T')[0];
 
-    setLocalAttendance(prev => 
+    setAttendanceHistory(prev => 
       prev.map(a => {
         if (String(a.employeeId) === String(employeeId) && a.date === todayStr) {
           const checkIn = new Date(a.clockIn);
@@ -108,33 +81,32 @@ export function useAttendance({ currentUser, enabled = true } = {}) {
         return a;
       })
     );
-
-    attendanceService.clockOut(employeeId).catch(err => {
-      console.error("Failed to clock out on backend attendanceService:", err);
-    });
   }, []);
 
   const autoClockInOnLogin = useCallback((user) => {
     if (user.role === 'Employee' || user.role === 'Team Lead' || user.role === 'Sub Lead') {
       const todayStr = new Date().toISOString().split('T')[0];
-      const alreadyClockedIn = attendanceHistory.some(a => String(a.employeeId) === String(user.id) && a.date === todayStr);
-      if (!alreadyClockedIn) {
-        const newAtt = {
-          id: `att-${Date.now()}`,
-          employeeId: user.id,
-          date: todayStr,
-          clockIn: new Date().toISOString(),
-          clockOut: null,
-          totalWorkHours: "0.00",
-          totalBreakHours: "0.00",
-          status: "Present",
-          clockStatus: "Offline",
-          breaks: []
-        };
-        setLocalAttendance(prev => [newAtt, ...prev]);
-      }
+      setAttendanceHistory(prev => {
+        const alreadyClockedIn = prev.some(a => String(a.employeeId) === String(user.id) && a.date === todayStr);
+        if (!alreadyClockedIn) {
+          const newAtt = {
+            id: `att-${Date.now()}`,
+            employeeId: user.id,
+            date: todayStr,
+            clockIn: new Date().toISOString(),
+            clockOut: null,
+            totalWorkHours: "0.00",
+            totalBreakHours: "0.00",
+            status: "Present",
+            clockStatus: "Offline",
+            breaks: []
+          };
+          return [newAtt, ...prev];
+        }
+        return prev;
+      });
     }
-  }, [attendanceHistory]);
+  }, []);
 
   return {
     attendanceHistory,
@@ -142,6 +114,6 @@ export function useAttendance({ currentUser, enabled = true } = {}) {
     toggleBreakAttendance,
     clockOutAttendance,
     autoClockInOnLogin,
-    setAttendanceHistory: setLocalAttendance
+    setAttendanceHistory
   };
 }

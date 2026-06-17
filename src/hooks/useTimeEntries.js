@@ -1,13 +1,9 @@
 /**
  * @file useTimeEntries.js
- * @description Domain hook for employee daily time logs and weekly timesheet compliance reports.
+ * @description Domain hook for employee daily time logs and weekly timesheet compliance reports, using purely local state.
  */
 
-import { useState, useMemo, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { timesheetService } from '../services/timesheetService';
-
-export const TIME_ENTRIES_KEY = ['timeEntries'];
+import { useState, useCallback } from 'react';
 
 export function useTimeEntries({
   currentUser,
@@ -15,58 +11,10 @@ export function useTimeEntries({
   users = [],
   teams = [],
   onUpdateTaskStatus,
-  onAddNotification,
-  enabled = true
+  onAddNotification
 } = {}) {
-  const queryClient = useQueryClient();
-  const [localEntries, setLocalEntries] = useState([]);
+  const [timeEntries, setTimeEntries] = useState([]);
   const [reports, setReports] = useState([]);
-
-  // Fetch remote entries using TanStack Query, fall back gracefully to local state on 404
-  const query = useQuery({
-    queryKey: TIME_ENTRIES_KEY,
-    queryFn: async () => {
-      try {
-        return await timesheetService.getAll();
-      } catch (err) {
-        console.error("timesheetService.getAll failed, using mock database fallback:", err);
-        return null;
-      }
-    },
-    enabled
-  });
-
-  const timeEntries = useMemo(() => {
-    if (query.data && query.data.length > 0) {
-      return query.data;
-    }
-    return localEntries;
-  }, [query.data, localEntries]);
-
-  // Mutations
-  const createMutation = useMutation({
-    mutationFn: (entryData) => timesheetService.create(entryData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TIME_ENTRIES_KEY });
-    },
-    onError: (err) => console.error("Failed to create timesheet on backend:", err)
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id) => timesheetService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TIME_ENTRIES_KEY });
-    },
-    onError: (err) => console.error("Failed to delete timesheet on backend:", err)
-  });
-
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status, comment }) => timesheetService.updateStatus(id, status, comment),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TIME_ENTRIES_KEY });
-    },
-    onError: (err) => console.error("Failed to update timesheet status on backend:", err)
-  });
 
   const addManualEntry = useCallback((entryData) => {
     const duration = parseFloat(entryData.duration) || 0.5;
@@ -105,22 +53,19 @@ export function useTimeEntries({
       }
     }
 
-    setLocalEntries(prev => [newEntry, ...prev]);
-    createMutation.mutate(newEntry);
-  }, [currentUser, tasks, onUpdateTaskStatus, createMutation]);
+    setTimeEntries(prev => [newEntry, ...prev]);
+  }, [currentUser, tasks, onUpdateTaskStatus]);
 
   const deleteTimeEntry = useCallback((entryId) => {
-    setLocalEntries(prev => prev.filter(e => e.id !== entryId));
-    deleteMutation.mutate(entryId);
-  }, [deleteMutation]);
+    setTimeEntries(prev => prev.filter(e => e.id !== entryId));
+  }, []);
 
   const editTimeEntry = useCallback((entryId, updatedData) => {
-    setLocalEntries(prev => prev.map(e => e.id === entryId ? { ...e, ...updatedData } : e));
-    // Note: backend doesn't have timesheet full update endpoint, so we update locally.
+    setTimeEntries(prev => prev.map(e => e.id === entryId ? { ...e, ...updatedData } : e));
   }, []);
 
   const updateEntryStatus = useCallback((entryId, status, comment = '') => {
-    setLocalEntries(prev => 
+    setTimeEntries(prev => 
       prev.map(e => {
         if (e.id === entryId) {
           const wasPendingOrApproved = e.status === 'Pending' || e.status === 'Approved';
@@ -162,15 +107,13 @@ export function useTimeEntries({
         return e;
       })
     );
-
-    updateStatusMutation.mutate({ id: entryId, status, comment });
-  }, [tasks, onUpdateTaskStatus, onAddNotification, updateStatusMutation]);
+  }, [tasks, onUpdateTaskStatus, onAddNotification]);
 
   const revertEntryStatus = useCallback((entryId) => {
     const entry = timeEntries.find(e => e.id === entryId);
     if (!entry) return;
 
-    setLocalEntries(prev => 
+    setTimeEntries(prev => 
       prev.map(e => e.id === entryId ? { ...e, status: 'Pending', managerComment: '' } : e)
     );
 
@@ -178,7 +121,6 @@ export function useTimeEntries({
     const taskObj = tasks.find(t => t.id === entry.taskId);
     const taskName = taskObj ? taskObj.name : "timesheet entry";
 
-    // 1. Send notification to the employee
     if (onAddNotification) {
       onAddNotification({
         id: `notif-${Date.now()}-${entry.userId}`,
@@ -193,7 +135,6 @@ export function useTimeEntries({
         createdAt: new Date().toISOString()
       });
 
-      // 2. If the admin undid the task, ALSO notify the team lead
       if (currentUser && currentUser.role === 'Admin') {
         const employeeTeams = teams.filter(t => t.members.includes(entry.userId));
         employeeTeams.forEach(team => {
@@ -214,13 +155,10 @@ export function useTimeEntries({
         });
       }
     }
-
-    updateStatusMutation.mutate({ id: entryId, status: 'Pending', comment: '' });
-  }, [timeEntries, users, tasks, currentUser, teams, onAddNotification, updateStatusMutation]);
+  }, [timeEntries, users, tasks, currentUser, teams, onAddNotification]);
 
   // Timesheet Report Management
   const submitTimesheetReport = useCallback((userId, totalHours) => {
-    const todayStr = new Date().toISOString().split('T')[0];
     const existingIdx = reports.findIndex(r => r.userId === userId && r.weekStartDate === '2026-05-25');
     
     if (existingIdx > -1) {
@@ -282,7 +220,7 @@ export function useTimeEntries({
 
   return {
     timeEntries,
-    setTimeEntries: setLocalEntries,
+    setTimeEntries,
     reports,
     addManualEntry,
     deleteTimeEntry,

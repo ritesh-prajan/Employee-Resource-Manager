@@ -1,43 +1,12 @@
 /**
  * @file useMeetings.js
- * @description Domain hook for scheduled sync sessions, using TanStack Query for remote actions with local state fallback.
+ * @description Domain hook for scheduled sync sessions (Link Room), using purely local state.
  */
 
-import { useState, useMemo, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { meetingService } from '../services/meetingService';
+import { useState, useCallback } from 'react';
 
-export const MEETINGS_KEY = ['meetings'];
-
-export function useMeetings({ currentUser, onAddNotification, enabled = true } = {}) {
-  const queryClient = useQueryClient();
-  const [localMeetings, setLocalMeetings] = useState([]);
-
-  const query = useQuery({
-    queryKey: MEETINGS_KEY,
-    queryFn: async () => {
-      try {
-        return await meetingService.getAll();
-      } catch (err) {
-        console.error("meetingService.getAll failed, utilizing mock database fallback:", err);
-        return null;
-      }
-    },
-    enabled
-  });
-
-  const meetings = useMemo(() => {
-    if (query.data && query.data.length > 0) return query.data;
-    return localMeetings;
-  }, [query.data, localMeetings]);
-
-  const createMeetingMutation = useMutation({
-    mutationFn: (meetData) => meetingService.create(meetData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: MEETINGS_KEY });
-    },
-    onError: (err) => console.error("Failed to create meeting on backend:", err)
-  });
+export function useMeetings({ currentUser, onAddNotification } = {}) {
+  const [meetings, setMeetings] = useState([]);
 
   const createMeeting = useCallback((meetData) => {
     const newMeet = {
@@ -56,8 +25,7 @@ export function useMeetings({ currentUser, onAddNotification, enabled = true } =
       projectId: meetData.projectId || null
     };
 
-    setLocalMeetings(prev => [...prev, newMeet]);
-    createMeetingMutation.mutate(newMeet);
+    setMeetings(prev => [...prev, newMeet]);
 
     // Send notifications to participants
     if (onAddNotification && meetData.participants) {
@@ -76,7 +44,7 @@ export function useMeetings({ currentUser, onAddNotification, enabled = true } =
         });
       });
     }
-  }, [currentUser, onAddNotification, createMeetingMutation]);
+  }, [currentUser, onAddNotification]);
 
   return {
     meetings,

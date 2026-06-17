@@ -3,7 +3,6 @@ import { useAuth as useAuthContext } from './AuthContext';
 
 import { teamService } from '../services/teamService';
 import { projectService } from '../services/projectService';
-import { timesheetService } from '../services/timesheetService';
 
 import { useEmployees } from '../hooks/useEmployees';
 import { useTeams } from '../hooks/useTeams';
@@ -207,11 +206,8 @@ export const AppProvider = ({ children }) => {
       justification
     };
 
-    // Save locally and hit backend service
+    // Save locally
     timeEntriesHook.setTimeEntries(prev => [newEntry, ...prev]);
-    timesheetService.create(newEntry).catch(err => {
-      console.error("Failed to save timesheet entry on clockOut:", err);
-    });
 
     // Update task status on backend if status is Open
     const activeTaskObj = tasks.find(t => t.id === timerState.taskId);

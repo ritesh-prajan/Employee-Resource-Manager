@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, ChevronDown, X } from 'lucide-react';
 
-export default function SearchableSelect({ options, value, onChange, placeholder, style, creatable }) {
+export default function SearchableSelect({ options, value, onChange, placeholder, style, creatable, inputStyle, className }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const wrapperRef = useRef(null);
@@ -23,11 +23,13 @@ export default function SearchableSelect({ options, value, onChange, placeholder
     <div ref={wrapperRef} style={{ position: 'relative', minWidth: '150px', ...style }}>
       <div 
         onClick={() => setIsOpen(!isOpen)}
+        className={className}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0.45rem 0.75rem', fontSize: '0.75rem', height: '100%', minHeight: '32px',
           backgroundColor: 'var(--bg-ring)', border: '1px solid var(--border-color)', borderRadius: '6px',
-          cursor: 'pointer'
+          cursor: 'pointer',
+          ...inputStyle
         }}
       >
         <span style={{ color: (selectedOption || value) ? 'var(--foreground)' : 'var(--muted-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

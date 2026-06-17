@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { CirclePlus, ChevronUp, Search } from "lucide-react";
 import { useApp } from "../../context/AppContext";
+import SearchableSelect from "../ui/SearchableSelect";
 
 export default function Schedulemeeting({ onSchedule }) {
   const [open, setOpen] = useState(false);
@@ -102,6 +103,16 @@ export default function Schedulemeeting({ onSchedule }) {
       checkboxRef.current.indeterminate = isSomeSelected;
     }
   }, [isSomeSelected]);
+
+  const projectOptions = projects.map(p => ({
+    value: String(p.id),
+    label: p.name
+  }));
+
+  const taskOptions = tasks.map(t => ({
+    value: String(t.id),
+    label: t.taskNumber ? `${t.taskNumber}: ${t.name || t.title}` : (t.name || t.title)
+  }));
 
   return (
     <>
@@ -221,34 +232,46 @@ export default function Schedulemeeting({ onSchedule }) {
                   <label className="mb-1 block font-semibold text-sm text-slate-700">
                     Link Project (Optional)
                   </label>
-                  <select
-                    className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                  <SearchableSelect
+                    options={projectOptions}
                     value={selectedProject}
-                    onChange={(e) => setSelectedProject(e.target.value)}
-                  >
-                    <option value="">None / General Sync</option>
-                    {projects.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+                    onChange={setSelectedProject}
+                    placeholder="None / General Sync"
+                    style={{ width: '100%' }}
+                    className="w-full rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                    inputStyle={{
+                      padding: '0.625rem 0.875rem',
+                      fontSize: '0.875rem',
+                      backgroundColor: '#F0F2F5',
+                      borderRadius: '0.75rem',
+                      border: '1px solid #E2E8F0',
+                      height: 'auto',
+                      minHeight: '40px'
+                    }}
+                  />
                 </div>
 
                 <div className="form-group">
                   <label className="mb-1 block font-semibold text-sm text-slate-700">
                     Link Task (Optional)
                   </label>
-                  <select
-                    className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                  <SearchableSelect
+                    options={taskOptions}
                     value={selectedTask}
-                    onChange={(e) => setSelectedTask(e.target.value)}
-                  >
-                    <option value="">None</option>
-                    {tasks.map(t => (
-                      <option key={t.id} value={t.id}>
-                        {t.taskNumber ? `${t.taskNumber}: ` : ''}{t.name || t.title}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedTask}
+                    placeholder="None"
+                    style={{ width: '100%' }}
+                    className="w-full rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                    inputStyle={{
+                      padding: '0.625rem 0.875rem',
+                      fontSize: '0.875rem',
+                      backgroundColor: '#F0F2F5',
+                      borderRadius: '0.75rem',
+                      border: '1px solid #E2E8F0',
+                      height: 'auto',
+                      minHeight: '40px'
+                    }}
+                  />
                 </div>
               </div>
 

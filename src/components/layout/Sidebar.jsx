@@ -19,9 +19,15 @@ import {
 import { useApp } from '../../context/AppContext';
 
 export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setIsCollapsed, isMobileSidebarOpen, setIsMobileSidebarOpen }) {
-  const { currentUser, notifications = [] } = useApp();
+  const { currentUser, users = [], notifications = [] } = useApp();
 
   if (!currentUser) return null;
+
+  const displayUser = users.find(u => 
+    String(u.id) === String(currentUser?.id) || 
+    (u.email && currentUser?.email && u.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+    (u.workEmail && currentUser?.email && u.workEmail.toLowerCase() === currentUser.email.toLowerCase())
+  ) || currentUser;
 
   const userNotifications = notifications.filter(n => n.recipientId === currentUser.id);
   const unreadCount = userNotifications.filter(n => !n.isRead).length;
@@ -263,15 +269,15 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
         gap: '8px'
       }}>
         <div className="user-initials-badge" style={{ width: '28px', height: '28px', fontSize: '0.7rem' }}>
-          {getInitials(currentUser.name)}
+          {getInitials(displayUser.name)}
         </div>
         {!isCollapsed && (
           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {currentUser.name}
+              {displayUser.name}
             </span>
             <span style={{ fontSize: '0.65rem', color: 'var(--muted-foreground)' }}>
-              {isEmployeeMode ? 'Employee view' : `${currentUser.role} mode`}
+              {isEmployeeMode ? 'Employee view' : `${displayUser.role} mode`}
             </span>
           </div>
         )}

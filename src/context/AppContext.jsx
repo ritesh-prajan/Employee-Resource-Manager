@@ -226,7 +226,26 @@ export const AppProvider = ({ children }) => {
           permission:  authUser?.permission  || currentUser.permission  || [],
           components:  authUser?.components  || currentUser.components  || [],
         };
-        if (JSON.stringify(merged) !== JSON.stringify(currentUser)) {
+        
+        // Property-by-property difference check to prevent infinite loops from key-order differences
+        const isDifferent =
+          merged.id !== currentUser.id ||
+          merged.name !== currentUser.name ||
+          merged.email !== currentUser.email ||
+          merged.workEmail !== currentUser.workEmail ||
+          merged.employee_code !== currentUser.employee_code ||
+          merged.phone !== currentUser.phone ||
+          merged.personalEmail !== currentUser.personalEmail ||
+          merged.designation !== currentUser.designation ||
+          merged.department !== currentUser.department ||
+          merged.avatar !== currentUser.avatar ||
+          merged.profileImage !== currentUser.profileImage ||
+          merged.status !== currentUser.status ||
+          merged.role !== currentUser.role ||
+          JSON.stringify(merged.roles) !== JSON.stringify(currentUser.roles) ||
+          JSON.stringify(merged.permissions) !== JSON.stringify(currentUser.permissions);
+
+        if (isDifferent) {
           setCurrentUser(merged);
         }
       }

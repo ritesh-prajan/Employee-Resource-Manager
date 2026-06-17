@@ -30,7 +30,7 @@ export default function TaskDetailPanel({
 
   const proj = projects.find(p => p.id === task.projectId);
   const assignee = users.find(u => u.id === task.assignedTo);
-  const comments = (taskComments[task.id] || []);
+  const comments = task.comments || (taskComments && taskComments[task.id]) || [];
   const isMyTask = task.assignedTo === currentUser.id;
   const isActive = timerState.isClockedIn && timerState.taskId === task.id;
   const isOverrun = checkTaskExceedsETA(task);

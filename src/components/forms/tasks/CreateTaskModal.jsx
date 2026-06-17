@@ -36,6 +36,21 @@ export default function CreateTaskModal({
       });
   }, [taskData.projectId]);
 
+  const generateNextTaskNumber = () => {
+    const numbers = tasks
+      .map(t => t.taskNumber)
+      .filter(n => n && /^TSK-\d+$/i.test(n))
+      .map(n => parseInt(n.split('-')[1], 10));
+    const next = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+    return `TASK-${String(next).padStart(3, '0')}`;
+  };
+
+  useEffect(() => {
+    if (show) {
+      setAssignForm(prev => ({ ...prev, taskNumber: generateNextTaskNumber() }));
+    }
+  }, [show]);
+
   const availableProjects = projects.filter(p => isAdmin || ledProjectIds.includes(p.id));
   const availableUsers = projectMembers;
 
@@ -54,7 +69,6 @@ export default function CreateTaskModal({
 
   const handleStage = (e) => {
     e?.preventDefault();
-    if (!assignForm.assignedTo) { alert("Please select an assignee."); return; }
     if (!assignForm.name.trim()) { alert("Please enter a task summary."); return; }
 
     if (assignForm.backlogTaskId) {
@@ -88,8 +102,7 @@ export default function CreateTaskModal({
       }]);
     }
 
-    setAssignForm(prev => ({ ...prev, name: '', backlogTaskId: '', eta: '8', assignedTo: '', taskNumber: '', etaDate: '', bugNumber: '' }));
-    setShowAssignForm(false);
+    setAssignForm(prev => ({ ...prev, name: '', backlogTaskId: '', eta: '8', assignedTo: '', taskNumber: generateNextTaskNumber(), etaDate: '', bugNumber: '' }));
     setShowBacklogDropdown(false);
   };
 
@@ -181,7 +194,7 @@ export default function CreateTaskModal({
                             ...prev,
                             name: val,
                             backlogTaskId: '', // clear backlog association on typing custom summary
-                            taskNumber: ''     // clear task number to let user input it
+                            taskNumber: generateNextTaskNumber()
                           }));
                         }}
                         onFocus={() => setIsSummaryFocused(true)}

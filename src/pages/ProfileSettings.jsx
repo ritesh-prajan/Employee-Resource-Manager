@@ -153,7 +153,7 @@ function ChangePasswordBlock({ currentUser, editEmployee, verifyPassword }) {
 
 // ─── Main page ──────────────────────────────────────────────────────────────
 export default function ProfileSettings() {
-    const { currentUser, editEmployee, verifyPassword, users } = useApp();
+    const { currentUser, editEmployee, verifyPassword, users, pageZoom, setPageZoom } = useApp();
     const { theme, toggleTheme } = useTheme();
 
     // Resolve full profile from the employees list — currentUser right after login
@@ -441,6 +441,35 @@ export default function ProfileSettings() {
               <label>
                 Yes 
               </label>
+            </div>
+
+            {/* Page Zoom */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Page Zoom
+                </label>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                  {Math.round(pageZoom * 100)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.7"
+                max="1.3"
+                step="0.05"
+                value={pageZoom}
+                onChange={(e) => setPageZoom(parseFloat(e.target.value))}
+                style={{
+                  width: '100%',
+                  accentColor: 'var(--primary)',
+                  cursor: 'pointer',
+                  height: '6px',
+                  borderRadius: '3px',
+                  backgroundColor: 'var(--border)',
+                  outline: 'none'
+                }}
+              />
             </div>
 
             {/* Theme toggle */}

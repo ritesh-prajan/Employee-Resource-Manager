@@ -25,7 +25,6 @@ export default function TeamsDetailsModal({ isOpen, onClose, team, users = [], t
 
   const activeTasks = (userId) =>
     tasks.filter(t => t.assignedTo === userId && t.status !== 'Completed' && t.status !== 'Cancelled').length;
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="850px">
       {/* Header */}
@@ -70,6 +69,35 @@ export default function TeamsDetailsModal({ isOpen, onClose, team, users = [], t
           )}
         </div>
 
+        {/* Sub Lead */}
+        <div>
+          <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.5rem' }}>
+            Sub Lead
+          </span>
+          {subLead ? (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              padding: '0.65rem 0.85rem', borderRadius: '10px',
+              backgroundColor: 'var(--secondary)', border: '1px solid var(--border)',
+            }}>
+              <div className="user-initials-badge" style={{ width: 36, height: 36, fontSize: '0.85rem', flexShrink: 0 }}>
+                {getInitials(subLead.name)}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>{subLead.name}</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>{subLead.role} · {subLead.department}</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--muted-foreground)' }}>{subLead.email}</div>
+              </div>
+              <span style={{
+                fontSize: '0.62rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px',
+                backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)',
+              }}>SUB LEAD</span>
+            </div>
+          ) : (
+            <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>No sub lead assigned</span>
+          )}
+        </div>
+
         {/* Members */}
         <div>
           <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.5rem' }}>
@@ -79,8 +107,12 @@ export default function TeamsDetailsModal({ isOpen, onClose, team, users = [], t
             {teamMembers.length === 0 ? (
               <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>No members in this team yet.</span>
             ) : teamMembers.map(m => {
-              const count = activeTasks(m.id);
-              return (
+                const count = activeTasks(m.id);
+                const roleInThisTeam =
+                  String(m.id) === String(team.leadId) ? 'Team Lead' :
+                  String(m.id) === String(team.subLeadId) ? 'Sub Lead' :
+                  'Member';
+                return (
                 <div key={m.id} style={{
                   display: 'flex', alignItems: 'center', gap: '0.75rem',
                   padding: '0.6rem 0.85rem', borderRadius: '10px',
@@ -91,7 +123,7 @@ export default function TeamsDetailsModal({ isOpen, onClose, team, users = [], t
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>{m.name}</div>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--muted-foreground)' }}>{m.role} · {m.department}</div>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--muted-foreground)' }}>{roleInThisTeam} · {m.department}</div>
                   </div>
                   <span style={{
                     fontSize: '0.62rem', fontWeight: 700, padding: '2px 7px', borderRadius: '10px',

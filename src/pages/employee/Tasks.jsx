@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, AlertTriangle, Filter } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Filter, Pencil, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import ETAExtensionModal from '../../components/forms/tasks/ETAExtensionModal';
 import CreateBacklogTaskModal from '../../components/forms/tasks/CreateBacklogTaskModal';
@@ -27,7 +27,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const ledMemberIds = new Set(ledTeams.flatMap(t => t.members));
   const ledTeamIds = ledTeams.map(t => t.id);
   const ledProjectIds = projects ? projects.filter(p => (p.teams || []).some(tId => ledTeamIds.includes(tId))).map(p => p.id) : [];
-
+  
   const [scope, setScope] = useState(initialScope || (isLeader ? 'all' : 'my'));
   React.useEffect(() => { if (initialScope) setScope(initialScope); }, [initialScope]);
 
@@ -371,8 +371,47 @@ export default function Tasks({ setCurrentPage, initialScope }) {
         );
       },
     },
-  ], [projects, users]);
+    {
+      id: 'actions',
+      header: 'ACTIONS',
+      cell: ({ row }) => {
+        const task = row.original;
+        return (
+          <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+            {isLeader && (
+              <button
+                onClick={() => { setEditingTask(task); setShowEditTaskModal(true); }}
+                title="Edit"
+                style={{ background: 'color-mix(in oklch, var(--chart-1) 8%, transparent)', border: 'none', color: 'var(--chart-1)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--chart-1) 15%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--chart-1) 8%, transparent)'}
+              ><Pencil size={14} /></button>
+            )}
 
+            {isAdmin && (
+              <button
+                onClick={() => { if (window.confirm(`Delete task "${task.name}"?`)) deleteTask(task.id); }}
+                title="Delete"
+                style={{ background: 'color-mix(in oklch, var(--destructive) 8%, transparent)', border: 'none', color: 'var(--destructive)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 15%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 8%, transparent)'}
+              ><Trash2 size={14} /></button>
+            )}
+
+            {scope === 'backlog' && !isLeader && (
+              <button
+                onClick={() => { if (window.confirm(`Claim "${task.name}"?`)) claimBacklogTask(task.id); }}
+                title="Claim Task"
+                style={{ background: 'color-mix(in oklch, #22c55e 8%, transparent)', border: 'none', color: '#22c55e', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700 }}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, #22c55e 15%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, #22c55e 15%, transparent)'}
+              ><Plus size={14} /> Claim</button>
+            )}
+          </div>
+        );
+      },
+    },
+  ], [projects, users, isAdmin, isLeader, scope]);
   return (
     <div className="tasks-page-container">
       <div className="tasks-toolbar-wrapper">

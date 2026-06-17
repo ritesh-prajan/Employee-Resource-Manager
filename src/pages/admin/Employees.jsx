@@ -9,11 +9,10 @@ import AddEmployeeModal from '../../components/forms/admin/employee/AddEmployeeM
 import EditEmployeeModal from '../../components/forms/admin/employee/EditEmployeeModal';
 import AssignTaskModal from '../../components/forms/admin/employee/AssignTaskModal';
 import ViewProfileModal from '../../components/forms/admin/employee/ViewProfileModal';
+import ReassignLeadModal from '../../components/forms/admin/employee/ReassignLeadModal';
 
 export default function EmployeesPage() {
-  const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee, currentUser, createTask, editTask, employeesLoading, employeesError } = useApp();
-
-  const [searchQuery, setSearchQuery] = useState('');
+const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee, editTeam, currentUser, createTask, editTask, employeesLoading, employeesError } = useApp();   const [searchQuery, setSearchQuery] = useState('');
   const [filterProjectBy, setFilterProjectBy] = useState('');
   const [filterTeamBy, setFilterTeamBy] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -26,6 +25,8 @@ export default function EmployeesPage() {
   const [editingUser, setEditingUser] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileUser, setProfileUser] = useState(null);
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [reassignTarget, setReassignTarget] = useState(null);
   const [empData, setEmpData] = useState({
     name: '', employee_code: '', email: '', personalEmail: '',
     phone: '', password: '', designation: '', role: 'Employee', teams: [], projects: []
@@ -127,7 +128,7 @@ export default function EmployeesPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <UserAvatar name={user.name} size={36} />
             <span
-              style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--foreground)', cursor: 'pointer' }}
+              style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--foreground)', cursor: 'pointer',whiteSpace: 'normal'}}
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.textDecoration = 'underline'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--foreground)'; e.currentTarget.style.textDecoration = 'none'; }}
               onClick={() => { setProfileUser(user); setShowProfileModal(true); }}
@@ -238,15 +239,23 @@ export default function EmployeesPage() {
 
               <button
                 onClick={async () => {
-                  if (window.confirm(`Remove ${user.name}?`)) {
-                    try {
-                      await deleteEmployee(user.id, 'Removed by admin');
-                    } catch (err) {
+                  const isLead = teams.some(
+                    t => String(t.leadId) === String(user.id) || String(t.subLeadId) === String(user.id)
+                  );
+                  if (isLead) {
+                    setReassignTarget(user);
+                    setShowReassignModal(true);
+                  } else {
+                    if (window.confirm(`Remove ${user.name}?`)) {
                       try {
-                        const parsed = JSON.parse(err.message);
-                        alert(parsed.message || 'Failed to delete employee.');
-                      } catch {
-                        alert(err.message || 'Failed to delete employee.');
+                        await deleteEmployee(user.id, 'Removed by admin');
+                      } catch (err) {
+                        try {
+                          const parsed = JSON.parse(err.message);
+                          alert(parsed.message || 'Failed to delete employee.');
+                        } catch {
+                          alert(err.message || 'Failed to delete employee.');
+                        }
                       }
                     }
                   }
@@ -273,7 +282,7 @@ export default function EmployeesPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--canvas)', padding: '0', zoom: 0.9 }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--canvas)', padding: '0', zoom: 'var(--page-zoom, 0.9)' }}>
       {employeesError && (
         <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '0.75rem', backgroundColor: 'color-mix(in oklch, var(--destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--destructive) 30%, transparent)', color: 'var(--destructive)', fontSize: '0.875rem' }}>
           ⚠️ Could not load employees from server: {employeesError}. Showing cached data.
@@ -318,6 +327,20 @@ export default function EmployeesPage() {
       <EditEmployeeModal show={showEditModal} onClose={() => { setShowEditModal(false); setEditingUser(null); }} user={editingUser} users={users} teams={teams} projects={projects} onSubmit={handleEditSubmit} />
       <AssignTaskModal show={showAssignModal} onClose={() => { setShowAssignModal(false); setAssigneeForTask(null); }} assignee={assigneeForTask} tasks={tasks} projects={projects} onSubmit={createTask} onAssignExisting={editTask} />
       <ViewProfileModal show={showProfileModal} onClose={() => { setShowProfileModal(false); setProfileUser(null); }} user={profileUser} users={users} teams={teams} projects={projects} />
+      <ReassignLeadModal show={showReassignModal} onClose={() => { setShowReassignModal(false); setReassignTarget(null); }} employee={reassignTarget} teams={teams} users={users} 
+      onSave={async (assignments) => {
+        await Promise.all(
+          Object.entries(assignments).map(([teamId, { leadId, subLeadId }]) => {
+            const team = teams.find(t => String(t.id) === String(teamId));
+            return editTeam(teamId, { ...team, leadId, subLeadId });
+          })
+        );
+        // Now safe to delete
+        await deleteEmployee(reassignTarget.id, 'Removed by admin');
+        setShowReassignModal(false);
+        setReassignTarget(null);
+      }}
+    />
     </div>
   );
 }

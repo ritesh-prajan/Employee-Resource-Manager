@@ -103,6 +103,16 @@ export const AppProvider = ({ children }) => {
   // Theme State
   const [theme, setTheme] = useState('light');
 
+  // Zoom State
+  const [pageZoom, setPageZoom] = useState(() => {
+    return parseFloat(localStorage.getItem('page-zoom') || '0.9');
+  });
+
+  useEffect(() => {
+    localStorage.setItem('page-zoom', pageZoom.toString());
+    document.documentElement.style.setProperty('--page-zoom', pageZoom.toString());
+  }, [pageZoom]);
+
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -137,9 +147,12 @@ export const AppProvider = ({ children }) => {
       if (user.role === 'Admin') return user;
       const leadsAnyTeam = teams.some(t => t.leadId === user.id);
       const subLeadsAnyTeam = teams.some(t => t.subLeadId === user.id);
-      const targetRole = leadsAnyTeam || user.role === 'Team Lead'
+// In AppContext.jsx, inside the users useMemo
+      const targetRole = leadsAnyTeam
         ? 'Team Lead'
-        : (subLeadsAnyTeam || user.role === 'Sub Lead' ? 'Sub Lead' : 'Employee');
+        : subLeadsAnyTeam
+          ? 'Sub Lead'
+          : 'Employee';
       if (user.role !== targetRole) {
         changed = true;
         return { ...user, role: targetRole };
@@ -1640,7 +1653,9 @@ const editProject = async (projectId, updatedData) => {
         editTask,
         editEmployee,
         editTimeEntry,
-        getAdjustedProjectColor
+        getAdjustedProjectColor,
+        pageZoom,
+        setPageZoom
       }}
     >
       {children}

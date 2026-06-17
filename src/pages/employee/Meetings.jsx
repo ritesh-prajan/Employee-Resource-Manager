@@ -199,7 +199,7 @@ export default function Meetings() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', backgroundColor: 'var(--canvas)', zoom: '0.9' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', backgroundColor: 'var(--canvas)', zoom: 'var(--page-zoom, 0.9)' }}>
       
       {/* Search and Schedule Header Div */}
       <div style={{ borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem' }}>

@@ -139,9 +139,6 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
           <button className={`sidebar-link ${currentPage === 'lead-approvals' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-approvals')} style={getLinkStyle()} title={isCollapsed ? 'Approvals' : undefined}>
             <UserCheck size={18} />{!isCollapsed && <span>Approvals</span>}
           </button>
-          <button className={`sidebar-link ${currentPage === 'lead-requests' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-requests')} style={getLinkStyle()} title={isCollapsed ? 'Requests' : undefined}>
-            <GitPullRequest size={18} />{!isCollapsed && <span>Requests</span>}
-          </button>
           <button className={`sidebar-link ${currentPage === 'lead-teams' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-teams')} style={getLinkStyle()} title={isCollapsed ? 'My Team' : undefined}>
             <Users size={18} />{!isCollapsed && <span>My Teams </span>}
           </button>
@@ -182,10 +179,6 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
         <button className={`sidebar-link ${currentPage === 'attendance' ? 'active' : ''}`} onClick={() => setCurrentPage('attendance')} style={getLinkStyle()} title={isCollapsed ? 'Attendance' : undefined}>
           <Fingerprint size={18} />{!isCollapsed && <span>Attendance</span>}
         </button>
-        <button className={`sidebar-link ${currentPage === 'backlog' ? 'active' : ''}`} onClick={() => setCurrentPage('backlog')} style={getLinkStyle()} title={isCollapsed ? 'Backlog' : undefined}>
-          <Archive size={18} />{!isCollapsed && <span>Backlog</span>}
-        </button>
-
         {renderSectionHeader('Communication')}
         <button className={`sidebar-link ${currentPage === 'meetings' ? 'active' : ''}`} onClick={() => setCurrentPage('meetings')} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
           <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
@@ -197,7 +190,6 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
           <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
         </button>
         {renderAlertsLink('alerts')}
-
         {renderSectionHeader('Account')}
         <button className={`sidebar-link ${currentPage === 'settings' ? 'active' : ''}`} onClick={() => setCurrentPage('settings')} style={getLinkStyle()} title={isCollapsed ? 'Profile' : undefined}>
           <User size={18} />{!isCollapsed && <span>Profile</span>}

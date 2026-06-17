@@ -1169,14 +1169,20 @@ export const AppProvider = ({ children }) => {
   try {
     const created = await mutateCreateTeam.mutateAsync(teamData);
     
+    // Automatically update lead user role to Team Lead in backend
+    if (teamData.leadId) {
+      const leadUser = rawUsers.find(u => String(u.id) === String(teamData.leadId));
+      if (leadUser && leadUser.role !== 'Team Lead' && leadUser.role !== 'Admin') {
+        await mutateUpdateEmployee.mutateAsync({ id: leadUser.id, data: { ...leadUser, role: 'Team Lead' } });
+      }
+    }
+    
     // Add members one by one after team is created
     if (teamData.members && teamData.members.length > 0) {
       for (const memberId of teamData.members) {
         await mutateAddTeamMember.mutateAsync({ teamId: created.id, userId: memberId });
       }
     }
-    
-    // members are added via mutateAddTeamMember in hook invalidations
   } catch (err) {
     console.error('Failed to create team:', err);
     alert('Failed to create team: ' + err.message);
@@ -1228,6 +1234,14 @@ export const AppProvider = ({ children }) => {
 const editTeam = async (teamId, updatedData) => {
   try {
     await mutateUpdateTeam.mutateAsync({ id: teamId, data: updatedData });
+
+    // Automatically update lead user role to Team Lead in backend
+    if (updatedData.leadId) {
+      const leadUser = rawUsers.find(u => String(u.id) === String(updatedData.leadId));
+      if (leadUser && leadUser.role !== 'Team Lead' && leadUser.role !== 'Admin') {
+        await mutateUpdateEmployee.mutateAsync({ id: leadUser.id, data: { ...leadUser, role: 'Team Lead' } });
+      }
+    }
 
     // Sync members: remove all then re-add
     const existingMembers = await teamService.getMembers(teamId);

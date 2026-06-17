@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, ChevronDown, X } from 'lucide-react';
 
-export default function SearchableSelect({ options, value, onChange, placeholder, style, creatable, inputStyle, className }) {
+export default function SearchableSelect({ options, value, onChange, placeholder, style, creatable, inputStyle, className, disabled }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const wrapperRef = useRef(null);
@@ -22,13 +22,14 @@ export default function SearchableSelect({ options, value, onChange, placeholder
   return (
     <div ref={wrapperRef} style={{ position: 'relative', minWidth: '150px', ...style }}>
       <div 
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
         className={className}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0.45rem 0.75rem', fontSize: '0.75rem', height: '100%', minHeight: '32px',
-          backgroundColor: 'var(--bg-ring)', border: '1px solid var(--border-color)', borderRadius: '6px',
-          cursor: 'pointer',
+          backgroundColor: disabled ? '#f1f5f9' : 'var(--bg-ring)', border: '1px solid var(--border-color)', borderRadius: '6px',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.7 : 1,
           ...inputStyle
         }}
       >
@@ -36,7 +37,7 @@ export default function SearchableSelect({ options, value, onChange, placeholder
           {selectedOption ? selectedOption.label : (value ? value : placeholder)}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          {value && (
+          {value && !disabled && (
             <X size={12} style={{ color: 'var(--muted-foreground)', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); onChange(''); }} />
           )}
           <ChevronDown size={14} style={{ color: 'var(--muted-foreground)' }} />

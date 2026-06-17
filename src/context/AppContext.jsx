@@ -317,10 +317,9 @@ export const AppProvider = ({ children }) => {
   })), [projects, theme]);
 
   const tasksWithLoggedHours = useMemo(() => tasks.map(t => {
-    const taskEntries = timeEntriesHook.timeEntries.filter(e => e.taskId === t.id);
-    const logged = taskEntries.length > 0
-      ? taskEntries.filter(e => e.status !== 'Rejected').reduce((sum, e) => sum + parseFloat(e.duration || 0), 0)
-      : (t.logged || 0);
+    const taskEntries = timeEntriesHook.timeEntries.filter(e => String(e.taskId) === String(t.id));
+    const sessionLogged = taskEntries.filter(e => e.status !== 'Rejected').reduce((sum, e) => sum + parseFloat(e.duration || 0), 0);
+    const logged = (t.logged || 0) + sessionLogged;
     return { ...t, logged: parseFloat(logged.toFixed(2)) };
   }), [tasks, timeEntriesHook.timeEntries]);
 

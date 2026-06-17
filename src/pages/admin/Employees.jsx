@@ -131,7 +131,7 @@ const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee
               style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--foreground)', cursor: 'pointer',whiteSpace: 'normal'}}
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.textDecoration = 'underline'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--foreground)'; e.currentTarget.style.textDecoration = 'none'; }}
-              onClick={() => { setProfileUser(user); setShowProfileModal(true); }}
+              onClick={(e) => { e.stopPropagation(); setProfileUser(user); setShowProfileModal(true); }}
             >
               {user.name}
             </span>
@@ -163,6 +163,7 @@ const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee
           <a href={`mailto:${email}`} style={{ fontSize: '0.875rem', color: 'var(--primary)', textDecoration: 'none' }}
             onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
             onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+            onClick={(e) => e.stopPropagation()}
           >{email}</a>
         );
       },
@@ -176,6 +177,7 @@ const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee
           ? <a href={`mailto:${val}`} style={{ fontSize: '0.875rem', color: 'var(--foreground)', textDecoration: 'none' }}
               onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
               onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+              onClick={(e) => e.stopPropagation()}
             >{val}</a>
           : <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>-</span>;
       },
@@ -221,7 +223,7 @@ const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee
         return (
           <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
             <button
-              onClick={() => handleOpenAssignModal(user)}
+              onClick={(e) => { e.stopPropagation(); handleOpenAssignModal(user); }}
               title="Assign Task"
               style={{ background: 'color-mix(in oklch, var(--primary) 8%, transparent)', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
               onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--primary) 15%, transparent)'}
@@ -230,7 +232,7 @@ const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee
 
             {user.id !== currentUser?.id && (<>
               <button
-                onClick={() => { setEditingUser({ ...user, designation: user.designation || '', personalEmail: user.personalEmail || '', phone: user.phone || '', password: user.password || '', teams: teams.filter(t => t.members.includes(user.id)).map(t => t.id), projects: projects.filter(p => p.members.includes(user.id)).map(p => p.id) }); setValidationError(''); setShowEditModal(true); }}
+                onClick={(e) => { e.stopPropagation(); setEditingUser({ ...user, designation: user.designation || '', personalEmail: user.personalEmail || '', phone: user.phone || '', password: user.password || '', teams: teams.filter(t => t.members.includes(user.id)).map(t => t.id), projects: projects.filter(p => p.members.includes(user.id)).map(p => p.id) }); setValidationError(''); setShowEditModal(true); }}
                 title="Edit"
                 style={{ background: 'color-mix(in oklch, var(--chart-1) 8%, transparent)', border: 'none', color: 'var(--chart-1)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--chart-1) 15%, transparent)'}
@@ -238,7 +240,8 @@ const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee
               ><Pencil size={14} /></button>
 
               <button
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.stopPropagation();
                   const isLead = teams.some(
                     t => String(t.leadId) === String(user.id) || String(t.subLeadId) === String(user.id)
                   );
@@ -320,7 +323,14 @@ const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee
         </div>
 
         {/* Table */}
-        <DataTable Data={filteredUsers} columns={columns} />
+        <DataTable
+          Data={filteredUsers}
+          columns={columns}
+          onRowClick={(user) => {
+            setProfileUser(user);
+            setShowProfileModal(true);
+          }}
+        />
       </div>
 
       <AddEmployeeModal show={showAddModal} onClose={() => setShowAddModal(false)} users={users} teams={teams} projects={projects} onSubmit={handleAddSubmit} />

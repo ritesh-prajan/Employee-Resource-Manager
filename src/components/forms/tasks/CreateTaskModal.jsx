@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Link2 } from 'lucide-react';
+import { Plus, Trash2, Link2, ChevronUp } from 'lucide-react';
 import { projectService } from '#services/projectService';
+import SearchableSelect from '../../ui/SearchableSelect';
 
 export default function CreateTaskModal({
   show, onClose, onSubmit,
@@ -54,9 +55,27 @@ export default function CreateTaskModal({
   const availableProjects = projects.filter(p => isAdmin || ledProjectIds.includes(p.id));
   const availableUsers = projectMembers;
 
+  const projectOptions = availableProjects.map(p => ({
+    value: String(p.id),
+    label: p.name.split(' (')[0]
+  }));
+
+  const assigneeOptions = availableUsers.map(u => ({
+    value: String(u.id),
+    label: `${u.name} — ${u.designation}`
+  }));
+
+  const handleProjectChange = (val) => {
+    setTaskData(prev => ({ ...prev, projectId: val }));
+  };
+
+  const handleAssigneeChange = (val) => {
+    setAssignForm(prev => ({ ...prev, assignedTo: val }));
+  };
+
   const backlogTasks = tasks.filter(t =>
     (!t.assignedTo || t.assignedTo === '') &&
-    (!taskData.projectId || t.projectId === taskData.projectId)
+    (!taskData.projectId || String(t.projectId) === String(taskData.projectId))
   );
 
   // Filter backlog suggestion matches as user types
@@ -114,78 +133,103 @@ export default function CreateTaskModal({
   return (
     <AnimatePresence>
       {show && (
-        <div className="modal-overlay">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[6px] p-4"
+          onClick={onClose}
+        >
           <motion.div
-            className="modal-content liquid-glass-card"
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl text-left"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            style={{ maxWidth: '850px', width: '100%' }}
+            style={{ fontFamily: "Inter, system-ui, sans-serif" }}
           >
-            <div className="modal-header">
-              <h3 className="modal-title">Assign Tasks to Team Members</h3>
-              <button className="modal-close" onClick={onClose}>×</button>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Plus size={20} className="text-[#0010AE]" />
+                <h2 className="text-lg font-semibold text-slate-800">
+                  Assign Tasks to Team Members
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full bg-slate-100 px-4 py-1.5 hover:bg-slate-200 text-xs font-semibold flex items-center gap-1 text-slate-700 transition cursor-pointer border-none"
+              >
+                <ChevronUp size={14} /> Close
+              </button>
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            <p className="text-slate-500 text-xs mb-4">
               Select a project, stage tasks per assignee, then publish all at once.
             </p>
 
-            <form onSubmit={handlePublish} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form onSubmit={handlePublish} className="space-y-4">
 
               {/* Project selector */}
-              <div className="form-group">
-                <label className="form-label">Project</label>
-                <select
-                  className="form-input"
-                  value={taskData.projectId}
-                  onChange={(e) => setTaskData(prev => ({ ...prev, projectId: e.target.value }))}
-                  required
-                >
-                  <option value="">Select project...</option>
-                  {availableProjects.map(p => (
-                    <option key={p.id} value={p.id}>{p.name.split(' (')[0]}</option>
-                  ))}
-                </select>
+              <div className="form-group flex flex-col">
+                <label className="mb-1 block font-semibold text-sm text-slate-700">Project</label>
+                <SearchableSelect
+                  options={projectOptions}
+                  value={String(taskData.projectId || '')}
+                  onChange={handleProjectChange}
+                  placeholder="Select project..."
+                  style={{ width: '100%' }}
+                  className="w-full rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                  inputStyle={{
+                    padding: '0.625rem 0.875rem',
+                    fontSize: '0.875rem',
+                    backgroundColor: '#F0F2F5',
+                    borderRadius: '0.75rem',
+                    border: '1px solid #E2E8F0',
+                    height: 'auto',
+                    minHeight: '40px'
+                  }}
+                />
               </div>
 
               {/* Staged tasks list */}
               {stagedTasks.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label className="form-label">Staged Tasks ({stagedTasks.length})</label>
-                  {stagedTasks.map(staged => {
-                    const assignee = users.find(u => u.id === staged.assignedTo);
-                    return (
-                      <div key={staged.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.85rem', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.8rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <span style={{ fontWeight: 600 }}>{staged.name}</span>
-                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.72rem' }}>
-                            → {assignee?.name || 'Unknown'} {staged.isNew ? `· ${staged.eta}h · ${staged.type} · ${staged.priority}` : '· from backlog'}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setStagedTasks(prev => prev.filter(t => t.id !== staged.id))}
-                          style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', padding: '2px' }}
+                <div className="flex flex-col gap-2">
+                  <label className="block font-semibold text-sm text-slate-700">Staged Tasks ({stagedTasks.length})</label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {stagedTasks.map(staged => {
+                      const assignee = users.find(u => String(u.id) === String(staged.assignedTo));
+                      return (
+                        <div
+                          key={staged.id}
+                          className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl transition hover:bg-slate-100/80"
                         >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    );
-                  })}
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-sm font-semibold text-slate-800">{staged.name}</span>
+                            <span className="text-xs text-slate-500">
+                              assigned to <strong className="text-slate-700 font-medium">{assignee?.name || 'Unassigned'}</strong> {staged.isNew ? `· ${staged.eta} hrs · ${staged.type} · ${staged.priority} Priority` : '· from backlog'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setStagedTasks(prev => prev.filter(t => t.id !== staged.id))}
+                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition cursor-pointer border-none bg-transparent flex items-center justify-center"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
               {/* Add task row */}
               {showAssignForm ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
-
+                <div className="flex flex-col gap-4 p-5 bg-slate-50/50 border border-slate-200 rounded-2xl shadow-sm text-left">
                   {/* Sleek Auto-Suggest Search Input for Task Summary / Backlog */}
                   <div className="form-group relative">
-                    <label className="form-label">Task Summary / Search Backlog</label>
-                    <div style={{ position: 'relative' }}>
+                    <label className="mb-1 block font-semibold text-sm text-slate-700">Task Summary / Search Backlog</label>
+                    <div className="relative">
                       <input
                         type="text"
-                        className="form-input"
+                        className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                         placeholder="Type new task summary or start typing to search backlog..."
                         value={assignForm.name}
                         onChange={(e) => {
@@ -203,19 +247,14 @@ export default function CreateTaskModal({
                           setTimeout(() => setIsSummaryFocused(false), 200);
                         }}
                         required
-                        style={{ width: '100%' }}
                       />
 
                       {/* Dropdown Suggestions */}
                       {isSummaryFocused && summaryMatches.length > 0 && (
                         <div 
-                          style={{
-                            position: 'absolute', left: 0, right: 0, top: '100%', marginTop: '4px',
-                            backgroundColor: 'white', border: '1px solid var(--border-color)', borderRadius: '8px',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 100, maxHeight: '200px', overflowY: 'auto'
-                          }}
+                          className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-52 overflow-y-auto"
                         >
-                          <div style={{ padding: '6px 12px', fontSize: '10px', color: '#94a3b8', borderBottom: '1px solid #f1f5f9', backgroundColor: '#f8fafc', fontWeight: 600, textTransform: 'uppercase' }}>
+                          <div className="px-3.5 py-2 text-xs text-slate-400 border-b border-slate-100 bg-slate-50 font-bold uppercase tracking-wider">
                             Matching Backlog Tasks
                           </div>
                           {summaryMatches.map(t => (
@@ -230,16 +269,10 @@ export default function CreateTaskModal({
                                 }));
                                 setIsSummaryFocused(false);
                               }}
-                              style={{
-                                padding: '8px 12px', fontSize: '11px', cursor: 'pointer',
-                                color: '#334155', borderBottom: '1px solid #f1f5f9',
-                                display: 'flex', flexDirection: 'column'
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-                              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                              className="px-3.5 py-2.5 text-xs cursor-pointer hover:bg-slate-50 transition border-b border-slate-100 flex flex-col gap-0.5 text-left"
                             >
-                              <span style={{ fontWeight: 600, color: '#1e293b' }}>{t.taskNumber}</span>
-                              <span style={{ color: '#64748b' }}>{t.name}</span>
+                              <span className="font-semibold text-slate-800">{t.taskNumber}</span>
+                              <span className="text-slate-600">{t.name}</span>
                             </div>
                           ))}
                         </div>
@@ -250,10 +283,10 @@ export default function CreateTaskModal({
                   {!assignForm.backlogTaskId && (
                     <>
                       <div className="form-group">
-                        <label className="form-label">Task Number (ID)</label>
+                        <label className="mb-1 block font-semibold text-sm text-slate-700">Task Number (ID)</label>
                         <input
                           type="text"
-                          className="form-input"
+                          className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                           placeholder="e.g. TSK-100"
                           value={assignForm.taskNumber || ''}
                           onChange={(e) => setAssignForm(prev => ({ ...prev, taskNumber: e.target.value }))}
@@ -261,36 +294,44 @@ export default function CreateTaskModal({
                         />
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                      <div className="grid grid-cols-3 gap-4">
                         <div className="form-group">
-                          <label className="form-label">Estimate (hrs)</label>
+                          <label className="mb-1 block font-semibold text-sm text-slate-700">Estimate (hrs)</label>
                           <input
                             type="number"
-                            className="form-input"
+                            className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                             min="1"
                             value={assignForm.eta}
                             onChange={(e) => setAssignForm(prev => ({ ...prev, eta: e.target.value }))}
                           />
                         </div>
                         <div className="form-group">
-                          <label className="form-label">Type</label>
-                          <select className="form-input" value={assignForm.type} onChange={(e) => setAssignForm(prev => ({ ...prev, type: e.target.value }))}>
+                          <label className="mb-1 block font-semibold text-sm text-slate-700">Type</label>
+                          <select
+                            className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                            value={assignForm.type}
+                            onChange={(e) => setAssignForm(prev => ({ ...prev, type: e.target.value }))}
+                          >
                             {['Story', 'Bug', 'Task', 'Spike', 'Epic'].map(t => <option key={t} value={t}>{t}</option>)}
                           </select>
                         </div>
                         <div className="form-group">
-                          <label className="form-label">Priority</label>
-                          <select className="form-input" value={assignForm.priority} onChange={(e) => setAssignForm(prev => ({ ...prev, priority: e.target.value }))}>
+                          <label className="mb-1 block font-semibold text-sm text-slate-700">Priority</label>
+                          <select
+                            className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                            value={assignForm.priority}
+                            onChange={(e) => setAssignForm(prev => ({ ...prev, priority: e.target.value }))}
+                          >
                             {['Low', 'Medium', 'High', 'Critical'].map(p => <option key={p} value={p}>{p}</option>)}
                           </select>
                         </div>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      <div className="grid grid-cols-2 gap-4">
                         <div className="form-group">
-                          <label className="form-label">ETA Date</label>
+                          <label className="mb-1 block font-semibold text-sm text-slate-700">ETA Date</label>
                           <input
                             type="date"
-                            className="form-input"
+                            className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                             value={assignForm.etaDate || ''}
                             onChange={(e) => setAssignForm(prev => ({ ...prev, etaDate: e.target.value }))}
                             required
@@ -298,10 +339,10 @@ export default function CreateTaskModal({
                         </div>
                         {assignForm.type === 'Bug' && (
                           <div className="form-group">
-                            <label className="form-label">Bug Number</label>
+                            <label className="mb-1 block font-semibold text-sm text-slate-700">Bug Number</label>
                             <input
                               type="text"
-                              className="form-input"
+                              className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                               placeholder="e.g. BUG-404"
                               value={assignForm.bugNumber || ''}
                               onChange={(e) => setAssignForm(prev => ({ ...prev, bugNumber: e.target.value }))}
@@ -314,27 +355,43 @@ export default function CreateTaskModal({
                   )}
 
                   <div className="form-group">
-                    <label className="form-label">
+                    <label className="mb-1 block font-semibold text-sm text-slate-700">
                       {loadingMembers ? "Loading Project Members..." : "Assign To"}
                     </label>
-                    <select
-                      className="form-input"
-                      value={assignForm.assignedTo}
-                      onChange={(e) => setAssignForm(prev => ({ ...prev, assignedTo: e.target.value }))}
+                    <SearchableSelect
+                      options={assigneeOptions}
+                      value={String(assignForm.assignedTo || '')}
+                      onChange={handleAssigneeChange}
+                      placeholder="Select assignee..."
                       disabled={loadingMembers}
-                      required
-                    >
-                      <option value="">Select assignee...</option>
-                      {availableUsers.map(u => (
-                        <option key={u.id} value={u.id}>{u.name} — {u.designation}</option>
-                      ))}
-                    </select>
+                      style={{ width: '100%' }}
+                      className="w-full rounded-xl border border-slate-200 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                      inputStyle={{
+                        padding: '0.625rem 0.875rem',
+                        fontSize: '0.875rem',
+                        backgroundColor: '#F0F2F5',
+                        borderRadius: '0.75rem',
+                        border: '1px solid #E2E8F0',
+                        height: 'auto',
+                        minHeight: '40px'
+                      }}
+                    />
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                    <button type="button" className="btn btn-secondary" onClick={() => { setShowAssignForm(false); setShowBacklogDropdown(false); }} style={{ fontSize: '0.8rem' }}>Cancel</button>
-                    <button type="button" className="btn btn-primary" onClick={handleStage} style={{ fontSize: '0.8rem', backgroundColor: '#32bf90', borderColor: '#32bf90' }}>
-                      <Plus size={13} /> Stage Task
+                  <div className="flex gap-2 justify-end pt-2">
+                    <button
+                      type="button"
+                      className="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 text-sm font-semibold transition cursor-pointer bg-white"
+                      onClick={() => { setShowAssignForm(false); setShowBacklogDropdown(false); }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 border border-emerald-500 text-white rounded-xl text-sm font-semibold transition cursor-pointer flex items-center gap-1"
+                      onClick={handleStage}
+                    >
+                      <Plus size={14} /> Stage Task
                     </button>
                   </div>
                 </div>
@@ -342,15 +399,25 @@ export default function CreateTaskModal({
                 <button
                   type="button"
                   onClick={() => setShowAssignForm(true)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.65rem', border: '1px dashed var(--border-color)', borderRadius: '10px', background: 'none', color: 'var(--text-secondary)', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                  className="w-full flex items-center justify-center gap-2 p-4 border border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/30 rounded-2xl bg-transparent text-slate-500 hover:text-blue-600 text-sm cursor-pointer font-semibold transition"
                 >
-                  <Plus size={14} /> Add Task
+                  <Plus size={16} /> Add Task
                 </button>
               )}
 
-              <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={stagedTasks.length === 0 || !taskData.projectId}>
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  className="px-5 py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 text-sm font-semibold transition cursor-pointer bg-white"
+                  onClick={onClose}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-[#0010AE] hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed border border-[#0010AE] hover:border-blue-800 text-white rounded-xl text-sm font-semibold transition cursor-pointer"
+                  disabled={stagedTasks.length === 0 || !taskData.projectId}
+                >
                   Publish {stagedTasks.length > 0 ? `${stagedTasks.length} Task${stagedTasks.length > 1 ? 's' : ''}` : 'Tasks'}
                 </button>
               </div>

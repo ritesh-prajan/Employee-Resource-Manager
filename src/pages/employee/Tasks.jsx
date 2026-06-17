@@ -13,7 +13,7 @@ import SearchableSelect from '../../components/ui/SearchableSelect';
 import UserAvatar from '../../components/ui/UserAvatar';
 
 export default function Tasks({ setCurrentPage, initialScope }) {
-  const { currentUser, projects, users, timerState, clockIn, clockOut, teams, etaExtensions, taskTransfers } = useApp();
+  const { currentUser, projects, users, timerState, clockIn, clockOut, cancelTimer, teams, etaExtensions, taskTransfers, addManualEntry } = useApp();
 
   const {
     tasks,
@@ -65,8 +65,6 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [overrunComments, setOverrunComments] = useState('');
   const [overrunTaskId, setOverrunTaskId] = useState(null);
   const [newComment, setNewComment] = useState({});
-  const [progressValue, setProgressValue] = useState({});
-  const [progressNote, setProgressNote] = useState({});
   const [taskData, setTaskData] = useState({ name: '', projectId: '', assignedTo: '', eta: '', type: 'Story', epic: 'Backlog', priority: 'Medium' });
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
   const [stagedTasks, setStagedTasks] = useState([]);
@@ -160,32 +158,92 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     approve ? approveTransfer.mutate(req.id) : rejectTransfer.mutate(req.id);
   };
 
+  const [pendingSessionHours, setPendingSessionHours] = useState(0);
+  const [pendingSessionProgress, setPendingSessionProgress] = useState(0);
+
   const handleStartTask = (task) => {
     if (timerState.isClockedIn) { alert("You are currently tracking another task. Please pause or finish it first."); return; }
     updateTask.mutate({ id: task.id, data: { ...task, status: 'In Progress' } });
     clockIn(task.id, task.projectId, task.name, task.type);
-    addTaskComment.mutate({ taskId: task.id, authorEmployeeId: currentUser.id, commentText: '[Started task tracking]' });
+    addTaskComment.mutate({
+      taskId: task.id,
+      authorEmployeeId: currentUser.id,
+      commentText: '[Started task tracking]'
+    });
   };
 
-  const triggerPauseTask = (task) => { setOverrunTaskId(task.id); setOverrunActionType('pause'); setOverrunComments(''); setShowOverrunPrompt(true); };
-  const triggerFinishTask = (task) => { setOverrunTaskId(task.id); setOverrunActionType('finish'); setOverrunComments(''); setShowOverrunPrompt(true); };
+  const executePauseOrFinish = (task, actionType, entryData) => {
+    const { date, startTime, duration, workCategory, description, justification } = entryData;
 
-  const handleSubmitExecutionAction = () => {
-    const task = tasks.find(t => t.id === overrunTaskId);
-    if (!task) return;
-    const isOverrun = checkTaskExceedsETA(task);
-    if (isOverrun && !overrunComments.trim()) { alert("Please provide comments/justification for exceeding the estimated task time."); return; }
-    const commentsText = overrunComments.trim();
-    if (overrunActionType === 'pause') {
-      if (timerState.isClockedIn && timerState.taskId === task.id) clockOut(commentsText);
-      updateTask.mutate({ id: task.id, data: { ...task, status: 'Paused', etaExceededComment: commentsText || task.etaExceededComment } });
-      addTaskComment.mutate({ taskId: task.id, authorEmployeeId: currentUser.id, commentText: commentsText ? `[Paused task - Overrun Comment]: ${commentsText}` : '[Paused task]' });
-    } else {
-      if (timerState.isClockedIn && timerState.taskId === task.id) clockOut(commentsText);
-      updateTask.mutate({ id: task.id, data: { ...task, status: 'Pending Review', etaExceededComment: commentsText || task.etaExceededComment } });
-      addTaskComment.mutate({ taskId: task.id, authorEmployeeId: currentUser.id, commentText: commentsText ? `[Submitted for Review - Comment]: ${commentsText}` : '[Submitted for Review]' });
+    if (timerState.isClockedIn && timerState.taskId === task.id) {
+      cancelTimer();
     }
-    setShowOverrunPrompt(false); setOverrunComments(''); setOverrunTaskId(null); setExpandedTaskId(null);
+
+    if (duration > 0) {
+      addManualEntry({
+        taskId: task.id,
+        projectId: task.projectId,
+        description: description || `Worked on task: ${task.name}`,
+        date: date,
+        startTime: startTime,
+        duration: duration,
+        workCategory: workCategory,
+        justification: justification
+      });
+    }
+
+    const updatedStatus = actionType === 'pause' ? 'Paused' : 'Pending Review';
+
+    updateTask.mutate({
+      id: task.id,
+      data: {
+        ...task,
+        status: updatedStatus,
+        etaExceededComment: justification || task.etaExceededComment
+      }
+    });
+
+    const commentMsg = justification
+      ? `[${actionType === 'pause' ? 'Paused' : 'Submitted for Review'} - Comment]: ${justification}. Session hours: ${duration}h.`
+      : `[${actionType === 'pause' ? 'Paused' : 'Submitted for Review'}]. Session hours: ${duration}h.`;
+
+    addTaskComment.mutate({
+      taskId: task.id,
+      authorEmployeeId: currentUser.id,
+      commentText: commentMsg
+    });
+
+    setExpandedTaskId(null);
+  };
+
+  const triggerPauseTask = (task, entryData) => {
+    const { duration, justification } = entryData;
+    if (duration < 0 || isNaN(duration)) { alert("Please enter valid hours worked."); return; }
+
+    const remainingEta = Math.max(0, task.eta - task.logged);
+    const isOverrun = duration > remainingEta;
+
+    if (isOverrun && !justification.trim()) {
+      alert("Please provide comments/justification for exceeding the estimated task time.");
+      return;
+    }
+
+    executePauseOrFinish(task, 'pause', entryData);
+  };
+
+  const triggerFinishTask = (task, entryData) => {
+    const { duration, justification } = entryData;
+    if (duration < 0 || isNaN(duration)) { alert("Please enter valid hours worked."); return; }
+
+    const remainingEta = Math.max(0, task.eta - task.logged);
+    const isOverrun = duration > remainingEta;
+
+    if (isOverrun && !justification.trim()) {
+      alert("Please provide comments/justification for exceeding the estimated task time.");
+      return;
+    }
+
+    executePauseOrFinish(task, 'finish', entryData);
   };
 
   const handleAddCommentSubmit = (taskId) => {
@@ -193,13 +251,6 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     if (!commentText || !commentText.trim()) return;
     addTaskComment.mutate({ taskId, authorEmployeeId: currentUser.id, commentText });
     setNewComment(prev => ({ ...prev, [taskId]: '' }));
-  };
-
-  const handleProgressUpdateSubmit = (taskId) => {
-    const value = progressValue[taskId] ?? 50;
-    const note = progressNote[taskId] || '';
-    updateTaskProgress.mutate({ taskId, employeeId: currentUser.id, progressPercentage: parseInt(value), remarks: note });
-    setProgressNote(prev => ({ ...prev, [taskId]: '' }));
   };
 
   const handleEditTaskSubmit = (e) => {
@@ -629,15 +680,10 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           taskTransfers={taskTransfers}
           newComment={newComment}
           setNewComment={setNewComment}
-          progressValue={progressValue}
-          setProgressValue={setProgressValue}
-          progressNote={progressNote}
-          setProgressNote={setProgressNote}
           onStartTask={handleStartTask}
           onTriggerPause={triggerPauseTask}
           onTriggerFinish={triggerFinishTask}
           onAddComment={handleAddCommentSubmit}
-          onProgressUpdate={handleProgressUpdateSubmit}
           onOpenETA={(id) => { setActiveTaskId(id); setShowETAModal(true); }}
           onOpenTransfer={(id) => { setActiveTaskId(id); setShowTransferModal(true); }}
           onResolveETA={resolveETARequest}

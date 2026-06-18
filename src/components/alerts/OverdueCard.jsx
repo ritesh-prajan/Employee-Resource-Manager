@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { CalendarX, ExternalLink, User, Briefcase, Users } from 'lucide-react';
 
 export default function OverdueCard({ task, users, projects, teams, onNavigate }) {

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Lock, CheckCircle, Check, X, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion } from 'motion/react';
 import { authService } from "#services/authService.js";
 
 const Resetpassword = () => {

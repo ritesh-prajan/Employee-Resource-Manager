@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { ClipboardList, X } from 'lucide-react';
 
 const STORAGE_KEY = 'elite_daily_task_prompt';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { CalendarX, X } from 'lucide-react';
 
 export default function ETABreachPopup({ breaches, onClose }) {

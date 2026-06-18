@@ -2,16 +2,16 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import Schedulemeeting from '../../components/Meetings/Schedulemeeting';
 import DataTable from '../../components/ui/DataTable';
-import { LIVE_SYNCS, UPCOMING_SYNCS, HISTORY_SYNCS } from "../../components/mock_dataset/Data_admin_meetings";
 import { Video, Trash2, Search } from 'lucide-react';
 
 const tabs = ["Personal Meetings", "Meetings for Everyone"];
 
 export default function Meetings() { 
   const { currentUser } = useApp();
-  const [live, setLive] = useState(LIVE_SYNCS || []);
-  const [upcoming, setUpcoming] = useState(UPCOMING_SYNCS || []);
-  const [completed, setCompleted] = useState(HISTORY_SYNCS || []);
+  // TODO: replace with API call
+  const [live, setLive] = useState([]);
+  const [upcoming, setUpcoming] = useState([]);
+  const [completed, setCompleted] = useState([]);
   const [activetab, setactivetab] = useState("Personal Meetings");
   const [searchQuery, setSearchQuery] = useState("");
 

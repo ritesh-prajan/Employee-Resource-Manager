@@ -24,7 +24,7 @@ createRoot(document.getElementById('root')).render(
         <App />
       </StrictMode>
       {/* Only loads in development builds */}
-      <ReactQueryDevtools initialIsOpen={false} />
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   </BrowserRouter>
 )

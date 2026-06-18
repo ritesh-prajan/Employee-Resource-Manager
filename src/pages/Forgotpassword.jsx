@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../services/authService";
-import { motion } from "framer-motion";
+import { motion } from 'motion/react';
 
 const Forgotpassword = () => {
   const navigate = useNavigate();

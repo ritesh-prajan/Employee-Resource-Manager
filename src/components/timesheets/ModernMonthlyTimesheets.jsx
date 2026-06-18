@@ -106,10 +106,16 @@ export default function ModernMonthlyTimesheets({ groups, items, currentDate }) 
               </th>
               {days.map((day) => (
                 <th key={day.valueOf()} className={`py-2 text-center min-w-[32px] ${isWeekend(day) ? "bg-slate-50" : ""}`}>
-                  <div className={`text-[10px] font-bold uppercase tracking-wide ${isToday(day) ? "text-indigo-600" : "text-slate-400"}`}>
+                  <div 
+                    className="text-[10px] font-bold uppercase tracking-wide"
+                    style={{ color: isToday(day) ? '#0010ae' : '#94a3b8' }}
+                  >
                     {day.format("ddd")[0]}
                   </div>
-                  <div className={`text-xs font-semibold mt-0.5 w-6 h-6 rounded-full flex items-center justify-center mx-auto ${isToday(day) ? "bg-indigo-600 text-white" : "text-slate-500"}`}>
+                  <div 
+                    className={`text-xs font-semibold mt-0.5 w-6 h-6 rounded-full flex items-center justify-center mx-auto ${isToday(day) ? "text-white" : "text-slate-500"}`}
+                    style={isToday(day) ? { backgroundColor: '#0010ae' } : {}}
+                  >
                     {day.format("D")}
                   </div>
                 </th>
@@ -124,7 +130,10 @@ export default function ModernMonthlyTimesheets({ groups, items, currentDate }) 
                 <tr key={group.id} className={`border-b border-slate-100 ${idx % 2 === 1 ? "bg-slate-50" : "bg-white"}`}>
                   <td className="sticky left-0 z-10 py-2.5 px-4 bg-inherit">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[11px] font-bold shrink-0">
+                      <div 
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                        style={{ backgroundColor: 'rgba(0, 16, 174, 0.1)', color: '#0010ae' }}
+                      >
                         {group.initials}
                       </div>
                       <div>
@@ -155,10 +164,11 @@ export default function ModernMonthlyTimesheets({ groups, items, currentDate }) 
                       >
                         {cellStyle ? (
                           <div
-                            className={`w-7 h-7 rounded-lg mx-auto flex items-center justify-center cursor-pointer transition-all ${
-                              isActive ? "ring-2 ring-indigo-400 ring-offset-1" : "hover:brightness-95"
-                            }`}
-                            style={cellStyle}
+                            className="w-7 h-7 rounded-lg mx-auto flex items-center justify-center cursor-pointer transition-all hover:brightness-95"
+                            style={{ 
+                              ...cellStyle, 
+                              boxShadow: isActive ? '0 0 0 2px #0010ae' : undefined 
+                            }}
                           >
                             <span className="text-[9px] font-bold" style={{ color: cellStyle.color }}>
                               {Math.round(hours)}h
@@ -198,7 +208,10 @@ export default function ModernMonthlyTimesheets({ groups, items, currentDate }) 
           </button>
 
           <div className="flex items-center gap-2.5 mb-3 pr-4">
-            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[11px] font-bold shrink-0">
+            <div 
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+              style={{ backgroundColor: 'rgba(0, 16, 174, 0.1)', color: '#0010ae' }}
+            >
               {popup.group.initials}
             </div>
             <div>

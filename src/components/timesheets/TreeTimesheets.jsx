@@ -212,7 +212,7 @@ function weekrow({ node, isopen, Ontoggle }) {
         >
           <ChevronRight size={10} />
         </span>
-        <span className="text-indigo-600"><Calendar size={13} /></span>
+        <span style={{ color: '#0010ae' }}><Calendar size={13} /></span>
         <span className="text-[13px] font-semibold">{node.label}</span>
       </div>
       <div className="text-right pr-4">
@@ -484,7 +484,8 @@ function WeeksDropdown({ weeks, selectedIds, onToggle, customDate, onCustomDate 
                   type="checkbox"
                   checked={selectedIds.includes(w.id)}
                   onChange={() => onToggle(w.id)}
-                  className="w-3.5 h-3.5 accent-indigo-500"
+                  className="w-3.5 h-3.5"
+                  style={{ accentColor: '#0010ae' }}
                 />
                 <span>{w.label}</span>
               </label>

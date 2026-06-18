@@ -20,24 +20,27 @@ export default function Timesheets() {
           <button 
             onClick={() => setActiveTab('tree')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-              activeTab === 'tree' ? 'bg-indigo-700 text-white shadow-sm font-bold' : 'text-slate-600 hover:bg-slate-50'
+              activeTab === 'tree' ? 'text-white shadow-sm font-bold' : 'text-slate-600 hover:bg-slate-50'
             }`}
+            style={activeTab === 'tree' ? { backgroundColor: '#0010ae' } : {}}
           >
             <Layers size={16} /> Tree View
           </button>
           <button 
             onClick={() => setActiveTab('classic')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-              activeTab === 'classic' ? 'bg-indigo-700 text-white shadow-sm font-bold' : 'text-slate-600 hover:bg-slate-50'
+              activeTab === 'classic' ? 'text-white shadow-sm font-bold' : 'text-slate-600 hover:bg-slate-50'
             }`}
+            style={activeTab === 'classic' ? { backgroundColor: '#0010ae' } : {}}
           >
             <Filter size={16} /> Classic
           </button>
           <button 
             onClick={() => setActiveTab('modern')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-              activeTab === 'modern' ? 'bg-indigo-700 text-white shadow-sm font-bold' : 'text-slate-600 hover:bg-slate-50'
+              activeTab === 'modern' ? 'text-white shadow-sm font-bold' : 'text-slate-600 hover:bg-slate-50'
             }`}
+            style={activeTab === 'modern' ? { backgroundColor: '#0010ae' } : {}}
           >
             <Activity size={16} /> Modern
           </button>

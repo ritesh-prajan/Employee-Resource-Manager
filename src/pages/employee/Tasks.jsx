@@ -287,20 +287,11 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     setBacklogCreateData({ name: '', projectId: '', eta: '8', type: 'Story', priority: 'Medium' });
   };
 
-  const projectOptions = [
-    { value: '', label: 'All Projects' },
-    ...projects
-      .filter(p => isAdmin || ledProjectIds.includes(p.id))
-      .map(p => ({ value: p.id, label: p.name.split(' (')[0], color: p.color }))
-  ];
-  const statusOptions = [
-    { value: '', label: 'All Statuses' },
-    ...['Open', 'In Progress', 'Pending Review', 'Completed', 'ETA Extended', 'Transferred', 'Rejected'].map(s => ({ value: s, label: s }))
-  ];
-  const priorityOptions = [
-    { value: '', label: 'All Priorities' },
-    ...['Low', 'Medium', 'High', 'Critical'].map(p => ({ value: p, label: p }))
-  ];
+  const projectOptions = projects
+    .filter(p => isAdmin || ledProjectIds.includes(p.id))
+    .map(p => ({ value: p.id, label: p.name.split(' (')[0], color: p.color }));
+  const statusOptions = ['Open', 'In Progress', 'Pending Review', 'Completed', 'ETA Extended', 'Transferred', 'Rejected'].map(s => ({ value: s, label: s }));
+  const priorityOptions = ['Low', 'Medium', 'High', 'Critical'].map(p => ({ value: p, label: p }));
 
   const filteredTasks = tasks.filter(t => {
     if (!isAdmin && (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead')) {
@@ -487,64 +478,64 @@ export default function Tasks({ setCurrentPage, initialScope }) {
             <Filter size={14} /> {isFiltersExpanded ? "Hide Filters" : "Show Filters"}
           </button>
           <div className={`tasks-filter-card ${isFiltersExpanded ? 'mobile-filters-open' : ''}`}>
-            <div className="tasks-filter-row">
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="tasks-search-box">
+            <div className="tasks-filter-row" style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', width: '100%' }}>
+              <div className="flex items-center gap-2 flex-shrink-1 min-w-0" style={{ flexWrap: 'nowrap' }}>
+                <div className="tasks-search-box" style={{ width: '160px', flexShrink: 1 }}>
                   <Search size={14} className="tasks-search-icon" />
                   <input
                     type="text"
-                    placeholder="Search by summary, ticket, assignee..."
+                    placeholder="Search "
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="tasks-search-input"
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center">
                   <SearchableSelect
                     options={projectOptions}
                     value={selectedProject}
                     onChange={setSelectedProject}
                     placeholder="All Projects"
-                    style={{ width: '180px' }}
+                    style={{ width: '140px' }}
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center">
                   <SearchableSelect
                     options={statusOptions}
                     value={selectedStatus}
                     onChange={setSelectedStatus}
                     placeholder="All Statuses"
-                    style={{ width: '160px' }}
+                    style={{ width: '130px' }}
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center">
                   <SearchableSelect
                     options={priorityOptions}
                     value={selectedPriority}
                     onChange={setSelectedPriority}
                     placeholder="All Priorities"
-                    style={{ width: '150px' }}
+                    style={{ width: '130px' }}
                   />
                 </div>
 
                 <button
                   onClick={() => setShowExceededETA(!showExceededETA)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all border ${
+                  className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-bold transition-all border whitespace-nowrap ${
                     showExceededETA
                       ? 'bg-red-50 text-red-600 border-red-200 shadow-sm'
                       : 'bg-transparent text-slate-500 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <AlertTriangle size={14} className={showExceededETA ? 'text-red-500' : 'text-slate-400'} />
+                  <AlertTriangle size={13} className={showExceededETA ? 'text-red-500' : 'text-slate-400'} />
                   Exceeded ETA
                 </button>
               </div>
 
-              <div className="flex items-center gap-4 flex-wrap" style={{ marginLeft: 'auto' }}>
-                <div className="tasks-scope-toggle">
+              <div className="flex items-center gap-2.5 flex-shrink-0" style={{ marginLeft: 'auto', flexWrap: 'nowrap' }}>
+                <div className="tasks-scope-toggle" style={{ flexWrap: 'nowrap' }}>
                   {isLeader && (
                     <button onClick={() => setScope('all')} className={`tasks-scope-btn ${scope === 'all' ? 'active' : 'inactive'}`}>
                       All Team Tasks
@@ -563,21 +554,21 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                 {scope === 'backlog' ? (
                   isLeader && (
                     <button
-                      className="rounded-xl px-5 py-2 text-sm font-semibold text-white transition tasks-create-btn"
+                      className="rounded-xl px-4 py-2 text-xs font-bold text-white transition tasks-create-btn whitespace-nowrap"
                       style={{ backgroundColor: '#0010ae' }}
                       onClick={() => { setBacklogCreateData({ name: '', projectId: projects[0]?.id || '', eta: '8', type: 'Story', priority: 'Medium', taskNumber: '', etaDate: '', bugNumber: '' }); setShowBacklogCreateModal(true); }}
                     >
-                      <Plus size={14} /> Create Backlog Task
+                      <Plus size={13} /> Create Backlog Task
                     </button>
                   )
                 ) : (
                   isLeader && (
                     <button
-                      className="rounded-xl px-5 py-2 text-sm font-semibold text-white transition tasks-create-btn"
+                      className="rounded-xl px-4 py-2 text-xs font-bold text-white transition tasks-create-btn whitespace-nowrap"
                       style={{ backgroundColor: '#0010ae' }}
                       onClick={() => setShowTaskModal(true)}
                     >
-                      <Plus size={14} /> Create Task
+                      <Plus size={13} /> Create Task
                     </button>
                   )
                 )}

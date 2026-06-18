@@ -23,15 +23,16 @@ export default function SearchableSelect({ options, value, onChange, placeholder
     <div ref={wrapperRef} style={{ position: 'relative', minWidth: '150px', ...style }}>
       <div 
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={className}
+        className={`${className} border border-zinc-200`}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0.45rem 0.75rem', fontSize: '0.75rem', height: '100%', minHeight: '32px',
-          backgroundColor: disabled ? '#f1f5f9' : 'var(--bg-ring)', border: '1px solid var(--border-color)', borderRadius: '6px',
+          backgroundColor: disabled ? '#f1f5f9' : 'var(--bg-ring)', borderRadius: '6px',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.7 : 1,
           ...inputStyle
         }}
+        
       >
         <span style={{ color: (selectedOption || value) ? 'var(--foreground)' : 'var(--muted-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {selectedOption ? selectedOption.label : (value ? value : placeholder)}
@@ -47,9 +48,11 @@ export default function SearchableSelect({ options, value, onChange, placeholder
       {isOpen && (
         <div style={{
           position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px',
-          backgroundColor: 'var(--bg-canvas)', border: '1px solid var(--border-color)', borderRadius: '6px',
+          backgroundColor: 'white', borderRadius: '6px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 100, maxHeight: '200px', display: 'flex', flexDirection: 'column'
-        }}>
+        }}
+        className=' border border-zinc-200'
+        >
           <div style={{ padding: '8px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Search size={14} style={{ color: 'var(--muted-foreground)' }} />
             <input 

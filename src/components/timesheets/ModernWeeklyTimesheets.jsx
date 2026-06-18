@@ -138,7 +138,10 @@ export default function ModernWeeklyTimesheets({ groups, items, currentDate }) {
                 <tr key={group.id} className={`border-b border-slate-100 ${idx % 2 === 1 ? "bg-slate-50" : "bg-white"}`}>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[11px] font-bold shrink-0">
+                      <div 
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                        style={{ backgroundColor: 'rgba(0, 16, 174, 0.1)', color: '#0010ae' }}
+                      >
                         {group.initials}
                       </div>
                       <div>
@@ -164,10 +167,11 @@ export default function ModernWeeklyTimesheets({ groups, items, currentDate }) {
                           <span className="text-slate-300 text-sm">—</span>
                         ) : (
                           <span
-                            className={`inline-flex items-center justify-center px-2.5 py-1 rounded-lg min-w-[44px] text-xs font-semibold cursor-pointer transition-all ${
-                              isActive ? "ring-2 ring-indigo-400 ring-offset-1" : "hover:brightness-95"
-                            }`}
-                            style={summary}
+                            className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg min-w-[44px] text-xs font-semibold cursor-pointer transition-all hover:brightness-95"
+                            style={{
+                              ...summary,
+                              boxShadow: isActive ? '0 0 0 2px #0010ae' : undefined
+                            }}
                           >
                             {/* ✅ Bug 2 fixed — === not = */}
                             {summary.label === null ? (
@@ -204,7 +208,10 @@ export default function ModernWeeklyTimesheets({ groups, items, currentDate }) {
                 <X size={15} />
               </button>
               <div className="flex items-center gap-2.5 mb-3 pr-4">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[11px] font-bold shrink-0">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                  style={{ backgroundColor: 'rgba(0, 16, 174, 0.1)', color: '#0010ae' }}
+                >
                   {popup.group.initials}
                 </div>
                 <div>

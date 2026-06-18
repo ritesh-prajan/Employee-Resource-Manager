@@ -260,7 +260,7 @@ export default function ClassicTimesheet() {
       return list.map(p => ({ id: p.id, name: p.name, color: p.color }));
     }
     if (classifyBy === "team") {
-      const list = isEmployee ? teams.filter(t => t.members?.includes(currentUser.id) || t.leadId === currentUser.id) : teams;
+      const list = isEmployee ? teams.filter(t => t.members?.includes(currentUser.id) || t.leadId === currentUser.id || t.subLeadId === currentUser.id) : teams;
       return list.map(t => ({ id: t.id, name: t.name }));
     }
     return [];
@@ -333,7 +333,7 @@ export default function ClassicTimesheet() {
     if (classifyBy === "team") {
       const team = teams.find(t => t.id === selectedSubject.id);
       if (!team) return [];
-      return [...new Set([...(team.members || []), team.leadId].filter(Boolean))];
+      return [...new Set([...(team.members || []), team.leadId, team.subLeadId].filter(Boolean))];
     }
     return [];
   }, [classifyBy, selectedSubject, projects, teams, isEmployee, currentUser]);
@@ -348,7 +348,7 @@ export default function ClassicTimesheet() {
       if (projectFilter  !== "all" && e.projectId !== projectFilter) return false;
       if (teamFilter !== "all") {
         const team = teams.find(t => t.id === teamFilter);
-        if (team && !team.members.includes(e.userId) && team.leadId !== e.userId) return false;
+        if (team && !team.members.includes(e.userId) && team.leadId !== e.userId && team.subLeadId !== e.userId) return false;
       }
       if (roleFilter !== "all") {
         const u = users.find(u => u.id === e.userId);

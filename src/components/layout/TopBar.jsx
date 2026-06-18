@@ -9,6 +9,77 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const menuRef = useRef(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef(null);
+
+  const getSearchableItems = () => {
+    const items = [];
+    const isAdminView = currentUser.role === 'Admin' && !currentPage.startsWith('lead-') && currentPage !== 'dashboard' && currentPage !== 'timesheet';
+    const isLeadView = (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && !currentPage.startsWith('admin-');
+
+    if (currentUser.role === 'Admin' && !isLeadView && currentPage !== 'dashboard' && currentPage !== 'timesheet') {
+      items.push(
+        { label: 'Dashboard', page: 'admin-dashboard' },
+        { label: 'Employees', page: 'admin-employees' },
+        { label: 'Teams', page: 'admin-teams' },
+        { label: 'Projects', page: 'admin-projects' },
+        { label: 'Tasks', page: 'admin-tasks' },
+        { label: 'Timesheets', page: 'admin-timesheets' },
+        { label: 'Approvals', page: 'admin-approvals' },
+        { label: 'Feed', page: 'admin-announcements' },
+        { label: 'Link Room', page: 'admin-meetings' },
+        { label: 'Profile', page: 'settings' },
+        { label: 'Alerts Center', page: 'admin-alerts' }
+      );
+    } else if (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') {
+      items.push(
+        { label: 'Dashboard', page: 'lead-dashboard' },
+        { label: 'Tasks', page: 'lead-tasks' },
+        { label: 'Timesheet', page: 'lead-timesheet' },
+        { label: 'Team Attendance', page: 'lead-attendance' },
+        { label: 'Approvals', page: 'lead-approvals' },
+        { label: 'My Teams', page: 'lead-teams' },
+        { label: 'My Projects', page: 'lead-projects' },
+        { label: 'Link Room', page: 'lead-meetings' },
+        { label: 'Profile', page: 'settings' },
+        { label: 'Alerts Center', page: 'lead-alerts' }
+      );
+      if (currentUser.role !== 'Sub Lead') {
+        items.push({ label: 'Feed', page: 'lead-announcements' });
+      }
+    } else {
+      items.push(
+        { label: 'Dashboard', page: 'dashboard' },
+        { label: 'Tasks', page: 'tasks' },
+        { label: 'Timesheet', page: 'timesheet' },
+        { label: 'Attendance', page: 'attendance' },
+        { label: 'Link Room', page: 'meetings' },
+        { label: 'My Teams', page: 'teams' },
+        { label: 'My Projects', page: 'projects' },
+        { label: 'Feed', page: 'announcements' },
+        { label: 'Profile', page: 'settings' },
+        { label: 'Alerts Center', page: 'alerts' }
+      );
+    }
+    return items;
+  };
+
+  const searchableItems = getSearchableItems();
+  const matchedItems = searchQuery.trim()
+    ? searchableItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()))
+    : [];
+
+  useEffect(() => {
+    function handleClickOutsideSearch(event) {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchResults(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutsideSearch);
+    return () => document.removeEventListener('mousedown', handleClickOutsideSearch);
+  }, []);
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -118,7 +189,7 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
               )}
               {currentPage.startsWith('lead-') && (
                 <span style={{ marginLeft: '8px', fontSize: '0.65rem', fontWeight: 700, backgroundColor: 'color-mix(in oklch, var(--primary) 10%, transparent)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  team lead
+                  {currentUser.role === 'Sub Lead' ? 'sub lead' : 'team lead'}
                 </span>
               )}
             </>
@@ -126,11 +197,11 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
         </div>
 
         {/* Search */}
-        <div className="topbar-search-container" style={{ position: 'relative', marginLeft: '16px', display: 'flex', alignItems: 'center' }}>
+        <div className="topbar-search-container" ref={searchRef} style={{ position: 'relative', marginLeft: '16px', display: 'flex', alignItems: 'center' }}>
           <Search size={16} style={{ position: 'absolute', left: '12px', color: 'var(--muted-foreground)', pointerEvents: 'none' }} />
           <input
             type="text"
-            placeholder="Search anything"
+            placeholder="Search pages (e.g. Tasks, Projects...)"
             className="topbar-search-input"
             style={{
               padding: '8px 16px 8px 36px',
@@ -143,9 +214,62 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
               color: 'var(--foreground)',
               transition: 'border-color 0.2s'
             }}
-            onFocus={(e) => e.target.style.borderColor = 'var(--ring)'}
-            onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSearchResults(true);
+            }}
+            onFocus={() => setShowSearchResults(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && matchedItems.length > 0) {
+                setCurrentPage(matchedItems[0].page);
+                setSearchQuery('');
+                setShowSearchResults(false);
+              }
+            }}
           />
+          {showSearchResults && matchedItems.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: '40px',
+              left: 0,
+              width: '260px',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              boxShadow: 'var(--shadow-lg)',
+              zIndex: 120,
+              overflow: 'hidden',
+              padding: '4px 0'
+            }}>
+              {matchedItems.map(item => (
+                <button
+                  key={item.page}
+                  onClick={() => {
+                    setCurrentPage(item.page);
+                    setSearchQuery('');
+                    setShowSearchResults(false);
+                  }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '8px 16px',
+                    border: 'none',
+                    background: 'none',
+                    textAlign: 'left',
+                    fontSize: '0.825rem',
+                    color: 'var(--foreground)',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--accent)'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

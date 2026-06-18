@@ -118,7 +118,7 @@ export default function Alerts({ setCurrentPage }) {
   }, [role]);
 
   useEffect(() => {
-    if (role !== 'Team Lead') return;
+    if (role !== 'Team Lead' && role !== 'Sub Lead') return;
     if (shouldShowDailyPrompt()) setShowDailyPrompt(true);
   }, [role]);
 
@@ -218,7 +218,7 @@ export default function Alerts({ setCurrentPage }) {
   const handleMarkAllRead = () => mine.filter(n => !n.isRead).forEach(n => markNotificationRead(n.id));
 
   const teamMembers = users.filter(u => {
-    const myTeams = teams.filter(t => t.leadId === currentUser?.id);
+    const myTeams = teams.filter(t => String(t.leadId) === String(currentUser?.id) || String(t.subLeadId) === String(currentUser?.id));
     return myTeams.some(t => t.members.includes(u.id)) && u.id !== currentUser?.id;
   }).filter(u => {
     const today = new Date().toDateString();
@@ -449,7 +449,7 @@ export default function Alerts({ setCurrentPage }) {
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {role === 'Team Lead' && showDailyPrompt && (
+        {(role === 'Team Lead' || role === 'Sub Lead') && showDailyPrompt && (
           <DailyTaskPrompt
             teamMembers={teamMembers}
             onClose={() => setShowDailyPrompt(false)}

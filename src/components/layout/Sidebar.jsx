@@ -157,9 +157,11 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
           <button className={`sidebar-link ${currentPage === 'lead-meetings' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-meetings')} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
             <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
           </button>
-          <button className={`sidebar-link ${currentPage === 'lead-announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-announcements')} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
-            <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
-          </button>
+          {currentUser.role !== 'Sub Lead' && (
+            <button className={`sidebar-link ${currentPage === 'lead-announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-announcements')} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
+              <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
+            </button>
+          )}
 
           {renderSectionHeader('Account')}
           <button className={`sidebar-link ${currentPage === 'settings' ? 'active' : ''}`} onClick={() => setCurrentPage('settings')} style={getLinkStyle()} title={isCollapsed ? 'Profile' : undefined}>
@@ -195,9 +197,11 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
         <button className={`sidebar-link ${currentPage === 'projects' ? 'active' : ''}`} onClick={() => setCurrentPage('projects')} style={getLinkStyle()} title={isCollapsed ? 'My Projects' : undefined}>
           <Briefcase size={18} />{!isCollapsed && <span>My Projects</span>}
         </button>
-        <button className={`sidebar-link ${currentPage === 'announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('announcements')} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
-          <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
-        </button>
+        {currentUser.role !== 'Sub Lead' && (
+          <button className={`sidebar-link ${currentPage === 'announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('announcements')} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
+            <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
+          </button>
+        )}
         {renderAlertsLink('alerts')}
         {renderSectionHeader('Account')}
         <button className={`sidebar-link ${currentPage === 'settings' ? 'active' : ''}`} onClick={() => setCurrentPage('settings')} style={getLinkStyle()} title={isCollapsed ? 'Profile' : undefined}>

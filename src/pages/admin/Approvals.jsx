@@ -25,7 +25,7 @@ export default function Approvals() {
   // Team lead scope — members of teams this user leads
   const ledMemberIds = useMemo(() => {
     if (isAdmin) return null; // null = no scope restriction
-    const ledTeams = teams.filter((t) => t.leadId === currentUser?.id);
+    const ledTeams = teams.filter((t) => String(t.leadId) === String(currentUser?.id) || String(t.subLeadId) === String(currentUser?.id));
     return new Set(ledTeams.flatMap((t) => t.members));
   }, [isAdmin, teams, currentUser]);
 
@@ -115,7 +115,7 @@ export default function Approvals() {
 
   const projectOptions = useMemo(() => {
     if (isAdmin) return projects;
-    const myTeamIds = teams.filter((t) => t.leadId === currentUser?.id).map((t) => t.id);
+    const myTeamIds = teams.filter((t) => String(t.leadId) === String(currentUser?.id) || String(t.subLeadId) === String(currentUser?.id)).map((t) => t.id);
     return projects.filter((p) => (p.teams || []).some((tid) => myTeamIds.includes(tid)));
   }, [projects, isAdmin, teams, currentUser]);
 

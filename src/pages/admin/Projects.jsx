@@ -26,13 +26,13 @@ export default function Projects() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const isAllowedToManage = currentUser?.role === 'Admin' || currentUser?.role === 'Team Lead';
+  const isAllowedToManage = currentUser?.role === 'Admin' || currentUser?.role === 'Team Lead' || currentUser?.role === 'Sub Lead';
 
   const baseProjects = projects.filter(p => {
     if (!currentUser) return false;
     if (currentUser.role === 'Admin') return true;
     if (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') {
-      const myTeams = teams.filter(t => t.leadId === currentUser.id || t.members.includes(currentUser.id));
+      const myTeams = teams.filter(t => t.leadId === currentUser.id || t.subLeadId === currentUser.id || t.members.includes(currentUser.id));
       const myTeamIds = myTeams.map(t => t.id);
       const myMemberIds = myTeams.flatMap(t => t.members);
       return (p.teams || []).some(tId => myTeamIds.includes(tId)) ||

@@ -52,7 +52,7 @@ export default function CreateTaskModal({
     }
   }, [show]);
 
-  const availableProjects = projects.filter(p => isAdmin || ledProjectIds.includes(p.id));
+  const availableProjects = projects.filter(p => isAdmin || ledProjectIds.map(id => String(id)).includes(String(p.id)));
   const availableUsers = projectMembers;
 
   const projectOptions = availableProjects.map(p => ({
@@ -60,10 +60,13 @@ export default function CreateTaskModal({
     label: p.name.split(' (')[0]
   }));
 
-  const assigneeOptions = availableUsers.map(u => ({
-    value: String(u.id),
-    label: `${u.name} — ${u.designation}`
-  }));
+  const assigneeOptions = [
+    { value: '', label: 'Unassigned (Backlog)' },
+    ...availableUsers.map(u => ({
+      value: String(u.id),
+      label: `${u.name} — ${u.designation}`
+    }))
+  ];
 
   const handleProjectChange = (val) => {
     setTaskData(prev => ({ ...prev, projectId: val }));

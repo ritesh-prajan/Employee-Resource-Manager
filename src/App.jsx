@@ -90,7 +90,7 @@ function MainAppContent() {
       ];
       if (!leadRoutes.includes(currentPage)) setCurrentPage('lead-dashboard');
     } else if (isEmployee) {
-      const employeeRoutes = ['dashboard', 'timesheet', 'tasks', 'backlog', 'attendance', 'meetings', 'settings', 'teams', 'announcements', 'alerts'];
+      const employeeRoutes = ['dashboard', 'timesheet', 'tasks', 'backlog', 'attendance', 'meetings', 'settings', 'teams', 'projects', 'announcements', 'alerts'];
       if (!employeeRoutes.includes(currentPage)) setCurrentPage('dashboard');
     }
   }, [currentUser, isAuthenticated, currentPage, prevUserId]);
@@ -136,6 +136,10 @@ function MainAppContent() {
       case 'admin-tasks':
       case 'lead-tasks':
         return 'Tasks';
+      case 'backlog':
+      case 'admin-backlog':
+      case 'lead-backlog':
+        return 'Backlog';
       case 'attendance':
         return 'Attendance';
       case 'lead-attendance':
@@ -149,13 +153,14 @@ function MainAppContent() {
         return 'Dashboard';
       case 'admin-timesheets':
         return 'Timesheets';
-      case 'admin-teams':
-        return 'Teams';
-      case 'admin-projects':
-        return 'Projects';
       case 'teams':
+      case 'admin-teams':
       case 'lead-teams':
-        return currentUser.role === 'Admin' ? 'Teams & Projects' : 'My Team & Projects';
+        return currentUser?.role === 'Admin' ? 'Teams' : 'My Teams';
+      case 'projects':
+      case 'admin-projects':
+      case 'lead-projects':
+        return currentUser?.role === 'Admin' ? 'Projects' : 'My Projects';
       case 'employees':
       case 'admin-employees':
         return 'Employees';
@@ -169,8 +174,6 @@ function MainAppContent() {
       case 'admin-announcements':
       case 'lead-announcements':
         return 'Announcements';
-      case 'lead-projects':
-        return 'Projects';
       case 'settings':
         return 'Profile';
       case 'alerts':
@@ -188,6 +191,10 @@ function MainAppContent() {
       case 'admin-tasks':
       case 'lead-tasks':
         return <Tasks setCurrentPage={setCurrentPage} />;
+      case 'backlog':
+      case 'admin-backlog':
+      case 'lead-backlog':
+        return <Tasks setCurrentPage={setCurrentPage} initialScope="backlog" />;
       case 'attendance':
         return <Attendance />;
       case 'lead-attendance':
@@ -207,7 +214,9 @@ function MainAppContent() {
       case 'admin-teams':
       case 'lead-teams':
         return <Teams />;
+      case 'projects':
       case 'admin-projects':
+      case 'lead-projects':
         return <Projects />;
       case 'employees':
       case 'admin-employees':
@@ -224,8 +233,7 @@ function MainAppContent() {
         return <AdminAnnouncements />;
       case 'settings':
         return <ProfileSettings />;
-      case 'lead-projects':
-        return <Projects />;
+
       case 'alerts':
       case 'admin-alerts':
       case 'lead-alerts':

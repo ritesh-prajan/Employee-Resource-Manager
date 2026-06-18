@@ -72,7 +72,11 @@ export function useTasks(options={}){
     onError:(err)=>console.error("failed to delete task",err),
   });
   const assignTask=useMutation({
-    mutationFn:({taskid,userid})=>taskService.assignTask(taskid,userid),
+    mutationFn:({taskId, userId, taskid, userid})=>{
+      const tId = taskId || taskid;
+      const uId = userId || userid;
+      return taskService.assignTask(tId, uId);
+    },
     onSuccess:()=>{
       queryclient.invalidateQueries({queryKey:TASK_KEY});
     },

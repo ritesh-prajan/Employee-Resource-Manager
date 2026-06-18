@@ -3,7 +3,6 @@ import { Plus, Search, AlertTriangle, Filter, Pencil, Trash2 } from 'lucide-reac
 import { useApp } from '../../context/AppContext';
 import { useTasks } from '../../hooks/useTasks';
 import ETAExtensionModal from '../../components/forms/tasks/ETAExtensionModal';
-import CreateBacklogTaskModal from '../../components/forms/tasks/CreateBacklogTaskModal';
 import CreateTaskModal from '../../components/forms/tasks/CreateTaskModal';
 import EditTaskModal from '../../components/forms/tasks/EditTaskModal';
 import TaskDetailPanel from '../../components/forms/tasks/TaskDetailPanel';
@@ -13,7 +12,7 @@ import SearchableSelect from '../../components/ui/SearchableSelect';
 import UserAvatar from '../../components/ui/UserAvatar';
 
 export default function Tasks({ setCurrentPage, initialScope }) {
-  const { currentUser, projects, users, timerState, clockIn, clockOut, cancelTimer, teams, etaExtensions, taskTransfers, addManualEntry } = useApp();
+  const { currentUser, projects, users, timerState, clockIn, clockOut, cancelTimer, teams, etaExtensions, taskTransfers, addManualEntry, claimBacklogTask, requestClaimBacklogTask } = useApp();
 
   const {
     tasks,
@@ -35,10 +34,10 @@ export default function Tasks({ setCurrentPage, initialScope }) {
 
   const isLeader = currentUser.role === 'Admin' || currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead';
   const isAdmin = currentUser.role === 'Admin';
-  const ledTeams = teams ? teams.filter(t => t.leadId === currentUser.id || t.subLeadId === currentUser.id) : [];
-  const ledMemberIds = new Set(ledTeams.flatMap(t => t.members));
+  const ledTeams = teams ? teams.filter(t => String(t.leadId) === String(currentUser.id) || String(t.subLeadId) === String(currentUser.id)) : [];
+  const ledMemberIds = new Set(ledTeams.flatMap(t => t.members).map(mId => String(mId)));
   const ledTeamIds = ledTeams.map(t => t.id);
-  const ledProjectIds = projects ? projects.filter(p => (p.teams || []).some(tId => ledTeamIds.includes(tId))).map(p => p.id) : [];
+  const ledProjectIds = projects ? projects.filter(p => (p.teams || []).some(tId => ledTeamIds.map(id => String(id)).includes(String(tId)))).map(p => p.id) : [];
   
   const [scope, setScope] = useState(initialScope || (isLeader ? 'all' : 'my'));
   React.useEffect(() => { if (initialScope) setScope(initialScope); }, [initialScope]);
@@ -51,7 +50,6 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showEditTaskModal, setShowEditTaskModal] = useState(false);
-  const [showBacklogCreateModal, setShowBacklogCreateModal] = useState(false);
   const [showETAModal, setShowETAModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState(null);
@@ -71,7 +69,6 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [showBacklogDropdown, setShowBacklogDropdown] = useState(false);
   const [assignForm, setAssignForm] = useState({ name: '', backlogTaskId: '', eta: '8', type: 'Story', priority: 'Medium', assignedTo: '', taskNumber: '', etaDate: '', bugNumber: '' });
-  const [backlogCreateData, setBacklogCreateData] = useState({ name: '', projectId: '', eta: '8', type: 'Story', priority: 'Medium' });
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
   const getProjectInfo = (projectId) => projects.find(p => p.id === projectId);
@@ -287,18 +284,33 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     setBacklogCreateData({ name: '', projectId: '', eta: '8', type: 'Story', priority: 'Medium' });
   };
 
-  const projectOptions = projects
-    .filter(p => isAdmin || ledProjectIds.includes(p.id))
-    .map(p => ({ value: p.id, label: p.name.split(' (')[0], color: p.color }));
-  const statusOptions = ['Open', 'In Progress', 'Pending Review', 'Completed', 'ETA Extended', 'Transferred', 'Rejected'].map(s => ({ value: s, label: s }));
-  const priorityOptions = ['Low', 'Medium', 'High', 'Critical'].map(p => ({ value: p, label: p }));
+  const projectOptions = [
+    { value: '', label: 'All Projects' },
+    ...projects
+      .filter(p => isAdmin || ledProjectIds.map(id => String(id)).includes(String(p.id)))
+      .map(p => ({ value: p.id, label: p.name.split(' (')[0], color: p.color }))
+  ];
+  const statusOptions = [
+    { value: '', label: 'All Statuses' },
+    ...['Open', 'In Progress', 'Pending Review', 'Completed', 'ETA Extended', 'Transferred', 'Rejected'].map(s => ({ value: s, label: s }))
+  ];
+  const priorityOptions = [
+    { value: '', label: 'All Priorities' },
+    ...['Low', 'Medium', 'High', 'Critical'].map(p => ({ value: p, label: p }))
+  ];
 
   const filteredTasks = tasks.filter(t => {
-    if (!isAdmin && (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead')) {
-      if (!ledMemberIds.has(t.assignedTo) && !ledProjectIds.includes(t.projectId)) return false;
+    if (!isAdmin && (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && scope !== 'backlog') {
+      if (!ledMemberIds.has(String(t.assignedTo || '')) && !ledProjectIds.map(id => String(id)).includes(String(t.projectId))) return false;
     }
     if (scope === 'my' && t.assignedTo !== currentUser.id) return false;
-    if (scope === 'backlog' && t.assignedTo && t.assignedTo !== '') return false;
+    if (scope === 'backlog') {
+      if (t.assignedTo && t.assignedTo !== '') return false;
+      if (currentUser.role === 'Employee') {
+        const myProjIds = projects ? projects.filter(p => (p.members || []).some(mId => String(mId) === String(currentUser.id))).map(p => p.id) : [];
+        if (!myProjIds.map(id => String(id)).includes(String(t.projectId))) return false;
+      }
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const assignee = getUserInfo(t.assignedTo);
@@ -452,7 +464,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
 
             {scope === 'backlog' && !isLeader && (
               <button
-                onClick={() => { if (window.confirm(`Claim "${task.name}"?`)) assignTask.mutate({ taskId: task.id, userId: currentUser.id }); }}
+                onClick={() => { if (window.confirm(`Claim "${task.name}"?`)) requestClaimBacklogTask(task.id); }}
                 title="Claim Task"
                 style={{ background: 'color-mix(in oklch, #22c55e 8%, transparent)', border: 'none', color: '#22c55e', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, #22c55e 15%, transparent)'}
@@ -614,16 +626,6 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           transferReason={transferReason}
           setTransferReason={setTransferReason}
         />
-        <CreateBacklogTaskModal
-          show={showBacklogCreateModal}
-          onClose={() => setShowBacklogCreateModal(false)}
-          onSubmit={handleBacklogCreate}
-          projects={projects}
-          isAdmin={isAdmin}
-          ledProjectIds={ledProjectIds}
-          backlogCreateData={backlogCreateData}
-          setBacklogCreateData={setBacklogCreateData}
-        />
         <EditTaskModal
           show={showEditTaskModal}
           onClose={() => { setShowEditTaskModal(false); setEditingTask(null); }}
@@ -683,7 +685,8 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           onDirectUpdateETA={handleDirectUpdateETA}
           onEditTask={(task) => { setEditingTask(task); setShowEditTaskModal(true); }}
           onDeleteTask={(id) => removeTask.mutate({ id })}
-          claimBacklogTask={(taskId) => assignTask.mutate({ taskId, userId: currentUser.id })}
+          claimBacklogTask={claimBacklogTask}
+          requestClaimBacklogTask={requestClaimBacklogTask}
           getStatusColor={getStatusColor}
           checkTaskExceedsETA={checkTaskExceedsETA}
           getDatetimeInputValue={getDatetimeInputValue}

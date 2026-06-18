@@ -5,6 +5,7 @@ import {
   Video, Megaphone, MessageSquare, UserX, CalendarX,
   TrendingUp, Eye, EyeOff, ExternalLink, Trash2
 } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 
 const TYPE_META = {
   TASK_ASSIGNED:      { icon: CheckSquare, color: 'var(--primary)', label: 'Task Assigned' },
@@ -14,6 +15,7 @@ const TYPE_META = {
   TIMESHEET_REJECTED: { icon: ShieldAlert,  color: '#ef4444',        label: 'Rejected' },
   APPROVAL_REVERTED:  { icon: Clock,        color: '#fbbf24',        label: 'Reverted' },
   BACKLOG_CLAIMED:    { icon: CheckSquare,  color: '#2dd4bf',        label: 'Backlog Claimed' },
+  BACKLOG_CLAIM_REQUEST: { icon: CheckSquare, color: '#3b82f6',        label: 'Claim Request' },
   ETA_REQUEST:        { icon: Calendar,     color: '#fbbf24',        label: 'ETA Request' },
   ETA_DECISION:       { icon: Calendar,     color: '#fbbf24',        label: 'ETA Decision' },
   TRANSFER_REQUEST:   { icon: ShieldAlert,  color: '#c084fc',        label: 'Transfer Request' },
@@ -32,6 +34,7 @@ const isSystemGenerated = (id) =>
   id && (id.startsWith('overdue') || id.startsWith('overtime'));
 
 export default function AlertCard({ notification: n, onNavigate, onToggleRead, onDelete }) {
+  const { approveClaimRequest, rejectClaimRequest } = useApp();
   const { icon: Icon, color, label } = TYPE_META[n.type] || DEFAULT_META;
   const sys = isSystemGenerated(n.id);
 
@@ -110,6 +113,41 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
           {' · '}
           {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
+
+        {n.type === 'BACKLOG_CLAIM_REQUEST' && !n.isRead && (
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); approveClaimRequest(n); }}
+              style={{
+                padding: '0.3rem 0.75rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                backgroundColor: 'var(--primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              Agree
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); rejectClaimRequest(n); }}
+              style={{
+                padding: '0.3rem 0.75rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                backgroundColor: 'color-mix(in srgb, var(--destructive) 10%, transparent)',
+                color: 'var(--destructive)',
+                border: '1px solid color-mix(in srgb, var(--destructive) 25%, transparent)',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              Reject
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Actions */}

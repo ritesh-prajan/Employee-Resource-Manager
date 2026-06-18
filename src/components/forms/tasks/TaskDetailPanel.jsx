@@ -22,7 +22,7 @@ export default function TaskDetailPanel({
   onResolveETA, onResolveTransfer,
   onDirectReassign, onDirectUpdateETA,
   onEditTask, onDeleteTask,
-  onClaimBacklog, claimBacklogTask,
+  onClaimBacklog, claimBacklogTask, requestClaimBacklogTask,
   getStatusColor, checkTaskExceedsETA,
   getDatetimeInputValue,
 }) {
@@ -52,7 +52,8 @@ export default function TaskDetailPanel({
   const isMyTask = task.assignedTo === currentUser.id;
   const isActive = timerState.isClockedIn && timerState.taskId === task.id;
   const isOverrun = checkTaskExceedsETA(task);
-  const canLead = isAdmin || (isLeader && (ledProjectIds.includes(task.projectId) || ledMemberIds.has(task.assignedTo)));
+  const isBacklog = !task.assignedTo || task.assignedTo === '';
+  const canLead = isAdmin || (isLeader && (isBacklog || ledProjectIds.map(id => String(id)).includes(String(task.projectId)) || ledMemberIds.has(String(task.assignedTo || ''))));
   const pct = Math.min(100, Math.round((task.logged / task.eta) * 100)) || 0;
 
   const pendingETA = etaExtensions.find(e => e.taskId === task.id && e.status === 'Pending');
@@ -338,7 +339,14 @@ export default function TaskDetailPanel({
                 <button
                   type="button"
                   className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-500 text-white rounded-xl text-sm font-bold transition cursor-pointer flex items-center justify-center gap-2"
-                  onClick={() => { claimBacklogTask(task.id); onClose(); }}
+                  onClick={() => {
+                    if (isLeader) {
+                      claimBacklogTask(task.id);
+                    } else {
+                      requestClaimBacklogTask(task.id);
+                    }
+                    onClose();
+                  }}
                 >
                   <CheckSquare size={16} /> Claim This Task
                 </button>

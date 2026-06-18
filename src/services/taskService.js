@@ -134,29 +134,52 @@ function tobackendstatus(status){
 }
 
 function tobackendtask(data){
-    const tasktypestr=(data.taskType||data.type||"TASK").toUpperCase();
-    const validtypes=['FEATURE', 'BUG', 'STORY', 'RND', 'CRC', 'COC', 'SUPPORT', 'TASK', 'POC'];
-    const finaltypes=validtypes.includes(tasktypestr)?tasktypestr:"TASK"
+    const body = {};
 
-    const body={
-        taskNumber:data.taskNumber,
-        title:data.title||data.name,
-        description:data.description||"",
-        project:{id:data.projectId||data.project?.id},
-        taskType:finaltypes,
-        priority:tobackendpriority(data.priority),
-        status:tobackendstatus(data.status),
-        etaHours:parseFloat(data.etaHours||data.eta||0),
-        etaDate:data.etaDate,
-        epic:data.epic||"Backlog"
+    if (data.taskNumber !== undefined) body.taskNumber = data.taskNumber;
+
+    if (data.title !== undefined || data.name !== undefined) {
+        body.title = data.title || data.name;
     }
 
-    if(data.assignedTo||data.assignedToId){
-        body.assignedTo={id:data.assignedTo||data.assignedToId}
+    if (data.description !== undefined) body.description = data.description;
+
+    const projectId = data.projectId || data.project?.id;
+    if (projectId !== undefined) {
+        body.project = projectId ? { id: projectId } : null;
     }
-    if(finaltypes==="BUG"){
-        body.bugNumber=data.bugNumber;
+
+    if (data.taskType !== undefined || data.type !== undefined) {
+        const tasktypestr = (data.taskType || data.type || "TASK").toUpperCase();
+        const validtypes = ['FEATURE', 'BUG', 'STORY', 'RND', 'CRC', 'COC', 'SUPPORT', 'TASK', 'POC'];
+        body.taskType = validtypes.includes(tasktypestr) ? tasktypestr : "TASK";
     }
+
+    if (data.priority !== undefined) {
+        body.priority = tobackendpriority(data.priority);
+    }
+
+    if (data.status !== undefined) {
+        body.status = tobackendstatus(data.status);
+    }
+
+    if (data.etaHours !== undefined || data.eta !== undefined) {
+        body.etaHours = parseFloat(data.etaHours || data.eta || 0);
+    }
+
+    if (data.etaDate !== undefined) body.etaDate = data.etaDate;
+    if (data.epic !== undefined) body.epic = data.epic;
+
+    if (data.assignedTo !== undefined || data.assignedToId !== undefined) {
+        const assId = data.assignedTo || data.assignedToId;
+        body.assignedTo = assId ? { id: assId } : null;
+    }
+
+    const taskTypeVal = body.taskType || (data.taskType || data.type || "").toUpperCase();
+    if (taskTypeVal === "BUG" && data.bugNumber !== undefined) {
+        body.bugNumber = data.bugNumber;
+    }
+
     return body;
 }
 

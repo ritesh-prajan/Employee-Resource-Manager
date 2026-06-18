@@ -45,12 +45,14 @@ export default function Teams() {
   const canManage  = isAdmin || isLeadRole;
 
   const scopedTeams = teams.filter(t => {
+    const isLeadOfTeam = t.leadId != null && String(t.leadId) === String(currentUser.id);
+    const isMemberOfTeam = (t.members || []).map(id => String(id)).includes(String(currentUser.id));
     if (isAdmin) {
-      if (teamFilter === 'my') return t.leadId === currentUser.id || t.members.includes(currentUser.id);
+      if (teamFilter === 'my') return isLeadOfTeam || isMemberOfTeam;
       return true;
     }
-    if (isLeadRole) return t.leadId === currentUser.id || t.members.includes(currentUser.id);
-    return t.members.includes(currentUser.id) || t.leadId === currentUser.id;
+    if (isLeadRole) return isLeadOfTeam || isMemberOfTeam;
+    return isMemberOfTeam || isLeadOfTeam;
   });
 
   const filteredTeams = scopedTeams.filter(t => {
@@ -122,28 +124,35 @@ export default function Teams() {
     ...(canManage ? [{
       id: 'actions',
       header: 'ACTIONS',
-      cell: ({ row }) => (
-        <div style={{ display: 'inline-flex', gap: '0.4rem' }} onClick={e => e.stopPropagation()}>
-          <button
-            className="btn btn-secondary"
-            style={{ padding: '0.35rem', borderRadius: '6px', color: 'var(--primary)' }}
-            title="Edit Team"
-            onClick={() => { setEditingTeam({ ...row.original }); setShowEdit(true); }}
-          >
-            <Pencil size={13} />
-          </button>
-          {isAdmin && (
-            <button
-              className="btn btn-secondary"
-              style={{ padding: '0.35rem', borderRadius: '6px', color: 'var(--destructive)' }}
-              title="Delete Team"
-              onClick={() => setDeleteTarget(row.original)}
-            >
-              <Trash2 size={13} />
-            </button>
-          )}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const isLeadOfThisTeam = String(row.original.leadId) === String(currentUser.id) || String(row.original.subLeadId) === String(currentUser.id);
+        const canEdit = isAdmin || isLeadOfThisTeam;
+        const canDelete = isAdmin || isLeadOfThisTeam;
+        return (
+          <div style={{ display: 'inline-flex', gap: '0.4rem' }} onClick={e => e.stopPropagation()}>
+            {canEdit && (
+              <button
+                className="btn btn-secondary"
+                style={{ padding: '0.35rem', borderRadius: '6px', color: 'var(--primary)' }}
+                title="Edit Team"
+                onClick={() => { setEditingTeam({ ...row.original }); setShowEdit(true); }}
+              >
+                <Pencil size={13} />
+              </button>
+            )}
+            {canDelete && (
+              <button
+                className="btn btn-secondary"
+                style={{ padding: '0.35rem', borderRadius: '6px', color: 'var(--destructive)' }}
+                title="Delete Team"
+                onClick={() => setDeleteTarget(row.original)}
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
+          </div>
+        );
+      },
     }] : []),
   ];
 

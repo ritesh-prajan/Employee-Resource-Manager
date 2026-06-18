@@ -21,7 +21,8 @@ function resolveNavTarget(type, role) {
     case 'TASK_REJECTED':
     case 'ETA_DECISION':
     case 'TRANSFER_DECISION':
-    case 'BACKLOG_CLAIMED':   return prefix ? `${prefix}tasks` : 'tasks';
+    case 'BACKLOG_CLAIMED':
+    case 'BACKLOG_CLAIM_REQUEST':   return prefix ? `${prefix}tasks` : 'tasks';
     case 'TIMESHEET_APPROVED':
     case 'TIMESHEET_REJECTED':
     case 'APPROVAL_REVERTED': return prefix === 'admin-' ? 'admin-timesheets' : prefix === 'lead-' ? 'lead-timesheet' : 'timesheet';

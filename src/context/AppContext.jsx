@@ -448,7 +448,11 @@ export const AppProvider = ({ children }) => {
       }
       if (teamData.members && teamData.members.length > 0) {
         for (const memberId of teamData.members) {
-          await mutateAddTeamMember.mutateAsync({ teamId: created.id, userId: memberId });
+          try {
+            await mutateAddTeamMember.mutateAsync({ teamId: created.id, userId: memberId });
+          } catch (memberErr) {
+            console.error(`Failed to add member ${memberId} to team:`, memberErr);
+          }
         }
       }
     } catch (err) {
@@ -480,12 +484,20 @@ export const AppProvider = ({ children }) => {
       const newIds = updatedData.members || [];
       for (const id of existingIds) {
         if (!newIds.includes(id)) {
-          await mutateRemoveTeamMember.mutateAsync({ teamId, userId: id });
+          try {
+            await mutateRemoveTeamMember.mutateAsync({ teamId, userId: id });
+          } catch (memberErr) {
+            console.error(`Failed to remove member ${id} from team:`, memberErr);
+          }
         }
       }
       for (const id of newIds) {
         if (!existingIds.includes(id)) {
-          await mutateAddTeamMember.mutateAsync({ teamId, userId: id });
+          try {
+            await mutateAddTeamMember.mutateAsync({ teamId, userId: id });
+          } catch (memberErr) {
+            console.error(`Failed to add member ${id} to team:`, memberErr);
+          }
         }
       }
     } catch (err) {
@@ -502,12 +514,20 @@ export const AppProvider = ({ children }) => {
       const newIds = updatedData.members || [];
       for (const id of existingIds) {
         if (!newIds.includes(id)) {
-          await mutateRemoveProjectMember.mutateAsync({ projectId, userId: id });
+          try {
+            await mutateRemoveProjectMember.mutateAsync({ projectId, userId: id });
+          } catch (memberErr) {
+            console.error(`Failed to remove member ${id} from project:`, memberErr);
+          }
         }
       }
       for (const id of newIds) {
         if (!existingIds.includes(id)) {
-          await mutateAddProjectMember.mutateAsync({ projectId, userId: id });
+          try {
+            await mutateAddProjectMember.mutateAsync({ projectId, userId: id });
+          } catch (memberErr) {
+            console.error(`Failed to add member ${id} to project:`, memberErr);
+          }
         }
       }
     } catch (err) {
@@ -728,6 +748,109 @@ export const AppProvider = ({ children }) => {
     }
   }, [tasks, auth.currentUser?.id, auth.currentUser?.name, users, projects, teams, handleAddNotification, mutateUpdateTask]);
 
+  const requestClaimBacklogTask = useCallback(async (taskId) => {
+    try {
+      const taskObj = tasks.find(t => t.id === taskId);
+      if (!taskObj) return;
+
+      const proj = projects.find(p => p.id === taskObj.projectId);
+      const projectTeams = teams.filter(t => (proj?.teams || []).includes(t.id));
+      let leadIds = projectTeams.map(t => t.leadId).filter(Boolean);
+      
+      if (leadIds.length === 0) {
+        leadIds = users.filter(u => u.role === 'Admin').map(u => u.id);
+      }
+
+      leadIds.forEach(leadId => {
+        handleAddNotification({
+          id: `claim-req-${Date.now()}-${leadId}-${taskId}`,
+          recipientId: leadId,
+          senderId: auth.currentUser?.id,
+          senderName: auth.currentUser?.name,
+          type: "BACKLOG_CLAIM_REQUEST",
+          title: "Backlog Claim Request",
+          message: `${auth.currentUser?.name} has requested to claim backlog task ${taskObj.taskNumber}: ${taskObj.name}.`,
+          entityType: "TASK",
+          entityId: taskId,
+          channel: "IN_APP",
+          isRead: false,
+          createdAt: new Date().toISOString()
+        });
+      });
+
+      alert("Claim request sent to your Team Lead/Admin successfully!");
+    } catch (err) {
+      console.error("Failed to request task claim:", err);
+      alert("Failed to send claim request: " + err.message);
+    }
+  }, [tasks, projects, teams, users, auth.currentUser?.id, auth.currentUser?.name, handleAddNotification]);
+
+  const approveClaimRequest = useCallback(async (notif) => {
+    try {
+      const taskId = notif.entityId;
+      const taskObj = tasks.find(t => t.id === taskId);
+      if (!taskObj) {
+        alert("Task not found.");
+        return;
+      }
+
+      await mutateUpdateTask.mutateAsync({
+        id: taskId,
+        data: {
+          ...taskObj,
+          assignedTo: notif.senderId,
+          status: 'In Progress'
+        }
+      });
+
+      notificationsHook.deleteNotification(notif.id);
+
+      handleAddNotification({
+        id: `notif-${Date.now()}-${notif.senderId}`,
+        recipientId: notif.senderId,
+        type: "TASK_ASSIGNED",
+        title: "Claim Request Approved",
+        message: `Your request to claim backlog task ${taskObj.taskNumber}: ${taskObj.name} has been approved.`,
+        entityType: "TASK",
+        entityId: taskId,
+        channel: "IN_APP",
+        isRead: false,
+        createdAt: new Date().toISOString()
+      });
+
+      alert(`Claim request approved! Task has been assigned.`);
+    } catch (err) {
+      console.error("Failed to approve claim request:", err);
+      alert("Failed to approve request: " + err.message);
+    }
+  }, [tasks, mutateUpdateTask, handleAddNotification, notificationsHook]);
+
+  const rejectClaimRequest = useCallback(async (notif) => {
+    try {
+      notificationsHook.deleteNotification(notif.id);
+
+      const taskObj = tasks.find(t => t.id === notif.entityId) || { taskNumber: '', name: 'Task' };
+
+      handleAddNotification({
+        id: `notif-${Date.now()}-${notif.senderId}`,
+        recipientId: notif.senderId,
+        type: "TASK_REJECTED",
+        title: "Claim Request Rejected",
+        message: `Your request to claim backlog task ${taskObj.taskNumber}: ${taskObj.name} has been rejected.`,
+        entityType: "TASK",
+        entityId: notif.entityId,
+        channel: "IN_APP",
+        isRead: false,
+        createdAt: new Date().toISOString()
+      });
+
+      alert(`Claim request rejected.`);
+    } catch (err) {
+      console.error("Failed to reject claim request:", err);
+      alert("Failed to reject request: " + err.message);
+    }
+  }, [tasks, handleAddNotification, notificationsHook]);
+
   return (
     <AppContext.Provider
       value={{
@@ -794,6 +917,9 @@ export const AppProvider = ({ children }) => {
         updateTaskProgress,
         submitTaskForReview,
         claimBacklogTask,
+        requestClaimBacklogTask,
+        approveClaimRequest,
+        rejectClaimRequest,
         approveTaskCompletion,
         createAnnouncement: announcementsHook.createAnnouncement,
         editTeam,

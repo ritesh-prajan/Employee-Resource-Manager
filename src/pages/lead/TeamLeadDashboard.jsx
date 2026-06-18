@@ -78,7 +78,7 @@ export default function TeamLeadDashboard({ setCurrentPage }) {
     backlogTasks: {
       value: tasks.filter(t => {
         const s = t.status?.toUpperCase();
-        return !t.assignedTo && s !== 'COMPLETED' && s !== 'REJECTED' && teamProjectIds.includes(t.projectId);
+        return !t.assignedTo && s !== 'COMPLETED' && s !== 'REJECTED';
       }).length,
     },
   };

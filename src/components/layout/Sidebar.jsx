@@ -96,7 +96,7 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
           </button>
 
           {renderSectionHeader('Operations')}
-          <button className={`sidebar-link ${currentPage === 'admin-tasks' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
+          <button className={`sidebar-link ${(currentPage === 'admin-tasks' || currentPage === 'admin-backlog') ? 'active' : ''}`} onClick={() => setCurrentPage('admin-tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
             <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
           </button>
           <button className={`sidebar-link ${currentPage === 'admin-timesheets' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-timesheets')} style={getLinkStyle()} title={isCollapsed ? 'Timesheets' : undefined}>
@@ -131,7 +131,7 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
           <button className={`sidebar-link ${currentPage === 'lead-dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-dashboard')} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
             <LayoutDashboard size={18} />{!isCollapsed && <span>Dashboard</span>}
           </button>
-          <button className={`sidebar-link ${currentPage === 'lead-tasks' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
+          <button className={`sidebar-link ${(currentPage === 'lead-tasks' || currentPage === 'lead-backlog' || currentPage === 'backlog') ? 'active' : ''}`} onClick={() => setCurrentPage('lead-tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
             <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
           </button>
           <button className={`sidebar-link ${currentPage === 'lead-timesheet' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-timesheet')} style={getLinkStyle()} title={isCollapsed ? 'Timesheet' : undefined}>
@@ -176,7 +176,7 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
         <button className={`sidebar-link ${currentPage === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('dashboard')} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
           <LayoutDashboard size={18} />{!isCollapsed && <span>Dashboard</span>}
         </button>
-        <button className={`sidebar-link ${currentPage === 'tasks' ? 'active' : ''}`} onClick={() => setCurrentPage('tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
+        <button className={`sidebar-link ${(currentPage === 'tasks' || currentPage === 'backlog') ? 'active' : ''}`} onClick={() => setCurrentPage('tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
           <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
         </button>
         <button className={`sidebar-link ${currentPage === 'timesheet' ? 'active' : ''}`} onClick={() => setCurrentPage('timesheet')} style={getLinkStyle()} title={isCollapsed ? 'Timesheet' : undefined}>

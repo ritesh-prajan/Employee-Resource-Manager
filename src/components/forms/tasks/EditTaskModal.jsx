@@ -27,7 +27,7 @@ export default function EditTaskModal({ show, onClose, onSubmit, editingTask, se
       });
   }, [editingTask.projectId]);
 
-  const availableProjects = projects.filter(p => isAdmin || ledProjectIds.includes(p.id));
+  const availableProjects = projects.filter(p => isAdmin || ledProjectIds.map(id => String(id)).includes(String(p.id)) || String(p.id) === String(editingTask.projectId));
   const availableUsers = projectMembers;
 
   return (

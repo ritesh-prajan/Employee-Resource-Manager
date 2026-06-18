@@ -136,6 +136,10 @@ function MainAppContent() {
       case 'admin-tasks':
       case 'lead-tasks':
         return 'Tasks';
+      case 'backlog':
+      case 'admin-backlog':
+      case 'lead-backlog':
+        return 'Backlog';
       case 'attendance':
         return 'Attendance';
       case 'lead-attendance':
@@ -187,6 +191,10 @@ function MainAppContent() {
       case 'admin-tasks':
       case 'lead-tasks':
         return <Tasks setCurrentPage={setCurrentPage} />;
+      case 'backlog':
+      case 'admin-backlog':
+      case 'lead-backlog':
+        return <Tasks setCurrentPage={setCurrentPage} initialScope="backlog" />;
       case 'attendance':
         return <Attendance />;
       case 'lead-attendance':

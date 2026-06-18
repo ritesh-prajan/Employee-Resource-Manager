@@ -307,7 +307,13 @@ export default function Tasks({ setCurrentPage, initialScope }) {
       if (!ledMemberIds.has(t.assignedTo) && !ledProjectIds.includes(t.projectId)) return false;
     }
     if (scope === 'my' && t.assignedTo !== currentUser.id) return false;
-    if (scope === 'backlog' && t.assignedTo && t.assignedTo !== '') return false;
+    if (scope === 'backlog') {
+      if (t.assignedTo && t.assignedTo !== '') return false;
+      if (currentUser.role === 'Employee') {
+        const myProjIds = projects ? projects.filter(p => (p.members || []).some(mId => String(mId) === String(currentUser.id))).map(p => p.id) : [];
+        if (!myProjIds.includes(t.projectId)) return false;
+      }
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const assignee = getUserInfo(t.assignedTo);

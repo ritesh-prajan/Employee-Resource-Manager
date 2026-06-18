@@ -275,15 +275,6 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     setTaskData({ name: '', projectId: '', assignedTo: '', eta: '', type: 'Story', epic: 'Backlog', priority: 'Medium' });
   };
 
-  const handleBacklogCreate = (e) => {
-    e.preventDefault();
-    if (!backlogCreateData.projectId) { alert("Please select a project."); return; }
-    if (!backlogCreateData.name.trim()) { alert("Please enter a task summary."); return; }
-    createTask.mutate({ name: backlogCreateData.name, projectId: backlogCreateData.projectId, assignedTo: '', eta: parseFloat(backlogCreateData.eta) || 8, type: backlogCreateData.type, priority: backlogCreateData.priority, epic: 'Backlog', taskNumber: backlogCreateData.taskNumber, etaDate: backlogCreateData.etaDate, bugNumber: backlogCreateData.bugNumber });
-    setShowBacklogCreateModal(false);
-    setBacklogCreateData({ name: '', projectId: '', eta: '8', type: 'Story', priority: 'Medium' });
-  };
-
   const projectOptions = [
     { value: '', label: 'All Projects' },
     ...projects
@@ -452,14 +443,16 @@ export default function Tasks({ setCurrentPage, initialScope }) {
               ><Pencil size={14} /></button>
             )}
 
-            {isAdmin && (
+            {(isAdmin || isLeader) && (
               <button
                 onClick={() => { if (window.confirm(`Delete task "${task.name}"?`)) removeTask.mutate({ id: task.id }); }}
                 title="Delete"
                 style={{ background: 'color-mix(in oklch, var(--destructive) 8%, transparent)', border: 'none', color: 'var(--destructive)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 15%, transparent)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 8%, transparent)'}
-              ><Trash2 size={14} /></button>
+              >
+                <Trash2 size={14} />
+              </button>
             )}
 
             {scope === 'backlog' && !isAdmin && (
@@ -571,26 +564,14 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                   </button>
                 </div>
 
-                {scope === 'backlog' ? (
-                  isLeader && (
-                    <button
-                      className="rounded-xl px-4 py-2 text-xs font-bold text-white transition tasks-create-btn whitespace-nowrap"
-                      style={{ backgroundColor: '#0010ae' }}
-                      onClick={() => { setBacklogCreateData({ name: '', projectId: projects[0]?.id || '', eta: '8', type: 'Story', priority: 'Medium', taskNumber: '', etaDate: '', bugNumber: '' }); setShowBacklogCreateModal(true); }}
-                    >
-                      <Plus size={13} /> Create Backlog Task
-                    </button>
-                  )
-                ) : (
-                  isLeader && (
-                    <button
-                      className="rounded-xl px-4 py-2 text-xs font-bold text-white transition tasks-create-btn whitespace-nowrap"
-                      style={{ backgroundColor: '#0010ae' }}
-                      onClick={() => setShowTaskModal(true)}
-                    >
-                      <Plus size={13} /> Create Task
-                    </button>
-                  )
+                {isLeader && (
+                  <button
+                    className="rounded-xl px-4 py-2 text-xs font-bold text-white transition tasks-create-btn whitespace-nowrap"
+                    style={{ backgroundColor: '#0010ae' }}
+                    onClick={() => setShowTaskModal(true)}
+                  >
+                    <Plus size={13} /> Create Task
+                  </button>
                 )}
               </div>
             </div>

@@ -130,7 +130,8 @@ function tobackendstatus(status){
     'ETA Extended':   'ETA_EXTENDED',
     'Rejected':       'REJECTED',
   };
-  return map[status]||status?status.toUpperCase():"OPEN"
+  if (!status) return "OPEN";
+  return map[status] || status.toUpperCase().replace(/\s+/g, '_');
 }
 
 function tobackendtask(data){

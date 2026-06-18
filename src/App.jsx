@@ -19,6 +19,7 @@ import GlobalLoader from './components/GlobalLoader';
 import Tasks from './pages/employee/Tasks';
 import Attendance from './pages/employee/Attendance';
 import Meetings from './pages/employee/Meetings';
+import EmployeeDashboard from './pages/employee/Dashboard';
 
 // Team Lead / Sub Lead Pages
 import TeamAttendance from './pages/lead/TeamAttendance';
@@ -239,10 +240,14 @@ function MainAppContent() {
       case 'lead-alerts':
         return <Alerts setCurrentPage={setCurrentPage} />;
       case 'dashboard':
+        if (currentUser?.role === 'Team Lead' || currentUser?.role === 'Sub Lead') {
+          return <TeamLeadDashboard setCurrentPage={setCurrentPage} />;
+        }
+        return <EmployeeDashboard setCurrentPage={setCurrentPage} />;
       case 'lead-dashboard':
         return <TeamLeadDashboard setCurrentPage={setCurrentPage} />;
       default:
-        return <AdminDashboard />;
+        return <AdminDashboard setCurrentPage={setCurrentPage} />;
     }
   };
 

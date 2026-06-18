@@ -126,6 +126,7 @@ export default function CreateTaskModal({
 
     setAssignForm(prev => ({ ...prev, name: '', backlogTaskId: '', eta: '8', assignedTo: '', taskNumber: generateNextTaskNumber(), etaDate: '', bugNumber: '' }));
     setShowBacklogDropdown(false);
+    setShowAssignForm(false);
   };
 
   const handlePublish = (e) => {

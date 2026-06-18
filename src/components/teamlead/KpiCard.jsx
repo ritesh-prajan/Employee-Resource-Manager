@@ -16,8 +16,8 @@ export default function KpiCard({ icon: Icon, label, value, sub, accent, onClick
         <Icon size={18} color={accent} />
       </div>
       <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>{label}</div>
         <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--foreground)', lineHeight: 1.1 }}>{value}</div>
-        <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 2 }}>{label}</div>
         {sub && <div style={{ fontSize: '0.68rem', color: 'var(--muted-foreground)', marginTop: 2 }}>{sub}</div>}
       </div>
     </div>

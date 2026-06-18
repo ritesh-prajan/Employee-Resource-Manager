@@ -13,7 +13,7 @@ import SearchableSelect from '../../components/ui/SearchableSelect';
 import UserAvatar from '../../components/ui/UserAvatar';
 
 export default function Tasks({ setCurrentPage, initialScope }) {
-  const { currentUser, projects, users, timerState, clockIn, clockOut, cancelTimer, teams, etaExtensions, taskTransfers, addManualEntry } = useApp();
+  const { currentUser, projects, users, timerState, clockIn, clockOut, cancelTimer, teams, etaExtensions, taskTransfers, addManualEntry, claimBacklogTask } = useApp();
 
   const {
     tasks,
@@ -467,7 +467,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
 
             {scope === 'backlog' && !isLeader && (
               <button
-                onClick={() => { if (window.confirm(`Claim "${task.name}"?`)) assignTask.mutate({ taskId: task.id, userId: currentUser.id }); }}
+                onClick={() => { if (window.confirm(`Claim "${task.name}"?`)) claimBacklogTask(task.id); }}
                 title="Claim Task"
                 style={{ background: 'color-mix(in oklch, #22c55e 8%, transparent)', border: 'none', color: '#22c55e', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, #22c55e 15%, transparent)'}
@@ -698,7 +698,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           onDirectUpdateETA={handleDirectUpdateETA}
           onEditTask={(task) => { setEditingTask(task); setShowEditTaskModal(true); }}
           onDeleteTask={(id) => removeTask.mutate({ id })}
-          claimBacklogTask={(taskId) => assignTask.mutate({ taskId, userId: currentUser.id })}
+          claimBacklogTask={claimBacklogTask}
           getStatusColor={getStatusColor}
           checkTaskExceedsETA={checkTaskExceedsETA}
           getDatetimeInputValue={getDatetimeInputValue}

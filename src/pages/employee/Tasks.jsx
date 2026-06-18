@@ -462,13 +462,21 @@ export default function Tasks({ setCurrentPage, initialScope }) {
               ><Trash2 size={14} /></button>
             )}
 
-            {scope === 'backlog' && !isLeader && (
+            {scope === 'backlog' && !isAdmin && (
               <button
-                onClick={() => { if (window.confirm(`Claim "${task.name}"?`)) requestClaimBacklogTask(task.id); }}
+                onClick={() => {
+                  if (window.confirm(`Claim "${task.name}"?`)) {
+                    if (isLeader) {
+                      claimBacklogTask(task.id);
+                    } else {
+                      requestClaimBacklogTask(task.id);
+                    }
+                  }
+                }}
                 title="Claim Task"
                 style={{ background: 'color-mix(in oklch, #22c55e 8%, transparent)', border: 'none', color: '#22c55e', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, #22c55e 15%, transparent)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, #22c55e 15%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, #22c55e 8%, transparent)'}
               ><Plus size={14} /> Claim</button>
             )}
           </div>

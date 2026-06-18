@@ -697,11 +697,26 @@ export const AppProvider = ({ children }) => {
     try {
       const taskObj = tasks.find(t => t.id === taskId);
       if (!taskObj) return;
+
+      const currentUserId = auth.currentUser?.id;
+      const proj = projects.find(p => p.id === taskObj.projectId);
+      const isMember = proj ? (proj.members || []).some(mId => String(mId) === String(currentUserId)) : false;
+
+      if (currentUserId) {
+        if (!isMember) {
+          try {
+            await mutateAddProjectMember.mutateAsync({ projectId: taskObj.projectId, userId: currentUserId });
+          } catch (addErr) {
+            console.warn("Could not auto-add user to project:", addErr);
+          }
+        }
+      }
+
       await mutateUpdateTask.mutateAsync({
         id: taskId,
         data: {
           ...taskObj,
-          assignedTo: auth.currentUser?.id,
+          assignedTo: currentUserId,
           status: 'In Progress'
         }
       });
@@ -720,9 +735,9 @@ export const AppProvider = ({ children }) => {
           createdAt: new Date().toISOString()
         });
       });
-      const proj = projects.find(p => p.id === taskObj.projectId);
-      if (proj && proj.teams) {
-        const projectTeams = teams.filter(t => proj.teams.includes(t.id));
+      const projObj = projects.find(p => p.id === taskObj.projectId);
+      if (projObj && projObj.teams) {
+        const projectTeams = teams.filter(t => projObj.teams.includes(t.id));
         const notifiedLeadIds = new Set(admins.map(a => a.id));
         projectTeams.forEach(team => {
           if (team.leadId && !notifiedLeadIds.has(team.leadId) && String(team.leadId) !== String(auth.currentUser?.id)) {
@@ -732,7 +747,7 @@ export const AppProvider = ({ children }) => {
               recipientId: team.leadId,
               type: "BACKLOG_CLAIMED",
               title: "Backlog Task Claimed",
-              message: `${auth.currentUser?.name} has claimed backlog task ${taskObj.taskNumber}: ${taskObj.name} from project ${proj.name.split(' (')[0]}.`,
+              message: `${auth.currentUser?.name} has claimed backlog task ${taskObj.taskNumber}: ${taskObj.name} from project ${projObj.name.split(' (')[0]}.`,
               entityType: "TASK",
               entityId: taskId,
               channel: "IN_APP",
@@ -746,7 +761,7 @@ export const AppProvider = ({ children }) => {
       console.error('Failed to claim backlog task:', err);
       alert('Failed to claim backlog task: ' + err.message);
     }
-  }, [tasks, auth.currentUser?.id, auth.currentUser?.name, users, projects, teams, handleAddNotification, mutateUpdateTask]);
+  }, [tasks, auth.currentUser?.id, auth.currentUser?.name, users, projects, teams, handleAddNotification, mutateUpdateTask, mutateAddProjectMember]);
 
   const requestClaimBacklogTask = useCallback(async (taskId) => {
     try {
@@ -794,6 +809,19 @@ export const AppProvider = ({ children }) => {
         return;
       }
 
+      const proj = projects.find(p => p.id === taskObj.projectId);
+      const isMember = proj ? (proj.members || []).some(mId => String(mId) === String(notif.senderId)) : false;
+
+      if (notif.senderId) {
+        if (!isMember) {
+          try {
+            await mutateAddProjectMember.mutateAsync({ projectId: taskObj.projectId, userId: notif.senderId });
+          } catch (addErr) {
+            console.warn("Could not auto-add claim request sender to project:", addErr);
+          }
+        }
+      }
+
       await mutateUpdateTask.mutateAsync({
         id: taskId,
         data: {
@@ -823,7 +851,7 @@ export const AppProvider = ({ children }) => {
       console.error("Failed to approve claim request:", err);
       alert("Failed to approve request: " + err.message);
     }
-  }, [tasks, mutateUpdateTask, handleAddNotification, notificationsHook]);
+  }, [tasks, mutateUpdateTask, handleAddNotification, notificationsHook, projects, mutateAddProjectMember]);
 
   const rejectClaimRequest = useCallback(async (notif) => {
     try {

@@ -189,8 +189,11 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
         <button className={`sidebar-link ${currentPage === 'meetings' ? 'active' : ''}`} onClick={() => setCurrentPage('meetings')} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
           <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
         </button>
-        <button className={`sidebar-link ${currentPage === 'teams' ? 'active' : ''}`} onClick={() => setCurrentPage('teams')} style={getLinkStyle()} title={isCollapsed ? 'Directory' : undefined}>
-          <Users size={18} />{!isCollapsed && <span>Directory</span>}
+        <button className={`sidebar-link ${currentPage === 'teams' ? 'active' : ''}`} onClick={() => setCurrentPage('teams')} style={getLinkStyle()} title={isCollapsed ? 'My Teams' : undefined}>
+          <Users size={18} />{!isCollapsed && <span>My Teams</span>}
+        </button>
+        <button className={`sidebar-link ${currentPage === 'projects' ? 'active' : ''}`} onClick={() => setCurrentPage('projects')} style={getLinkStyle()} title={isCollapsed ? 'My Projects' : undefined}>
+          <Briefcase size={18} />{!isCollapsed && <span>My Projects</span>}
         </button>
         <button className={`sidebar-link ${currentPage === 'announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('announcements')} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
           <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}

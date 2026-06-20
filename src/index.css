@@ -57,6 +57,28 @@
   --shadow-2xl: 0px 4px 10px 0px hsl(0, 0%, 0% / 0.25);
   --tracking-normal: -0.015em;
   --spacing: 0.25rem;
+  --hu-font-geist: var(--font-geist);
+  --hu-font-jetbrains: var(--font-jetbrains-mono);
+  --card-radius: 10px;
+  --hu-background: hsl(0, 0%, 100%);
+  --hu-foreground: hsl(0, 0%, 14%);
+  --hu-card: hsl(0, 0%, 99%);
+  --hu-card-foreground: hsl(0, 0%, 14%);
+  --hu-primary: hsl(235, 100%, 60%);
+  --hu-primary-foreground: hsl(0, 0%, 98%);
+  --hu-secondary: hsl(0, 0%, 97%);
+  --hu-secondary-foreground: hsl(0, 0%, 20%);
+  --hu-muted: hsl(0, 0%, 97%);
+  --hu-muted-foreground: hsl(0, 0%, 56%);
+  --hu-accent: hsl(0, 0%, 96%);
+  --hu-accent-foreground: hsl(0, 0%, 20%);
+  --hu-destructive: hsl(9, 96%, 47%);
+  --hu-destructive-foreground: hsl(0, 0%, 98%);
+  --hu-border: hsl(0, 0%, 92%);
+  --hu-input: hsl(0, 0%, 100%);
+  --hu-ring: hsl(0, 0%, 71%);
+  --color-fd-background: hsl(var(--hu-background));
+  --color-fd-card: hsl(var(--hu-background));
 }
 
 .dark {
@@ -111,6 +133,25 @@
   --shadow-lg: 0px 8px 15px 0px hsl(0, 0%, 0% / 0.50), 0px 4px 6px -1px hsl(0, 0%, 0% / 0.50);
   --shadow-xl: 0px 8px 15px 0px hsl(0, 0%, 0% / 0.50), 0px 8px 10px -1px hsl(0, 0%, 0% / 0.50);
   --shadow-2xl: 0px 8px 15px 0px hsl(0, 0%, 0% / 1.25);
+  --hu-background: hsl(0, 0%, 7%);
+  --hu-foreground: hsl(0, 0%, 100%);
+  --hu-card: hsl(0, 0%, 9%);
+  --hu-card-foreground: hsl(0, 0%, 100%);
+  --hu-primary: hsl(235, 100%, 60%);
+  --hu-primary-foreground: hsl(0, 0%, 98%);
+  --hu-secondary: hsl(0, 0%, 15%);
+  --hu-secondary-foreground: hsl(0, 0%, 100%);
+  --hu-muted: hsl(0, 0%, 15%);
+  --hu-muted-foreground: hsl(0, 0%, 71%);
+  --hu-accent: hsl(0, 0%, 15%);
+  --hu-accent-foreground: hsl(0, 0%, 100%);
+  --hu-destructive: hsl(0, 84%, 50%);
+  --hu-destructive-foreground: hsl(0, 0%, 98%);
+  --hu-border: 0, 0%, 100%, 10%;
+  --hu-input: 0, 0%, 100%, 5%;
+  --hu-ring: hsl(0, 0%, 56%);
+  --color-fd-background: hsl(var(--hu-background));
+  --color-fd-card: hsl(var(--hu-background));
 }
 
 @theme inline {
@@ -171,6 +212,29 @@
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+  --color-color-fd-card: var(----color-fd-card);
+  --color-color-fd-background: var(----color-fd-background);
+  --color-hu-ring: var(----hu-ring);
+  --color-hu-input: var(----hu-input);
+  --color-hu-border: var(----hu-border);
+  --color-hu-destructive-foreground: var(----hu-destructive-foreground);
+  --color-hu-destructive: var(----hu-destructive);
+  --color-hu-accent-foreground: var(----hu-accent-foreground);
+  --color-hu-accent: var(----hu-accent);
+  --color-hu-muted-foreground: var(----hu-muted-foreground);
+  --color-hu-muted: var(----hu-muted);
+  --color-hu-secondary-foreground: var(----hu-secondary-foreground);
+  --color-hu-secondary: var(----hu-secondary);
+  --color-hu-primary-foreground: var(----hu-primary-foreground);
+  --color-hu-primary: var(----hu-primary);
+  --color-hu-card-foreground: var(----hu-card-foreground);
+  --color-hu-card: var(----hu-card);
+  --color-hu-foreground: var(----hu-foreground);
+  --color-hu-background: var(----hu-background);
+  --card-radius: var(----card-radius);
+  --radius: var(----radius);
+  --hu-font-jetbrains: var(----hu-font-jetbrains);
+  --hu-font-geist: var(----hu-font-geist);
 }
 
 @layer base {
@@ -182,6 +246,35 @@
     letter-spacing: var(--tracking-normal);
   }
 }
+/* ── Minimal global scrollbar ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover {
+  scrollbar-color: color-mix(in srgb, var(--border) 60%, transparent) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 999px;
+  transition: background-color 0.2s;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--border) 60%, transparent);
+}
+
 /* ===== GLOBAL MODAL STYLES ===== */
 .modal-overlay {
   position: fixed;
@@ -402,6 +495,42 @@
   border: 1.5px solid var(--background);
 }
 
+/* ── Global select / dropdown ── */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0.4rem 2rem 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--foreground);
+  background-color: var(--card);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b939c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  min-width: 120px;
+}
+
+select:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+}
+
+select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+select option {
+  background-color: var(--card);
+  color: var(--foreground);
+  font-weight: 400;
+}
+
 /* ===== ANIMATIONS ===== */
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -411,3 +540,417 @@
   from { transform: scale(0.96); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* Tasks Page Styles */
+.tasks-page-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-canvas, #f0f2f5);
+  zoom: var(--page-zoom, 0.9);
+}
+.tasks-toolbar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.tasks-filter-card {
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background-color: var(--background);
+  padding: 1.25rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+.tasks-filter-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.tasks-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.5rem 0.85rem;
+  width: 280px;
+}
+.tasks-search-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.tasks-search-input {
+  background: none;
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 0.875rem;
+  color: #1e293b;
+}
+.tasks-search-input::placeholder {
+  color: #94a3b8;
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+.tasks-scope-toggle {
+  display: inline-flex;
+  background-color: rgba(0,0,0,0.04);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+.tasks-scope-btn {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.7rem;
+  font-weight: 650;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.tasks-scope-btn.active {
+  background-color: var(--primary, #1d4ed8);
+  color: #fff;
+}
+.tasks-scope-btn.inactive {
+  background-color: transparent;
+  color: #64748b;
+}
+.tasks-create-btn {
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.mobile-filter-toggle-btn {
+  display: none !important;
+}
+
+/* ===== RESPONSIVE OVERRIDES FOR MOBILE & TABLET ===== */
+@media (max-width: 1024px) {
+  /* Reset all React inline style zooms to normal scale on mobile/tablet */
+  *[style*="zoom"] {
+    zoom: 1 !important;
+  }
+
+  /* Header Hamburger Menu Button */
+  .mobile-menu-btn {
+    display: flex !important;
+  }
+
+  /* Sidebar drawer layout styling */
+  .app-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s ease-in-out !important;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.15) !important;
+    width: 240px !important;
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  /* Hide inner collapse chevron inside sidebar on smaller viewports */
+  .app-sidebar button[title="Expand Sidebar"],
+  .app-sidebar button[title="Collapse Sidebar"] {
+    display: none !important;
+  }
+
+  /* Topbar responsive adjustments */
+  .topbar-logo-area {
+    display: none !important;
+  }
+
+  .topbar-search-container {
+    margin-left: 8px !important;
+    flex: 1 !important;
+    max-width: 240px !important;
+  }
+
+  .topbar-search-input {
+    width: 100% !important;
+  }
+
+  /* Convert dashboard grid containers to vertical column stacks */
+  .admin-dashboard-grid-1,
+  .admin-dashboard-grid-2,
+  .lead-dashboard-grid-1,
+  .lead-dashboard-grid-2 {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+  }
+
+  /* Impose structured heights for grid sub-items when stacked */
+  .admin-dashboard-grid-1 > div,
+  .admin-dashboard-grid-2 > div,
+  .lead-dashboard-grid-1 > div,
+  .lead-dashboard-grid-2 > div {
+    min-height: 320px !important;
+    height: auto !important;
+  }
+
+  /* Scale KPI cards grids into 3 columns on tablet screens */
+  .kpi-cards-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  .lead-kpi-grid {
+    flex-wrap: wrap !important;
+  }
+  
+  .lead-kpi-grid > div {
+    flex: 1 1 calc(33.33% - 0.875rem) !important;
+  }
+
+  /* Allow main content body to scroll horizontally if tables/timesheets overflow */
+  .content-body {
+    overflow-x: auto !important;
+  }
+
+  /* Responsive layout for Approval KPI bar */
+  .approval-kpi-bar {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Make timesheet scrollable horizontally but keep filters static */
+  .timesheet-console {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    max-width: 100% !important;
+  }
+  .timesheet-console > div:not(:first-child) {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .timesheet-console .grid {
+    display: grid !important;
+    min-width: 850px !important;
+  }
+
+  /* Attendance KPI summary cards responsiveness */
+  .attendance-kpi-grid {
+    flex-wrap: wrap !important;
+  }
+  .attendance-kpi-grid > div {
+    flex: 1 1 calc(50% - 1rem) !important;
+    min-width: 150px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Typography adjustments for mobile */
+  h1, .text-2xl { font-size: 1.3rem !important; }
+  h2, .text-xl { font-size: 1.15rem !important; }
+  h3, .text-lg { font-size: 1rem !important; }
+
+  /* Scale KPI cards grids into 2 columns on mobile screens */
+  .kpi-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .lead-kpi-grid > div {
+    flex: 1 1 calc(50% - 0.875rem) !important;
+  }
+
+  /* Responsive layout for Approval KPI bar */
+  .approval-kpi-bar {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Force settings layout grids into a single-column layout */
+  .settings-two-col-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* TopBar Profile adjustments */
+  .topbar-search-container {
+    max-width: 140px !important;
+  }
+
+  .topbar-user-name {
+    display: none !important;
+  }
+
+  /* Maximize space usage on mobile screen bodies */
+  .content-body {
+    padding: 12px !important;
+  }
+
+  /* Automatically scale and adjust overlay modals for small screens */
+  .modal-content {
+    width: 95% !important;
+    padding: 1.25rem !important;
+  }
+
+  /* Force multi-column form grids inside modals to stack vertically on mobile */
+  .modal-content div[style*="grid"] {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Make sure modal content headers and footer buttons stack cleanly */
+  .modal-footer {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  .modal-footer button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Stack pagination elements on small screens */
+  .pagination-container {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    align-items: center !important;
+    padding: 0.75rem 1rem !important;
+  }
+  .pagination-container > div, .pagination-container > span {
+    width: auto !important;
+    justify-content: center !important;
+  }
+
+  /* Stack tasks/approvals filter row inputs */
+  .tasks-filter-row, .approval-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .tasks-filter-row > div, .approval-filter-bar > div {
+    width: 100% !important;
+  }
+
+  .tasks-search-box {
+    width: 100% !important;
+  }
+
+  .tasks-filter-row select, .approval-filter-bar select {
+    width: 100% !important;
+  }
+
+  .tasks-filter-row .flex.items-center.gap-4.flex-wrap {
+    width: 100% !important;
+    margin-left: 0 !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .tasks-create-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    margin-left: 0 !important;
+    margin-top: 0.5rem !important;
+  }
+
+  .tasks-scope-toggle {
+    width: 100% !important;
+    display: flex !important;
+  }
+
+  .tasks-scope-toggle button {
+    flex: 1 !important;
+    text-align: center !important;
+    font-size: 0.65rem !important;
+    padding: 0.5rem 0.25rem !important;
+  }
+
+  /* Scale down table cell spacing and text sizes on phone screens */
+  .px-6.py-4, th, td {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+
+  /* Timesheets header responsive layout */
+  .timesheet-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+  }
+
+  .timesheet-tabs {
+    width: 100% !important;
+    display: flex !important;
+  }
+
+  .timesheet-tabs button {
+    flex: 1 !important;
+    justify-content: center !important;
+  }
+
+  .timesheet-console .flex-wrap {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .timesheet-console .flex-wrap > div,
+  .timesheet-console .flex-wrap select,
+  .timesheet-console .flex-wrap button,
+  .timesheet-console .flex-wrap .input-control {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  /* Style toggle buttons and collapse state for mobile view filters */
+  .mobile-filter-toggle-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.65rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--primary);
+    background-color: color-mix(in oklch, var(--primary) 10%, transparent);
+    border: 1px dashed color-mix(in oklch, var(--primary) 30%, transparent);
+    border-radius: 10px;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-filter-toggle-btn:hover {
+    background-color: color-mix(in oklch, var(--primary) 15%, transparent);
+  }
+
+  /* Hide filter cards/bars by default on mobile */
+  .tasks-filter-card,
+  .approval-filter-bar,
+  .timesheet-filter-bar,
+  .attendance-filter-bar {
+    display: none !important;
+  }
+
+  /* Show filter cards/bars when expanded */
+  .tasks-filter-card.mobile-filters-open,
+  .approval-filter-bar.mobile-filters-open,
+  .timesheet-filter-bar.mobile-filters-open,
+  .attendance-filter-bar.mobile-filters-open {
+    display: flex !important;
+  }
+
+  .attendance-kpi-grid > div {
+    flex: 1 1 100% !important;
+  }
+}
+
+

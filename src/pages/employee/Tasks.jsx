@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, AlertTriangle } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Filter, Pencil, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useTasks } from '../../hooks/useTasks';
 import ETAExtensionModal from '../../components/forms/tasks/ETAExtensionModal';
-import CreateBacklogTaskModal from '../../components/forms/tasks/CreateBacklogTaskModal';
 import CreateTaskModal from '../../components/forms/tasks/CreateTaskModal';
 import EditTaskModal from '../../components/forms/tasks/EditTaskModal';
 import TaskDetailPanel from '../../components/forms/tasks/TaskDetailPanel';
@@ -12,22 +12,33 @@ import SearchableSelect from '../../components/ui/SearchableSelect';
 import UserAvatar from '../../components/ui/UserAvatar';
 
 export default function Tasks({ setCurrentPage, initialScope }) {
+  const { currentUser, projects, users, timerState, clockIn, clockOut, cancelTimer, teams, etaExtensions, taskTransfers, addManualEntry, claimBacklogTask, requestClaimBacklogTask } = useApp();
+
   const {
-    currentUser, tasks, projects, users, timerState,
-    clockIn, clockOut, taskComments, addTaskComment,
-    updateTaskProgress, submitTaskForReview, requestETAExtension,
-    requestTaskTransfer, reviewETAExtension, reviewTaskTransfer,
-    createTask, deleteTask, editTask, setTasks, teams,
-    etaExtensions, taskTransfers, claimBacklogTask
-  } = useApp();
+    tasks,
+    isLoading,
+    createTask,
+    updateTask,
+    removeTask,
+    assignTask,
+    unassignTask,
+    addTaskComment,
+    updateTaskProgress,
+    createTransfer,
+    approveTransfer,
+    rejectTransfer,
+    createEtaExtension,
+    approveEtaExtension,
+    rejectEtaExtension,
+  } = useTasks();
 
   const isLeader = currentUser.role === 'Admin' || currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead';
   const isAdmin = currentUser.role === 'Admin';
-  const ledTeams = teams ? teams.filter(t => t.leadId === currentUser.id) : [];
-  const ledMemberIds = new Set(ledTeams.flatMap(t => t.members));
+  const ledTeams = teams ? teams.filter(t => String(t.leadId) === String(currentUser.id) || String(t.subLeadId) === String(currentUser.id)) : [];
+  const ledMemberIds = new Set(ledTeams.flatMap(t => t.members).map(mId => String(mId)));
   const ledTeamIds = ledTeams.map(t => t.id);
-  const ledProjectIds = projects ? projects.filter(p => (p.teams || []).some(tId => ledTeamIds.includes(tId))).map(p => p.id) : [];
-
+  const ledProjectIds = projects ? projects.filter(p => (p.teams || []).some(tId => ledTeamIds.map(id => String(id)).includes(String(tId)))).map(p => p.id) : [];
+  
   const [scope, setScope] = useState(initialScope || (isLeader ? 'all' : 'my'));
   React.useEffect(() => { if (initialScope) setScope(initialScope); }, [initialScope]);
 
@@ -35,10 +46,10 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedPriority, setSelectedPriority] = useState('');
+  const [showExceededETA, setShowExceededETA] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showEditTaskModal, setShowEditTaskModal] = useState(false);
-  const [showBacklogCreateModal, setShowBacklogCreateModal] = useState(false);
   const [showETAModal, setShowETAModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState(null);
@@ -52,15 +63,13 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [overrunComments, setOverrunComments] = useState('');
   const [overrunTaskId, setOverrunTaskId] = useState(null);
   const [newComment, setNewComment] = useState({});
-  const [progressValue, setProgressValue] = useState({});
-  const [progressNote, setProgressNote] = useState({});
   const [taskData, setTaskData] = useState({ name: '', projectId: '', assignedTo: '', eta: '', type: 'Story', epic: 'Backlog', priority: 'Medium' });
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
   const [stagedTasks, setStagedTasks] = useState([]);
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [showBacklogDropdown, setShowBacklogDropdown] = useState(false);
-  const [assignForm, setAssignForm] = useState({ name: '', backlogTaskId: '', eta: '8', type: 'Story', priority: 'Medium', assignedTo: '' });
-  const [backlogCreateData, setBacklogCreateData] = useState({ name: '', projectId: '', eta: '8', type: 'Story', priority: 'Medium' });
+  const [assignForm, setAssignForm] = useState({ name: '', backlogTaskId: '', eta: '8', type: 'Story', priority: 'Medium', assignedTo: '', taskNumber: '', etaDate: '', bugNumber: '' });
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
   const getProjectInfo = (projectId) => projects.find(p => p.id === projectId);
   const getUserInfo = (userId) => users.find(u => u.id === userId);
@@ -106,90 +115,145 @@ export default function Tasks({ setCurrentPage, initialScope }) {
 
   const handleETASubmit = () => {
     if (!activeTaskId || !etaDate || !etaReason) return;
-    requestETAExtension(activeTaskId, etaDate, etaReason);
+    createEtaExtension.mutate({ taskId: activeTaskId, requestedById: currentUser.id, newEtaDate: etaDate, reason: etaReason });
     setShowETAModal(false);
   };
 
   const handleTransferSubmit = (e) => {
     e.preventDefault();
     if (!activeTaskId || !transferTarget || !transferReason) return;
-    requestTaskTransfer(activeTaskId, transferTarget, transferReason);
+    createTransfer.mutate({ taskId: activeTaskId, fromEmployeeId: currentUser.id, toEmployeeId: transferTarget, reason: transferReason });
     setShowTransferModal(false);
   };
 
   const handleDirectReassign = (taskId, newAssigneeId) => {
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, assignedTo: newAssigneeId || '' } : t));
+    if (newAssigneeId) {
+      assignTask.mutate({ taskId, userId: newAssigneeId });
+    } else {
+      unassignTask.mutate(taskId);
+    }
   };
 
   const handleDirectUpdateETA = (taskId, newEtaDate, newEtaHours) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id !== taskId) return t;
-      const updated = { ...t };
-      if (newEtaDate !== undefined) updated.etaDate = newEtaDate ? new Date(newEtaDate).toISOString() : null;
-      if (newEtaHours !== undefined) updated.eta = parseFloat(newEtaHours) || 0;
-      return updated;
-    }));
+    const taskObj = tasks.find(t => t.id === taskId);
+    if (!taskObj) return;
+    const updated = { ...taskObj };
+    if (newEtaDate !== undefined) updated.etaDate = newEtaDate ? new Date(newEtaDate).toISOString() : null;
+    if (newEtaHours !== undefined) updated.eta = parseFloat(newEtaHours) || 0;
+    updateTask.mutate({ id: taskId, data: updated });
   };
 
   const resolveETARequest = (taskId, approve) => {
     const req = etaExtensions.find(e => e.taskId === taskId && e.status === 'Pending');
     if (!req) return;
-    reviewETAExtension(req.id, approve ? 'Approved' : 'Rejected', approve ? 'Approved directly' : 'Declined directly');
+    approve ? approveEtaExtension.mutate(req.id) : rejectEtaExtension.mutate(req.id);
   };
 
   const resolveTransferRequest = (taskId, approve) => {
     const req = taskTransfers.find(t => t.taskId === taskId && t.status === 'Pending');
     if (!req) return;
-    reviewTaskTransfer(req.id, approve ? 'Approved' : 'Rejected', approve ? 'Approved directly' : 'Declined directly');
+    approve ? approveTransfer.mutate(req.id) : rejectTransfer.mutate(req.id);
   };
+
+  const [pendingSessionHours, setPendingSessionHours] = useState(0);
+  const [pendingSessionProgress, setPendingSessionProgress] = useState(0);
 
   const handleStartTask = (task) => {
     if (timerState.isClockedIn) { alert("You are currently tracking another task. Please pause or finish it first."); return; }
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'In Progress' } : t));
+    updateTask.mutate({ id: task.id, data: { ...task, status: 'In Progress' } });
     clockIn(task.id, task.projectId, task.name, task.type);
-    addTaskComment(task.id, `[Started task tracking]`);
+    addTaskComment.mutate({
+      taskId: task.id,
+      authorEmployeeId: currentUser.id,
+      commentText: '[Started task tracking]'
+    });
   };
 
-  const triggerPauseTask = (task) => { setOverrunTaskId(task.id); setOverrunActionType('pause'); setOverrunComments(''); setShowOverrunPrompt(true); };
-  const triggerFinishTask = (task) => { setOverrunTaskId(task.id); setOverrunActionType('finish'); setOverrunComments(''); setShowOverrunPrompt(true); };
+  const executePauseOrFinish = (task, actionType, entryData) => {
+    const { date, startTime, duration, workCategory, description, justification } = entryData;
 
-  const handleSubmitExecutionAction = () => {
-    const task = tasks.find(t => t.id === overrunTaskId);
-    if (!task) return;
-    const isOverrun = checkTaskExceedsETA(task);
-    if (isOverrun && !overrunComments.trim()) { alert("Please provide comments/justification for exceeding the estimated task time."); return; }
-    const commentsText = overrunComments.trim();
-    if (overrunActionType === 'pause') {
-      if (timerState.isClockedIn && timerState.taskId === task.id) clockOut(commentsText);
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'Paused', etaExceededComment: commentsText || t.etaExceededComment } : t));
-      addTaskComment(task.id, commentsText ? `[Paused task - Overrun Comment]: ${commentsText}` : `[Paused task]`);
-    } else {
-      if (timerState.isClockedIn && timerState.taskId === task.id) clockOut(commentsText);
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'Pending Review', etaExceededComment: commentsText || t.etaExceededComment } : t));
-      addTaskComment(task.id, commentsText ? `[Submitted for Review - Comment]: ${commentsText}` : `[Submitted for Review]`);
-      submitTaskForReview(task.id);
+    if (timerState.isClockedIn && timerState.taskId === task.id) {
+      cancelTimer();
     }
-    setShowOverrunPrompt(false); setOverrunComments(''); setOverrunTaskId(null); setExpandedTaskId(null);
+
+    if (duration > 0) {
+      addManualEntry({
+        taskId: task.id,
+        projectId: task.projectId,
+        description: description || `Worked on task: ${task.name}`,
+        date: date,
+        startTime: startTime,
+        duration: duration,
+        workCategory: workCategory,
+        justification: justification
+      });
+    }
+
+    const updatedStatus = actionType === 'pause' ? 'Paused' : 'Pending Review';
+
+    updateTask.mutate({
+      id: task.id,
+      data: {
+        ...task,
+        status: updatedStatus,
+        etaExceededComment: justification || task.etaExceededComment
+      }
+    });
+
+    const commentMsg = justification
+      ? `[${actionType === 'pause' ? 'Paused' : 'Submitted for Review'} - Comment]: ${justification}. Session hours: ${duration}h.`
+      : `[${actionType === 'pause' ? 'Paused' : 'Submitted for Review'}]. Session hours: ${duration}h.`;
+
+    addTaskComment.mutate({
+      taskId: task.id,
+      authorEmployeeId: currentUser.id,
+      commentText: commentMsg
+    });
+
+    setExpandedTaskId(null);
+  };
+
+  const triggerPauseTask = (task, entryData) => {
+    const { duration, justification } = entryData;
+    if (duration < 0 || isNaN(duration)) { alert("Please enter valid hours worked."); return; }
+
+    const remainingEta = Math.max(0, task.eta - task.logged);
+    const isOverrun = duration > remainingEta;
+
+    if (isOverrun && !justification.trim()) {
+      alert("Please provide comments/justification for exceeding the estimated task time.");
+      return;
+    }
+
+    executePauseOrFinish(task, 'pause', entryData);
+  };
+
+  const triggerFinishTask = (task, entryData) => {
+    const { duration, justification } = entryData;
+    if (duration < 0 || isNaN(duration)) { alert("Please enter valid hours worked."); return; }
+
+    const remainingEta = Math.max(0, task.eta - task.logged);
+    const isOverrun = duration > remainingEta;
+
+    if (isOverrun && !justification.trim()) {
+      alert("Please provide comments/justification for exceeding the estimated task time.");
+      return;
+    }
+
+    executePauseOrFinish(task, 'finish', entryData);
   };
 
   const handleAddCommentSubmit = (taskId) => {
     const commentText = newComment[taskId];
     if (!commentText || !commentText.trim()) return;
-    addTaskComment(taskId, commentText);
+    addTaskComment.mutate({ taskId, authorEmployeeId: currentUser.id, commentText });
     setNewComment(prev => ({ ...prev, [taskId]: '' }));
-  };
-
-  const handleProgressUpdateSubmit = (taskId) => {
-    const value = progressValue[taskId] ?? 50;
-    const note = progressNote[taskId] || '';
-    updateTaskProgress(taskId, parseInt(value), note);
-    setProgressNote(prev => ({ ...prev, [taskId]: '' }));
   };
 
   const handleEditTaskSubmit = (e) => {
     e.preventDefault();
     if (!editingTask.name || !editingTask.projectId) { alert("Please fill in task name and select a project."); return; }
-    editTask(editingTask.id, { name: editingTask.name, projectId: editingTask.projectId, assignedTo: editingTask.assignedTo || '', eta: parseFloat(editingTask.eta) || 0, type: editingTask.type, epic: editingTask.epic || 'Backlog', priority: editingTask.priority, status: editingTask.status });
+    updateTask.mutate({ id: editingTask.id, data: { name: editingTask.name, projectId: editingTask.projectId, assignedTo: editingTask.assignedTo || '', eta: parseFloat(editingTask.eta) || 0, type: editingTask.type, epic: editingTask.epic || 'Backlog', priority: editingTask.priority, status: editingTask.status } });
     setShowEditTaskModal(false); setEditingTask(null);
   };
 
@@ -199,29 +263,22 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     if (stagedTasks.length === 0) { alert("Please stage at least one task."); return; }
     stagedTasks.forEach(staged => {
       if (staged.isNew) {
-        createTask({ name: staged.name, projectId: taskData.projectId, assignedTo: staged.assignedTo, eta: parseFloat(staged.eta) || 8, type: staged.type || 'Story', priority: staged.priority || 'Medium', epic: 'Backlog' });
+        createTask.mutate({ name: staged.name, projectId: taskData.projectId, assignedTo: staged.assignedTo, eta: parseFloat(staged.eta) || 8, type: staged.type || 'Story', priority: staged.priority || 'Medium', epic: 'Backlog', taskNumber: staged.taskNumber, etaDate: staged.etaDate, bugNumber: staged.bugNumber });
       } else {
-        setTasks(prev => prev.map(t => t.id === staged.backlogTaskId ? { ...t, assignedTo: staged.assignedTo, status: 'Open' } : t));
+        const backlogTask = tasks.find(t => t.id === staged.backlogTaskId);
+        if (backlogTask) {
+          updateTask.mutate({ id: staged.backlogTaskId, data: { ...backlogTask, assignedTo: staged.assignedTo, status: 'Open' } });
+        }
       }
     });
     setShowTaskModal(false); setSelectedEmployeeIds([]); setStagedTasks([]); setShowAssignForm(false);
     setTaskData({ name: '', projectId: '', assignedTo: '', eta: '', type: 'Story', epic: 'Backlog', priority: 'Medium' });
   };
 
-  const handleBacklogCreate = (e) => {
-    e.preventDefault();
-    if (!backlogCreateData.projectId) { alert("Please select a project."); return; }
-    if (!backlogCreateData.name.trim()) { alert("Please enter a task summary."); return; }
-    createTask({ name: backlogCreateData.name, projectId: backlogCreateData.projectId, assignedTo: '', eta: parseFloat(backlogCreateData.eta) || 8, type: backlogCreateData.type, priority: backlogCreateData.priority, epic: 'Backlog' });
-    setShowBacklogCreateModal(false);
-    setBacklogCreateData({ name: '', projectId: '', eta: '8', type: 'Story', priority: 'Medium' });
-  };
-
-  // Filter options for SearchableSelect
   const projectOptions = [
     { value: '', label: 'All Projects' },
     ...projects
-      .filter(p => isAdmin || ledProjectIds.includes(p.id))
+      .filter(p => isAdmin || ledProjectIds.map(id => String(id)).includes(String(p.id)))
       .map(p => ({ value: p.id, label: p.name.split(' (')[0], color: p.color }))
   ];
   const statusOptions = [
@@ -234,11 +291,17 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   ];
 
   const filteredTasks = tasks.filter(t => {
-    if (!isAdmin && currentUser.role === 'Team Lead') {
-      if (!ledMemberIds.has(t.assignedTo) && !ledProjectIds.includes(t.projectId)) return false;
+    if (!isAdmin && (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && scope !== 'backlog') {
+      if (!ledMemberIds.has(String(t.assignedTo || '')) && !ledProjectIds.map(id => String(id)).includes(String(t.projectId))) return false;
     }
     if (scope === 'my' && t.assignedTo !== currentUser.id) return false;
-    if (scope === 'backlog' && t.assignedTo && t.assignedTo !== '') return false;
+    if (scope === 'backlog') {
+      if (t.assignedTo && t.assignedTo !== '') return false;
+      if (currentUser.role === 'Employee') {
+        const myProjIds = projects ? projects.filter(p => (p.members || []).some(mId => String(mId) === String(currentUser.id))).map(p => p.id) : [];
+        if (!myProjIds.map(id => String(id)).includes(String(t.projectId))) return false;
+      }
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const assignee = getUserInfo(t.assignedTo);
@@ -247,6 +310,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     if (selectedProject && t.projectId !== selectedProject) return false;
     if (selectedStatus && t.status !== selectedStatus) return false;
     if (selectedPriority && t.priority !== selectedPriority) return false;
+    if (showExceededETA && !checkTaskExceedsETA(t)) return false;
     return true;
   });
 
@@ -362,102 +426,154 @@ export default function Tasks({ setCurrentPage, initialScope }) {
         );
       },
     },
-  ], [projects, users]);
+    {
+      id: 'actions',
+      header: 'ACTIONS',
+      cell: ({ row }) => {
+        const task = row.original;
+        return (
+          <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
+            {isLeader && (
+              <button
+                onClick={() => { setEditingTask(task); setShowEditTaskModal(true); }}
+                title="Edit"
+                style={{ background: 'color-mix(in oklch, var(--chart-1) 8%, transparent)', border: 'none', color: 'var(--chart-1)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--chart-1) 15%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--chart-1) 8%, transparent)'}
+              ><Pencil size={14} /></button>
+            )}
 
+            {(isAdmin || isLeader) && (
+              <button
+                onClick={() => { if (window.confirm(`Delete task "${task.name}"?`)) removeTask.mutate({ id: task.id }); }}
+                title="Delete"
+                style={{ background: 'color-mix(in oklch, var(--destructive) 8%, transparent)', border: 'none', color: 'var(--destructive)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 15%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 8%, transparent)'}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+
+            {scope === 'backlog' && !isAdmin && (
+              <button
+                onClick={() => {
+                  if (window.confirm(`Claim "${task.name}"?`)) {
+                    if (isLeader) {
+                      claimBacklogTask(task.id);
+                    } else {
+                      requestClaimBacklogTask(task.id);
+                    }
+                  }
+                }}
+                title="Claim Task"
+                style={{ background: 'color-mix(in oklch, #22c55e 8%, transparent)', border: 'none', color: '#22c55e', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700 }}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, #22c55e 15%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, #22c55e 8%, transparent)'}
+              ><Plus size={14} /> Claim</button>
+            )}
+          </div>
+        );
+      },
+    },
+  ], [projects, users, isAdmin, isLeader, scope]);
+
+  if (isLoading) return <div className="p-8 text-center text-slate-400">Loading tasks...</div>;
   return (
-    <div className="min-h-screen bg-slate-100 p-8" style={{ zoom: 0.8 }}>
-      <div className="mx-auto" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="tasks-page-container">
+      <div className="tasks-toolbar-wrapper">
 
-        {/* Toolbar */}
         <div>
-        {/* Filters */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex gap-4 flex-wrap items-center">
-            {/* Search */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.5rem 0.85rem', width: '280px' }}>
-              <Search size={14} style={{ color: '#94a3b8', flexShrink: 0 }} />
-              <input
-                type="text"
-                placeholder="Search by summary, ticket, assignee..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontSize: '0.85rem', color: '#1e293b' }}
-              />
-            </div>
+          <button
+            className="mobile-filter-toggle-btn"
+            onClick={() => setIsFiltersExpanded(prev => !prev)}
+          >
+            <Filter size={14} /> {isFiltersExpanded ? "Hide Filters" : "Show Filters"}
+          </button>
+          <div className={`tasks-filter-card ${isFiltersExpanded ? 'mobile-filters-open' : ''}`}>
+            <div className="tasks-filter-row" style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', width: '100%' }}>
+              <div className="flex items-center gap-2 flex-shrink-1 min-w-0" style={{ flexWrap: 'nowrap' }}>
+                <div className="tasks-search-box" style={{ width: '160px', flexShrink: 1 }}>
+                  <Search size={14} className="tasks-search-icon" />
+                  <input
+                    type="text"
+                    placeholder="Search "
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="tasks-search-input"
+                  />
+                </div>
 
-            <div className="flex items-center gap-2">
-              <SearchableSelect
-                options={projectOptions}
-                value={selectedProject}
-                onChange={setSelectedProject}
-                placeholder="All Projects"
-                style={{ width: '180px' }}
-              />
-            </div>
+                <div className="flex items-center">
+                  <SearchableSelect
+                    options={projectOptions}
+                    value={selectedProject}
+                    onChange={setSelectedProject}
+                    placeholder="All Projects"
+                    style={{ width: '140px' }}
+                  />
+                </div>
 
-            <div className="flex items-center gap-2">
-              <SearchableSelect
-                options={statusOptions}
-                value={selectedStatus}
-                onChange={setSelectedStatus}
-                placeholder="All Statuses"
-                style={{ width: '160px' }}
-              />
-            </div>
+                <div className="flex items-center">
+                  <SearchableSelect
+                    options={statusOptions}
+                    value={selectedStatus}
+                    onChange={setSelectedStatus}
+                    placeholder="All Statuses"
+                    style={{ width: '130px' }}
+                  />
+                </div>
 
-            <div className="flex items-center gap-2">
-              <SearchableSelect
-                options={priorityOptions}
-                value={selectedPriority}
-                onChange={setSelectedPriority}
-                placeholder="All Priorities"
-                style={{ width: '150px' }}
-              />
-              <div style={{ display: 'inline-flex', backgroundColor: 'rgba(0,0,0,0.04)', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                {isLeader && (
-                  <button onClick={() => setScope('all')} style={{ padding: '0.35rem 0.85rem', fontSize: '0.7rem', fontWeight: 650, borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: scope === 'all' ? '#1d4ed8' : 'transparent', color: scope === 'all' ? '#fff' : '#64748b', transition: 'all 0.2s ease' }}>
-                    All Team Tasks
-                  </button>
-                )}
-                {!isAdmin && (
-                  <button onClick={() => setScope('my')} style={{ padding: '0.35rem 0.85rem', fontSize: '0.7rem', fontWeight: 650, borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: scope === 'my' ? '#1d4ed8' : 'transparent', color: scope === 'my' ? '#fff' : '#64748b', transition: 'all 0.2s ease' }}>
-                    My Tasks
-                  </button>
-                )}
-                <button onClick={() => setScope('backlog')} style={{ padding: '0.35rem 0.85rem', fontSize: '0.7rem', fontWeight: 650, borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: scope === 'backlog' ? '#1d4ed8' : 'transparent', color: scope === 'backlog' ? '#fff' : '#64748b', transition: 'all 0.2s ease' }}>
-                  Backlog Tasks
+                <div className="flex items-center">
+                  <SearchableSelect
+                    options={priorityOptions}
+                    value={selectedPriority}
+                    onChange={setSelectedPriority}
+                    placeholder="All Priorities"
+                    style={{ width: '130px' }}
+                  />
+                </div>
+
+                <button
+                  onClick={() => setShowExceededETA(!showExceededETA)}
+                  className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-bold transition-all border whitespace-nowrap ${
+                    showExceededETA
+                      ? 'bg-red-50 text-red-600 border-red-200 shadow-sm'
+                      : 'bg-transparent text-slate-500 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <AlertTriangle size={13} className={showExceededETA ? 'text-red-500' : 'text-slate-400'} />
+                  Exceeded ETA
                 </button>
               </div>
 
-              {scope === 'backlog' ? (
-                isLeader && (
-                  <button
-                    className="rounded-xl px-5 py-2 text-sm font-semibold text-white transition"
-                    style={{ backgroundColor: '#32bf90', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                    onClick={() => { setBacklogCreateData({ name: '', projectId: projects[0]?.id || '', eta: '8', type: 'Story', priority: 'Medium' }); setShowBacklogCreateModal(true); }}
-                  >
-                    <Plus size={14} /> Create Backlog Task
+              <div className="flex items-center gap-2.5 flex-shrink-0" style={{ marginLeft: 'auto', flexWrap: 'nowrap' }}>
+                <div className="tasks-scope-toggle" style={{ flexWrap: 'nowrap' }}>
+                  {isLeader && (
+                    <button onClick={() => setScope('all')} className={`tasks-scope-btn ${scope === 'all' ? 'active' : 'inactive'}`}>
+                      All Team Tasks
+                    </button>
+                  )}
+                  {!isAdmin && (
+                    <button onClick={() => setScope('my')} className={`tasks-scope-btn ${scope === 'my' ? 'active' : 'inactive'}`}>
+                      My Tasks
+                    </button>
+                  )}
+                  <button onClick={() => setScope('backlog')} className={`tasks-scope-btn ${scope === 'backlog' ? 'active' : 'inactive'}`}>
+                    Backlog Tasks
                   </button>
-                )
-              ) : (
-                isLeader && (
+                </div>
+
+                {isLeader && (
                   <button
-                    className="rounded-xl bg-blue-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
-                    style={{ border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    className="rounded-xl px-4 py-2 text-xs font-bold text-white transition tasks-create-btn whitespace-nowrap"
+                    style={{ backgroundColor: '#0010ae' }}
                     onClick={() => setShowTaskModal(true)}
                   >
-                    <Plus size={14} /> Create Task
+                    <Plus size={13} /> Create Task
                   </button>
-                )
-              )}
-            </div>
-
-
-
-
-
-
-
+                )}
+              </div>
             </div>
 
             {(searchQuery || selectedProject || selectedStatus || selectedPriority) && (
@@ -471,14 +587,14 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           </div>
         </div>
 
-        {/* Table */}
-        <DataTable
-          Data={filteredTasks}
-          columns={columns}
-          onRowClick={(task) => setExpandedTaskId(task.id)}
-        />
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '2rem' }}>
+          <DataTable
+            Data={filteredTasks}
+            columns={columns}
+            onRowClick={(task) => setExpandedTaskId(task.id)}
+          />
+        </div>
 
-        {/* Modals */}
         <ETAExtensionModal
           show={showETAModal}
           onClose={() => setShowETAModal(false)}
@@ -499,16 +615,6 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           transferReason={transferReason}
           setTransferReason={setTransferReason}
         />
-        <CreateBacklogTaskModal
-          show={showBacklogCreateModal}
-          onClose={() => setShowBacklogCreateModal(false)}
-          onSubmit={handleBacklogCreate}
-          projects={projects}
-          isAdmin={isAdmin}
-          ledProjectIds={ledProjectIds}
-          backlogCreateData={backlogCreateData}
-          setBacklogCreateData={setBacklogCreateData}
-        />
         <EditTaskModal
           show={showEditTaskModal}
           onClose={() => { setShowEditTaskModal(false); setEditingTask(null); }}
@@ -522,7 +628,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
         />
         <CreateTaskModal
           show={showTaskModal}
-          onClose={() => { setShowTaskModal(false); setStagedTasks([]); setShowAssignForm(false); }}
+          onClose={() => { setShowTaskModal(false); setStagedTasks([]); setShowAssignForm(false); setShowBacklogDropdown(false); }}
           onSubmit={handlePublishTasks}
           projects={projects}
           tasks={tasks}
@@ -548,7 +654,6 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           users={users}
           projects={projects}
           timerState={timerState}
-          taskComments={taskComments}
           isAdmin={isAdmin}
           isLeader={isLeader}
           ledProjectIds={ledProjectIds}
@@ -557,15 +662,10 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           taskTransfers={taskTransfers}
           newComment={newComment}
           setNewComment={setNewComment}
-          progressValue={progressValue}
-          setProgressValue={setProgressValue}
-          progressNote={progressNote}
-          setProgressNote={setProgressNote}
           onStartTask={handleStartTask}
           onTriggerPause={triggerPauseTask}
           onTriggerFinish={triggerFinishTask}
           onAddComment={handleAddCommentSubmit}
-          onProgressUpdate={handleProgressUpdateSubmit}
           onOpenETA={(id) => { setActiveTaskId(id); setShowETAModal(true); }}
           onOpenTransfer={(id) => { setActiveTaskId(id); setShowTransferModal(true); }}
           onResolveETA={resolveETARequest}
@@ -573,8 +673,9 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           onDirectReassign={handleDirectReassign}
           onDirectUpdateETA={handleDirectUpdateETA}
           onEditTask={(task) => { setEditingTask(task); setShowEditTaskModal(true); }}
-          onDeleteTask={deleteTask}
+          onDeleteTask={(id) => removeTask.mutate({ id })}
           claimBacklogTask={claimBacklogTask}
+          requestClaimBacklogTask={requestClaimBacklogTask}
           getStatusColor={getStatusColor}
           checkTaskExceedsETA={checkTaskExceedsETA}
           getDatetimeInputValue={getDatetimeInputValue}

@@ -1,0 +1,220 @@
+// ─────────────────────────────────────────────
+// syncData.js
+//
+// Mock data for the Sync Sessions feed.
+// Three named exports:
+//   • LIVE_SYNCS     – sessions happening right now
+//   • UPCOMING_SYNCS – scheduled for later today / future
+//   • HISTORY_SYNCS  – completed sessions
+//
+// Shape of each session:
+// {
+//   id           – unique string
+//   duration     – number (minutes)
+//   host         – display name of the session host
+//   title        – session title
+//   description  – short summary shown on the card
+//   project      – { label, color } — color drives the badge colour
+//   linkedTask   – task ID string e.g. "TASK-0042"
+//   attendees    – array of initials strings shown as avatar stack
+//   scheduledAt  – ISO timestamp (start time)
+//   joinUrl      – string (meeting link, Teams / Zoom / etc.)
+// }
+//
+// Colors for project badge:
+//   "blue" | "red" | "green" | "purple" | "orange" | "gray"
+// ─────────────────────────────────────────────
+
+// ── Live now ─────────────────────────────────
+export const LIVE_SYNCS = [
+  {
+    id: "live-1",
+    duration: 45,
+    host: "Alex Rivera",
+    title: "Project Alpha – Code Architecture Alignment",
+    description:
+      "Active sync discussing spring security filter configurations, token signatures, and cookie configurations.",
+    project: { label: "Project Alpha", color: "blue" },
+    linkedTask: "TASK-0042",
+    attendees: ["AR", "JM", "MC", "DM"],
+    scheduledAt: "2026-06-16T14:22:00+05:30",
+    joinUrl: "#",
+  },
+  {
+    id: "live-2",
+    duration: 30,
+    host: "Vikram Mehta",
+    title: "Design System Glassmorphism Review",
+    description:
+      "Ongoing walkthrough of Figma component boards and custom light refraction shadow values in CSS.",
+    project: { label: "Project Beta", color: "red" },
+    linkedTask: "TASK-0043",
+    attendees: ["VM", "ER", "SW"],
+    scheduledAt: "2026-06-16T14:32:00+05:30",
+    joinUrl: "#",
+  },
+  {
+    id: "live-3",
+    duration: 60,
+    host: "Rania Al-Hassan",
+    title: "AI Dashboard Architecture Kickoff",
+    description:
+      "Live session to align on Recharts component design and WebSocket data pipeline for Project Delta.",
+    project: { label: "Project Delta", color: "purple" },
+    linkedTask: "TASK-0053",
+    attendees: ["RA", "NK", "TL", "PJ"],
+    scheduledAt: "2026-06-16T14:10:00+05:30",
+    joinUrl: "#",
+  },
+];
+
+// ── Upcoming ──────────────────────────────────
+export const UPCOMING_SYNCS = [
+  {
+    id: "upcoming-1",
+    duration: 30,
+    host: "Priya Nair",
+    title: "Sprint 14 Planning – Frontend Tasks",
+    description:
+      "Breaking down the upcoming sprint tickets for the frontend team. Bring your capacity estimates.",
+    project: { label: "Project Alpha", color: "blue" },
+    linkedTask: "TASK-0061",
+    attendees: ["PN", "AR", "DM"],
+    scheduledAt: "2026-06-16T16:00:00+05:30",
+    joinUrl: "#",
+  },
+  {
+    id: "upcoming-2",
+    duration: 45,
+    host: "Samuel Ortega",
+    title: "API Rate Limiting Strategy",
+    description:
+      "Reviewing throttle configurations and token bucket vs leaky bucket approaches for the new gateway.",
+    project: { label: "Project Gamma", color: "green" },
+    linkedTask: "TASK-0058",
+    attendees: ["SO", "MC", "BK"],
+    scheduledAt: "2026-06-16T17:30:00+05:30",
+    joinUrl: "#",
+  },
+  {
+    id: "upcoming-3",
+    duration: 60,
+    host: "Linda Chen",
+    title: "Q3 Roadmap Review",
+    description:
+      "Cross-team sync to finalize the Q3 feature roadmap, prioritize backlog items, and assign ownership.",
+    project: { label: "Product", color: "orange" },
+    linkedTask: "TASK-0047",
+    attendees: ["LC", "RA", "SO", "VM", "PN"],
+    scheduledAt: "2026-06-17T10:00:00+05:30",
+    joinUrl: "#",
+  },
+  {
+    id: "upcoming-4",
+    duration: 20,
+    host: "Marcus Webb",
+    title: "CI/CD Pipeline Hotfix Debrief",
+    description:
+      "Quick post-mortem on yesterday's failed pipeline run and what guards we're adding to prevent recurrence.",
+    project: { label: "Infrastructure", color: "gray" },
+    linkedTask: "TASK-0065",
+    attendees: ["MW", "BK", "TL"],
+    scheduledAt: "2026-06-17T14:00:00+05:30",
+    joinUrl: "#",
+  },
+  {
+    id: "upcoming-5",
+    duration: 45,
+    host: "Elena Rossi",
+    title: "Accessibility Audit – Component Library",
+    description:
+      "Walking through WCAG 2.1 AA audit results for the shared component library. Focus on keyboard nav and colour contrast.",
+    project: { label: "Project Beta", color: "red" },
+    linkedTask: "TASK-0069",
+    attendees: ["ER", "SW", "LC"],
+    scheduledAt: "2026-06-18T11:30:00+05:30",
+    joinUrl: "#",
+  },
+];
+
+// ── History (completed) ───────────────────────
+export const HISTORY_SYNCS = [
+  {
+    id: "history-1",
+    duration: 60,
+    host: "Alex Rivera",
+    title: "Auth Flow Refactor – Token Strategy",
+    description:
+      "Agreed on refresh token rotation, silent renew approach, and migration plan for legacy sessions.",
+    project: { label: "Project Alpha", color: "blue" },
+    linkedTask: "TASK-0039",
+    attendees: ["AR", "MC", "SO"],
+    scheduledAt: "2026-06-15T10:00:00+05:30",
+    joinUrl: null, // completed — no join link
+  },
+  {
+    id: "history-2",
+    duration: 30,
+    host: "Vikram Mehta",
+    title: "Mobile Breakpoint Review",
+    description:
+      "Locked in breakpoint values for xs/sm/md/lg/xl and confirmed Tailwind config overrides.",
+    project: { label: "Project Beta", color: "red" },
+    linkedTask: "TASK-0040",
+    attendees: ["VM", "ER", "PN"],
+    scheduledAt: "2026-06-15T14:00:00+05:30",
+    joinUrl: null,
+  },
+  {
+    id: "history-3",
+    duration: 45,
+    host: "Samuel Ortega",
+    title: "Database Schema v3 Sign-off",
+    description:
+      "Final review of the v3 schema migration scripts. All changes approved, deployment window confirmed.",
+    project: { label: "Project Gamma", color: "green" },
+    linkedTask: "TASK-0033",
+    attendees: ["SO", "BK", "MW", "LC"],
+    scheduledAt: "2026-06-14T11:00:00+05:30",
+    joinUrl: null,
+  },
+  {
+    id: "history-4",
+    duration: 20,
+    host: "Linda Chen",
+    title: "Stakeholder Demo Prep",
+    description:
+      "Rehearsed the end-to-end demo flow for the board presentation, finalised slide deck structure.",
+    project: { label: "Product", color: "orange" },
+    linkedTask: "TASK-0044",
+    attendees: ["LC", "RA", "VM"],
+    scheduledAt: "2026-06-13T09:30:00+05:30",
+    joinUrl: null,
+  },
+  {
+    id: "history-5",
+    duration: 90,
+    host: "Marcus Webb",
+    title: "Kubernetes Cluster Sizing Workshop",
+    description:
+      "Deep dive into node pool sizing, autoscaler tuning, and resource request/limit defaults across environments.",
+    project: { label: "Infrastructure", color: "gray" },
+    linkedTask: "TASK-0028",
+    attendees: ["MW", "TL", "BK", "SO"],
+    scheduledAt: "2026-06-12T13:00:00+05:30",
+    joinUrl: null,
+  },
+  {
+    id: "history-6",
+    duration: 30,
+    host: "Priya Nair",
+    title: "Sprint 13 Retrospective",
+    description:
+      "Covered what went well, blockers, and three action items for sprint 14 process improvements.",
+    project: { label: "Project Alpha", color: "blue" },
+    linkedTask: "TASK-0036",
+    attendees: ["PN", "AR", "DM", "MC"],
+    scheduledAt: "2026-06-11T16:00:00+05:30",
+    joinUrl: null,
+  },
+];

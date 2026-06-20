@@ -73,7 +73,7 @@ export default function EditEmployeeModal({ show, onClose, user, users, teams, p
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: '=850px' }}>
+      <div className="modal-content" style={{ maxWidth:'850px' }}>
         <div className="modal-header">
           <h3 className="modal-title">Edit Staff Member</h3>
           <button className="modal-close" onClick={onClose}>×</button>
@@ -124,7 +124,8 @@ export default function EditEmployeeModal({ show, onClose, user, users, teams, p
             <div className="form-group">
               <label className="form-label">ORGANIZATIONAL ROLE</label>
               <select className="input-control" value={editingUser.role} onChange={(e) => setEditingUser(prev => ({ ...prev, role: e.target.value }))}>
-                <option value="Employee">Employee (Developer/Designer)</option>
+                <option value="Employee">Employee</option>
+                <option value="Sub Lead">Sub Team Lead</option>
                 <option value="Team Lead">Team Lead</option>
                 <option value="Admin">Administrator</option>
               </select>

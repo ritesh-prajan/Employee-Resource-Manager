@@ -26,7 +26,7 @@ export default function ProjectDetailModal({ show, onClose, project }) {
 
   return (
     <>
-      <Modal isOpen={show} onClose={onClose} maxWidth="560px">
+      <Modal isOpen={show} onClose={onClose} maxWidth="850px">
         <div className="modal-header" style={{ borderBottom: `3px solid ${proj.color}` }}>
           <div>
             <h3 className="modal-title">{proj.name}</h3>

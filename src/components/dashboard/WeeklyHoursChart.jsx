@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -37,7 +37,7 @@ function Modal({ day, entries, onClose }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-        borderRadius: '14px', padding: '1.5rem', width: '100%', maxWidth: '480px',
+        borderRadius: '14px', padding: '1.5rem', width: '100%', maxWidth: '850px',
         maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '1rem',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
       }}>
@@ -93,6 +93,20 @@ function Modal({ day, entries, onClose }) {
 
 export default function WeeklyHoursChart({ timeEntries }) {
   const [selected, setSelected] = useState(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        const { width, height } = entry.contentRect;
+        setDimensions({ width, height });
+      }
+    });
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   const data = WEEK_DAYS.map(({ label, date }) => ({
     day: label,
@@ -130,37 +144,39 @@ export default function WeeklyHoursChart({ timeEntries }) {
           </span>
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, cursor: 'pointer' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} onClick={handleClick}>
-              <defs>
-                <linearGradient id="hoursGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis
-                dataKey="day"
-                tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontFamily: 'var(--font-sans)' }}
-                axisLine={false} tickLine={false}
-              />
-              <YAxis
-                domain={[0, Math.ceil(maxHours * 1.2)]}
-                tick={{ fontSize: 10, fill: 'var(--muted-foreground)', fontFamily: 'var(--font-mono)' }}
-                axisLine={false} tickLine={false}
-                tickFormatter={v => `${v}h`}
-              />
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--border)', strokeWidth: 1 }} />
-              <Area
-                type="monotone" dataKey="hours"
-                stroke="var(--chart-1)" strokeWidth={2}
-                fill="url(#hoursGradient)"
-                dot={{ fill: 'var(--chart-1)', strokeWidth: 0, r: 3 }}
-                activeDot={{ r: 5, fill: 'var(--chart-1)', strokeWidth: 0 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div ref={containerRef} style={{ flex: 1, minHeight: 0, cursor: 'pointer' }}>
+          {dimensions.width > 0 && dimensions.height > 0 && (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} onClick={handleClick}>
+                <defs>
+                  <linearGradient id="hoursGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis
+                  dataKey="day"
+                  tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontFamily: 'var(--font-sans)' }}
+                  axisLine={false} tickLine={false}
+                />
+                <YAxis
+                  domain={[0, Math.ceil(maxHours * 1.2)]}
+                  tick={{ fontSize: 10, fill: 'var(--muted-foreground)', fontFamily: 'var(--font-mono)' }}
+                  axisLine={false} tickLine={false}
+                  tickFormatter={v => `${v}h`}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--border)', strokeWidth: 1 }} />
+                <Area
+                  type="monotone" dataKey="hours"
+                  stroke="var(--chart-1)" strokeWidth={2}
+                  fill="url(#hoursGradient)"
+                  dot={{ fill: 'var(--chart-1)', strokeWidth: 0, r: 3 }}
+                  activeDot={{ r: 5, fill: 'var(--chart-1)', strokeWidth: 0 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 

@@ -26,14 +26,17 @@ export default function Projects() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const isAllowedToManage = currentUser?.role === 'Admin' || currentUser?.role === 'Team Lead';
+  const isAllowedToManage = currentUser?.role === 'Admin' || currentUser?.role === 'Team Lead' || currentUser?.role === 'Sub Lead';
 
   const baseProjects = projects.filter(p => {
     if (!currentUser) return false;
     if (currentUser.role === 'Admin') return true;
     if (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') {
-      const myLedTeamIds = teams.filter(t => t.leadId === currentUser.id).map(t => t.id);
-      return (p.teams || []).some(tId => myLedTeamIds.includes(tId));
+      const myTeams = teams.filter(t => t.leadId === currentUser.id || t.subLeadId === currentUser.id || t.members.includes(currentUser.id));
+      const myTeamIds = myTeams.map(t => t.id);
+      const myMemberIds = myTeams.flatMap(t => t.members);
+      return (p.teams || []).some(tId => myTeamIds.includes(tId)) ||
+            (p.members || []).some(mId => myMemberIds.includes(mId));
     }
     return p.members.includes(currentUser.id);
   });
@@ -128,7 +131,7 @@ export default function Projects() {
   ], [users, tasks, currentUser]);
 
   return (
-    <div className="min-h-screen  " style={{ zoom: 0.8 }}>
+    <div className="min-h-screen  " style={{ zoom: 'var(--page-zoom, 0.9)' }}>
       <div style={{ marginBottom: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>

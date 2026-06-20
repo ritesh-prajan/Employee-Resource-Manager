@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function TransferModal({ show, onClose, onSubmit, users, currentUser, transferTarget, setTransferTarget, transferReason, setTransferReason }) {
   const handleSubmit = (e) => {
@@ -19,7 +19,7 @@ export default function TransferModal({ show, onClose, onSubmit, users, currentU
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            style={{ maxWidth: '440px' }}
+            style={{ maxWidth: '850px' }}
           >
             <div className="modal-header">
               <h3 className="modal-title">Request Task Transfer</h3>

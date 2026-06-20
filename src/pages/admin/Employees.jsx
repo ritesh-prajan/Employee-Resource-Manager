@@ -9,11 +9,10 @@ import AddEmployeeModal from '../../components/forms/admin/employee/AddEmployeeM
 import EditEmployeeModal from '../../components/forms/admin/employee/EditEmployeeModal';
 import AssignTaskModal from '../../components/forms/admin/employee/AssignTaskModal';
 import ViewProfileModal from '../../components/forms/admin/employee/ViewProfileModal';
+import ReassignLeadModal from '../../components/forms/admin/employee/ReassignLeadModal';
 
 export default function EmployeesPage() {
-  const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee, currentUser, createTask, editTask } = useApp();
-
-  const [searchQuery, setSearchQuery] = useState('');
+const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee, editTeam, currentUser, createTask, editTask, employeesLoading, employeesError } = useApp();   const [searchQuery, setSearchQuery] = useState('');
   const [filterProjectBy, setFilterProjectBy] = useState('');
   const [filterTeamBy, setFilterTeamBy] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -26,6 +25,8 @@ export default function EmployeesPage() {
   const [editingUser, setEditingUser] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileUser, setProfileUser] = useState(null);
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [reassignTarget, setReassignTarget] = useState(null);
   const [empData, setEmpData] = useState({
     name: '', employee_code: '', email: '', personalEmail: '',
     phone: '', password: '', designation: '', role: 'Employee', teams: [], projects: []
@@ -53,53 +54,25 @@ export default function EmployeesPage() {
     setEditingUser(prev => ({ ...prev, password: pass }));
   };
 
-  const handleAddSubmit = (e) => {
-    e.preventDefault();
+  const handleAddSubmit = async (data) => {
     setValidationError('');
-    const empCodeTrimmed = empData.employee_code.trim();
-    const emailTrimmed = empData.email.trim();
-    const phoneTrimmed = empData.phone.trim();
-    if (!empData.name || !empCodeTrimmed || !emailTrimmed || !phoneTrimmed) {
-      setValidationError('Please fill in all required fields.'); return;
+    try {
+      await addEmployee(data);
+    } catch (err) {
+      setValidationError('Failed to add employee: ' + (err.message || 'Server error'));
     }
-    if (users.some(u => u.employee_code?.trim().toLowerCase() === empCodeTrimmed.toLowerCase())) {
-      setValidationError('Employee number must be unique.'); return;
-    }
-    if (users.some(u => u.email.trim().toLowerCase() === emailTrimmed.toLowerCase())) {
-      setValidationError('Work email must be unique.'); return;
-    }
-    if (users.some(u => u.phone && u.phone.trim().replace(/\s+/g, '') === phoneTrimmed.replace(/\s+/g, ''))) {
-      setValidationError('Phone number must be unique.'); return;
-    }
-    addEmployee({ name: empData.name, employee_code: empCodeTrimmed, email: emailTrimmed, personalEmail: empData.personalEmail.trim(), phone: phoneTrimmed, password: empData.password, passwordLastUpdated: empData.password ? new Date().toISOString() : '', designation: empData.designation.trim() || 'General', role: empData.role, teams: empData.teams, projects: empData.projects });
-    setShowAddModal(false);
-    setEmpData({ name: '', employee_code: '', email: '', personalEmail: '', phone: '', password: '', designation: '', role: 'Employee', teams: [], projects: [] });
-    setShowPassword(false);
   };
 
-  const handleEditSubmit = (e) => {
-    e.preventDefault();
+  const handleEditSubmit = async (id, data) => {
     setValidationError('');
-    const empCodeTrimmed = editingUser.employee_code.trim();
-    const emailTrimmed = editingUser.email.trim();
-    const phoneTrimmed = editingUser.phone.trim();
-    if (!editingUser.name || !empCodeTrimmed || !emailTrimmed || !phoneTrimmed) {
-      setValidationError('Please fill in all required fields.'); return;
+    try {
+      await editEmployee(id, data);
+      setShowEditModal(false);
+      setEditingUser(null);
+      setShowEditPassword(false);
+    } catch (err) {
+      setValidationError('Failed to update employee: ' + (err.message || 'Server error'));
     }
-    if (users.some(u => u.id !== editingUser.id && u.employee_code?.trim().toLowerCase() === empCodeTrimmed.toLowerCase())) {
-      setValidationError('Employee number must be unique.'); return;
-    }
-    if (users.some(u => u.id !== editingUser.id && u.email.trim().toLowerCase() === emailTrimmed.toLowerCase())) {
-      setValidationError('Work email must be unique.'); return;
-    }
-    if (users.some(u => u.id !== editingUser.id && u.phone && u.phone.trim().replace(/\s+/g, '') === phoneTrimmed.replace(/\s+/g, ''))) {
-      setValidationError('Phone number must be unique.'); return;
-    }
-    const oldUser = users.find(u => u.id === editingUser.id);
-    editEmployee(editingUser.id, { name: editingUser.name, employee_code: empCodeTrimmed, email: emailTrimmed, personalEmail: editingUser.personalEmail.trim(), phone: phoneTrimmed, password: editingUser.password, passwordLastUpdated: oldUser?.password !== editingUser.password ? new Date().toISOString() : (oldUser?.passwordLastUpdated || ''), designation: editingUser.designation.trim() || 'General', role: editingUser.role, status: editingUser.status, teams: editingUser.teams, projects: editingUser.projects });
-    setShowEditModal(false);
-    setEditingUser(null);
-    setShowEditPassword(false);
   };
 
   const handleOpenAssignModal = (user) => {
@@ -155,10 +128,10 @@ export default function EmployeesPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <UserAvatar name={user.name} size={36} />
             <span
-              style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--foreground)', cursor: 'pointer' }}
+              style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--foreground)', cursor: 'pointer',whiteSpace: 'normal'}}
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.textDecoration = 'underline'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--foreground)'; e.currentTarget.style.textDecoration = 'none'; }}
-              onClick={() => { setProfileUser(user); setShowProfileModal(true); }}
+              onClick={(e) => { e.stopPropagation(); setProfileUser(user); setShowProfileModal(true); }}
             >
               {user.name}
             </span>
@@ -190,6 +163,7 @@ export default function EmployeesPage() {
           <a href={`mailto:${email}`} style={{ fontSize: '0.875rem', color: 'var(--primary)', textDecoration: 'none' }}
             onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
             onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+            onClick={(e) => e.stopPropagation()}
           >{email}</a>
         );
       },
@@ -203,6 +177,7 @@ export default function EmployeesPage() {
           ? <a href={`mailto:${val}`} style={{ fontSize: '0.875rem', color: 'var(--foreground)', textDecoration: 'none' }}
               onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
               onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+              onClick={(e) => e.stopPropagation()}
             >{val}</a>
           : <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>-</span>;
       },
@@ -248,16 +223,16 @@ export default function EmployeesPage() {
         return (
           <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
             <button
-              onClick={() => handleOpenAssignModal(user)}
+              onClick={(e) => { e.stopPropagation(); handleOpenAssignModal(user); }}
               title="Assign Task"
               style={{ background: 'color-mix(in oklch, var(--primary) 8%, transparent)', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
               onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--primary) 15%, transparent)'}
               onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--primary) 8%, transparent)'}
             ><CheckSquare size={14} /></button>
 
-            {user.id !== currentUser?.id && user.id !== 'user-admin' && (<>
+            {user.id !== currentUser?.id && (<>
               <button
-                onClick={() => { setEditingUser({ ...user, designation: user.designation || '', personalEmail: user.personalEmail || '', phone: user.phone || '', password: user.password || '', teams: teams.filter(t => t.members.includes(user.id)).map(t => t.id), projects: projects.filter(p => p.members.includes(user.id)).map(p => p.id) }); setValidationError(''); setShowEditModal(true); }}
+                onClick={(e) => { e.stopPropagation(); setEditingUser({ ...user, designation: user.designation || '', personalEmail: user.personalEmail || '', phone: user.phone || '', password: user.password || '', teams: teams.filter(t => t.members.includes(user.id)).map(t => t.id), projects: projects.filter(p => p.members.includes(user.id)).map(p => p.id) }); setValidationError(''); setShowEditModal(true); }}
                 title="Edit"
                 style={{ background: 'color-mix(in oklch, var(--chart-1) 8%, transparent)', border: 'none', color: 'var(--chart-1)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--chart-1) 15%, transparent)'}
@@ -265,7 +240,29 @@ export default function EmployeesPage() {
               ><Pencil size={14} /></button>
 
               <button
-                onClick={() => { if (window.confirm(`Remove ${user.name}?`)) deleteEmployee(user.id); }}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const isLead = teams.some(
+                    t => String(t.leadId) === String(user.id) || String(t.subLeadId) === String(user.id)
+                  );
+                  if (isLead) {
+                    setReassignTarget(user);
+                    setShowReassignModal(true);
+                  } else {
+                    if (window.confirm(`Remove ${user.name}?`)) {
+                      try {
+                        await deleteEmployee(user.id, 'Removed by admin');
+                      } catch (err) {
+                        try {
+                          const parsed = JSON.parse(err.message);
+                          alert(parsed.message || 'Failed to delete employee.');
+                        } catch {
+                          alert(err.message || 'Failed to delete employee.');
+                        }
+                      }
+                    }
+                  }
+                }}
                 title="Delete"
                 style={{ background: 'color-mix(in oklch, var(--destructive) 8%, transparent)', border: 'none', color: 'var(--destructive)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 15%, transparent)'}
@@ -278,8 +275,22 @@ export default function EmployeesPage() {
     },
   ], []);
 
+  if (employeesLoading) {
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', color: 'var(--muted-foreground)' }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--primary)', animation: 'spin 0.8s linear infinite' }} />
+        <span style={{ fontSize: '0.9rem' }}>Loading employees…</span>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--canvas)', padding: '0', zoom: 0.8 }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--canvas)', padding: '0', zoom: 'var(--page-zoom, 0.9)' }}>
+      {employeesError && (
+        <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '0.75rem', backgroundColor: 'color-mix(in oklch, var(--destructive) 10%, transparent)', border: '1px solid color-mix(in oklch, var(--destructive) 30%, transparent)', color: 'var(--destructive)', fontSize: '0.875rem' }}>
+          ⚠️ Could not load employees from server: {employeesError}. Showing cached data.
+        </div>
+      )}
       <div>
         {/* Toolbar */}
         <div style={{ marginBottom: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '1.5rem' }}>
@@ -312,13 +323,34 @@ export default function EmployeesPage() {
         </div>
 
         {/* Table */}
-        <DataTable Data={filteredUsers} columns={columns} />
+        <DataTable
+          Data={filteredUsers}
+          columns={columns}
+          onRowClick={(user) => {
+            setProfileUser(user);
+            setShowProfileModal(true);
+          }}
+        />
       </div>
 
-      <AddEmployeeModal show={showAddModal} onClose={() => setShowAddModal(false)} users={users} teams={teams} projects={projects} onSubmit={addEmployee} />
-      <EditEmployeeModal show={showEditModal} onClose={() => { setShowEditModal(false); setEditingUser(null); }} user={editingUser} users={users} teams={teams} projects={projects} onSubmit={editEmployee} />
+      <AddEmployeeModal show={showAddModal} onClose={() => setShowAddModal(false)} users={users} teams={teams} projects={projects} onSubmit={handleAddSubmit} />
+      <EditEmployeeModal show={showEditModal} onClose={() => { setShowEditModal(false); setEditingUser(null); }} user={editingUser} users={users} teams={teams} projects={projects} onSubmit={handleEditSubmit} />
       <AssignTaskModal show={showAssignModal} onClose={() => { setShowAssignModal(false); setAssigneeForTask(null); }} assignee={assigneeForTask} tasks={tasks} projects={projects} onSubmit={createTask} onAssignExisting={editTask} />
       <ViewProfileModal show={showProfileModal} onClose={() => { setShowProfileModal(false); setProfileUser(null); }} user={profileUser} users={users} teams={teams} projects={projects} />
+      <ReassignLeadModal show={showReassignModal} onClose={() => { setShowReassignModal(false); setReassignTarget(null); }} employee={reassignTarget} teams={teams} users={users} 
+      onSave={async (assignments) => {
+        await Promise.all(
+          Object.entries(assignments).map(([teamId, { leadId, subLeadId }]) => {
+            const team = teams.find(t => String(t.id) === String(teamId));
+            return editTeam(teamId, { ...team, leadId, subLeadId });
+          })
+        );
+        // Now safe to delete
+        await deleteEmployee(reassignTarget.id, 'Removed by admin');
+        setShowReassignModal(false);
+        setReassignTarget(null);
+      }}
+    />
     </div>
   );
 }

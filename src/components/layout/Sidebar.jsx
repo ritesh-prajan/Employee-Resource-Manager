@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Clock,
+  LayoutDashboard,
   Calendar,
   CheckSquare,
   Users,
@@ -13,14 +13,21 @@ import {
   ChevronLeft,
   ChevronRight,
   Bell,
-  Link2
+  Link2,
+  Archive
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setIsCollapsed }) {
-  const { currentUser, notifications = [] } = useApp();
+export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setIsCollapsed, isMobileSidebarOpen, setIsMobileSidebarOpen }) {
+  const { currentUser, users = [], notifications = [] } = useApp();
 
   if (!currentUser) return null;
+
+  const displayUser = users.find(u => 
+    String(u.id) === String(currentUser?.id) || 
+    (u.email && currentUser?.email && u.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+    (u.workEmail && currentUser?.email && u.workEmail.toLowerCase() === currentUser.email.toLowerCase())
+  ) || currentUser;
 
   const userNotifications = notifications.filter(n => n.recipientId === currentUser.id);
   const unreadCount = userNotifications.filter(n => !n.isRead).length;
@@ -69,12 +76,17 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
   );
 
   const renderNavLinks = () => {
+
+    // ── ADMIN VIEW ──────────────────────────────────────────────
     if (currentUser.role === 'Admin' && !isEmployeeMode) {
       return (
         <>
-          {renderSectionHeader('Admin View', true)}
+          {renderSectionHeader('Admin view', true)}
           <button className={`sidebar-link ${currentPage === 'admin-dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-dashboard')} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
-            <Clock size={18} />{!isCollapsed && <span>Dashboard</span>}
+            <LayoutDashboard size={18} />{!isCollapsed && <span>Dashboard</span>}
+          </button>
+          <button className={`sidebar-link ${currentPage === 'admin-employees' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-employees')} style={getLinkStyle()} title={isCollapsed ? 'Employees' : undefined}>
+            <Users size={18} />{!isCollapsed && <span>Employees</span>}
           </button>
           <button className={`sidebar-link ${currentPage === 'admin-teams' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-teams')} style={getLinkStyle()} title={isCollapsed ? 'Teams' : undefined}>
             <Users size={18} />{!isCollapsed && <span>Teams</span>}
@@ -82,21 +94,18 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
           <button className={`sidebar-link ${currentPage === 'admin-projects' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-projects')} style={getLinkStyle()} title={isCollapsed ? 'Projects' : undefined}>
             <Briefcase size={18} />{!isCollapsed && <span>Projects</span>}
           </button>
-          <button className={`sidebar-link ${currentPage === 'admin-employees' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-employees')} style={getLinkStyle()} title={isCollapsed ? 'Employees' : undefined}>
-            <Users size={18} />{!isCollapsed && <span>Employees</span>}
-          </button>
 
           {renderSectionHeader('Operations')}
-          {renderAlertsLink('admin-alerts')}
+          <button className={`sidebar-link ${(currentPage === 'admin-tasks' || currentPage === 'admin-backlog') ? 'active' : ''}`} onClick={() => setCurrentPage('admin-tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
+            <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
+          </button>
           <button className={`sidebar-link ${currentPage === 'admin-timesheets' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-timesheets')} style={getLinkStyle()} title={isCollapsed ? 'Timesheets' : undefined}>
             <Calendar size={18} />{!isCollapsed && <span>Timesheets</span>}
-          </button>
-          <button className={`sidebar-link ${currentPage === 'admin-tasks' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
-            <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
           </button>
           <button className={`sidebar-link ${currentPage === 'admin-approvals' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-approvals')} style={getLinkStyle()} title={isCollapsed ? 'Approvals' : undefined}>
             <UserCheck size={18} />{!isCollapsed && <span>Approvals</span>}
           </button>
+          {renderAlertsLink('admin-alerts')}
 
           {renderSectionHeader('Communication')}
           <button className={`sidebar-link ${currentPage === 'admin-announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-announcements')} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
@@ -105,80 +114,96 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
           <button className={`sidebar-link ${currentPage === 'admin-meetings' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-meetings')} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
             <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
           </button>
+
+          {renderSectionHeader('Account')}
+          <button className={`sidebar-link ${currentPage === 'settings' ? 'active' : ''}`} onClick={() => setCurrentPage('settings')} style={getLinkStyle()} title={isCollapsed ? 'Profile' : undefined}>
+            <User size={18} />{!isCollapsed && <span>Profile</span>}
+          </button>
         </>
       );
     }
 
+    // ── TEAM LEAD / SUB LEAD VIEW ───────────────────────────────
     if ((currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && !isEmployeeMode) {
       return (
         <>
-          {renderSectionHeader('General', true)}
-          <button className={`sidebar-link ${currentPage === 'lead-announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-announcements')} style={getLinkStyle()} title={isCollapsed ? 'Announcements' : undefined}>
-            <Megaphone size={18} />{!isCollapsed && <span>Announcements</span>}
+          {renderSectionHeader('Work', true)}
+          <button className={`sidebar-link ${currentPage === 'lead-dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-dashboard')} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
+            <LayoutDashboard size={18} />{!isCollapsed && <span>Dashboard</span>}
           </button>
-          {renderAlertsLink('lead-alerts')}
-          <button className={`sidebar-link ${currentPage === 'lead-teams' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-teams')} style={getLinkStyle()} title={isCollapsed ? 'My Team' : undefined}>
-            <Users size={18} />{!isCollapsed && <span>My Team Directory</span>}
-          </button>
-
-          {renderSectionHeader('Operations')}
-          <button className={`sidebar-link ${currentPage === 'lead-dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-dashboard')} style={getLinkStyle()} title={isCollapsed ? 'Time Clock' : undefined}>
-            <Clock size={18} />{!isCollapsed && <span>Time Clock</span>}
+          <button className={`sidebar-link ${(currentPage === 'lead-tasks' || currentPage === 'lead-backlog' || currentPage === 'backlog') ? 'active' : ''}`} onClick={() => setCurrentPage('lead-tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
+            <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
           </button>
           <button className={`sidebar-link ${currentPage === 'lead-timesheet' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-timesheet')} style={getLinkStyle()} title={isCollapsed ? 'Timesheet' : undefined}>
             <Calendar size={18} />{!isCollapsed && <span>Timesheet</span>}
           </button>
-          <button className={`sidebar-link ${currentPage === 'lead-tasks' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
-            <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
-          </button>
           <button className={`sidebar-link ${currentPage === 'lead-attendance' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-attendance')} style={getLinkStyle()} title={isCollapsed ? 'Team Attendance' : undefined}>
             <Fingerprint size={18} />{!isCollapsed && <span>Team Attendance</span>}
           </button>
+
+          {renderSectionHeader('Management')}
           <button className={`sidebar-link ${currentPage === 'lead-approvals' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-approvals')} style={getLinkStyle()} title={isCollapsed ? 'Approvals' : undefined}>
             <UserCheck size={18} />{!isCollapsed && <span>Approvals</span>}
           </button>
-          <button className={`sidebar-link ${currentPage === 'lead-requests' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-requests')} style={getLinkStyle()} title={isCollapsed ? 'Requests' : undefined}>
-            <GitPullRequest size={18} />{!isCollapsed && <span>Requests</span>}
+          <button className={`sidebar-link ${currentPage === 'lead-teams' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-teams')} style={getLinkStyle()} title={isCollapsed ? 'My Team' : undefined}>
+            <Users size={18} />{!isCollapsed && <span>My Teams </span>}
           </button>
+          <button className={`sidebar-link ${currentPage === 'lead-projects' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-projects')} style={getLinkStyle()} title={isCollapsed ? 'Projects' : undefined}>
+            <Briefcase size={18} />{!isCollapsed && <span>My Projects</span>}
+          </button>
+          {renderAlertsLink('lead-alerts')}
 
           {renderSectionHeader('Communication')}
           <button className={`sidebar-link ${currentPage === 'lead-meetings' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-meetings')} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
             <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
           </button>
+          {currentUser.role !== 'Sub Lead' && (
+            <button className={`sidebar-link ${currentPage === 'lead-announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-announcements')} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
+              <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
+            </button>
+          )}
+
+          {renderSectionHeader('Account')}
+          <button className={`sidebar-link ${currentPage === 'settings' ? 'active' : ''}`} onClick={() => setCurrentPage('settings')} style={getLinkStyle()} title={isCollapsed ? 'Profile' : undefined}>
+            <User size={18} />{!isCollapsed && <span>Profile</span>}
+          </button>
         </>
       );
     }
 
-    // Employee view (also used by Admin/Lead when on non-prefixed routes)
+    // ── EMPLOYEE VIEW ───────────────────────────────────────────
     return (
       <>
-        {renderSectionHeader('General', true)}
-        <button className={`sidebar-link ${currentPage === 'announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('announcements')} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
-          <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
+        {renderSectionHeader('Work', true)}
+        <button className={`sidebar-link ${currentPage === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('dashboard')} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
+          <LayoutDashboard size={18} />{!isCollapsed && <span>Dashboard</span>}
         </button>
-        {renderAlertsLink('alerts')}
-
-        {renderSectionHeader('Operations')}
-        <button className={`sidebar-link ${currentPage === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('dashboard')} style={getLinkStyle()} title={isCollapsed ? 'Time Clock' : undefined}>
-          <Clock size={18} />{!isCollapsed && <span>Time Clock</span>}
-        </button>
-        <button className={`sidebar-link ${currentPage === 'timesheet' ? 'active' : ''}`} onClick={() => setCurrentPage('timesheet')} style={getLinkStyle()} title={isCollapsed ? 'Weekly Timesheet' : undefined}>
-          <Calendar size={18} />{!isCollapsed && <span>Weekly Timesheet</span>}
-        </button>
-        <button className={`sidebar-link ${currentPage === 'tasks' ? 'active' : ''}`} onClick={() => setCurrentPage('tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
+        <button className={`sidebar-link ${(currentPage === 'tasks' || currentPage === 'backlog') ? 'active' : ''}`} onClick={() => setCurrentPage('tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
           <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
+        </button>
+        <button className={`sidebar-link ${currentPage === 'timesheet' ? 'active' : ''}`} onClick={() => setCurrentPage('timesheet')} style={getLinkStyle()} title={isCollapsed ? 'Timesheet' : undefined}>
+          <Calendar size={18} />{!isCollapsed && <span>Timesheet</span>}
         </button>
         <button className={`sidebar-link ${currentPage === 'attendance' ? 'active' : ''}`} onClick={() => setCurrentPage('attendance')} style={getLinkStyle()} title={isCollapsed ? 'Attendance' : undefined}>
           <Fingerprint size={18} />{!isCollapsed && <span>Attendance</span>}
         </button>
-
         {renderSectionHeader('Communication')}
         <button className={`sidebar-link ${currentPage === 'meetings' ? 'active' : ''}`} onClick={() => setCurrentPage('meetings')} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
           <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
         </button>
-        <button className={`sidebar-link ${currentPage === 'teams' ? 'active' : ''}`} onClick={() => setCurrentPage('teams')} style={getLinkStyle()} title={isCollapsed ? 'Directory' : undefined}>
-          <Users size={18} />{!isCollapsed && <span>Directory</span>}
+        <button className={`sidebar-link ${currentPage === 'teams' ? 'active' : ''}`} onClick={() => setCurrentPage('teams')} style={getLinkStyle()} title={isCollapsed ? 'My Teams' : undefined}>
+          <Users size={18} />{!isCollapsed && <span>My Teams</span>}
         </button>
+        <button className={`sidebar-link ${currentPage === 'projects' ? 'active' : ''}`} onClick={() => setCurrentPage('projects')} style={getLinkStyle()} title={isCollapsed ? 'My Projects' : undefined}>
+          <Briefcase size={18} />{!isCollapsed && <span>My Projects</span>}
+        </button>
+        {currentUser.role !== 'Sub Lead' && (
+          <button className={`sidebar-link ${currentPage === 'announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('announcements')} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
+            <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
+          </button>
+        )}
+        {renderAlertsLink('alerts')}
+        {renderSectionHeader('Account')}
         <button className={`sidebar-link ${currentPage === 'settings' ? 'active' : ''}`} onClick={() => setCurrentPage('settings')} style={getLinkStyle()} title={isCollapsed ? 'Profile' : undefined}>
           <User size={18} />{!isCollapsed && <span>Profile</span>}
         </button>
@@ -187,19 +212,34 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
   };
 
   return (
-<aside
-  style={{
-    width: isCollapsed ? '64px' : '240px',
-    backgroundColor: 'var(--background)',
-    borderRight: '1px solid var(--border)',
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    padding: isCollapsed ? '8px 8px 0 8px' : '8px 12px 0 12px',
-    boxSizing: 'border-box',
-    transition: 'width 0.25s ease, padding 0.25s ease'
-  }}
->
+    <>
+      {isMobileSidebarOpen && (
+        <div
+          className="mobile-sidebar-backdrop"
+          onClick={() => setIsMobileSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 999
+          }}
+        />
+      )}
+      <aside
+        className={`app-sidebar ${isMobileSidebarOpen ? 'mobile-open' : ''}`}
+      style={{
+        width: isCollapsed ? '64px' : '240px',
+        backgroundColor: 'var(--background)',
+        borderRight: '1px solid var(--border)',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        padding: isCollapsed ? '8px 8px 0 8px' : '8px 12px 0 12px',
+        boxSizing: 'border-box',
+        transition: 'width 0.25s ease, padding 0.25s ease'
+      }}
+    >
       {/* Collapse toggle */}
       <div style={{ display: 'flex', justifyContent: isCollapsed ? 'center' : 'flex-end', marginBottom: '6px' }}>
         <button
@@ -221,7 +261,7 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
         gap: '4px',
         flex: 1,
         overflowY: 'auto',
-        minHeight: 0       // ← critical: lets flex child shrink below content size
+        minHeight: 0
       }}>
         {renderNavLinks()}
       </nav>
@@ -236,19 +276,20 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
         gap: '8px'
       }}>
         <div className="user-initials-badge" style={{ width: '28px', height: '28px', fontSize: '0.7rem' }}>
-          {getInitials(currentUser.name)}
+          {getInitials(displayUser.name)}
         </div>
         {!isCollapsed && (
           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 650, color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {currentUser.name}
+              {displayUser.name}
             </span>
             <span style={{ fontSize: '0.65rem', color: 'var(--muted-foreground)' }}>
-              {isEmployeeMode ? 'Employee view' : `${currentUser.role} mode`}
+              {isEmployeeMode ? 'Employee view' : `${displayUser.role} mode`}
             </span>
           </div>
         )}
       </div>
     </aside>
+    </>
   );
 }

@@ -1,11 +1,34 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { projectService } from '#services/projectService';
 
 export default function EditTaskModal({ show, onClose, onSubmit, editingTask, setEditingTask, projects, users, isAdmin, ledProjectIds }) {
   if (!editingTask) return null;
 
-  const availableProjects = projects.filter(p => isAdmin || ledProjectIds.includes(p.id));
-  const availableUsers = users.filter(u => u.status === 'Active');
+  const [projectMembers, setProjectMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
+  // Fetch project members dynamically when selected project changes
+  useEffect(() => {
+    if (!editingTask.projectId) {
+      setProjectMembers([]);
+      return;
+    }
+    setLoadingMembers(true);
+    projectService.getMembers(editingTask.projectId)
+      .then(members => {
+        setProjectMembers(members);
+      })
+      .catch(err => {
+        console.error("Failed to load project members in EditTaskModal:", err);
+      })
+      .finally(() => {
+        setLoadingMembers(false);
+      });
+  }, [editingTask.projectId]);
+
+  const availableProjects = projects.filter(p => isAdmin || ledProjectIds.map(id => String(id)).includes(String(p.id)) || String(p.id) === String(editingTask.projectId));
+  const availableUsers = projectMembers;
 
   return (
     <AnimatePresence>
@@ -16,7 +39,7 @@ export default function EditTaskModal({ show, onClose, onSubmit, editingTask, se
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            style={{ maxWidth: '520px' }}
+            style={{ maxWidth: '850px' }}
           >
             <div className="modal-header">
               <h3 className="modal-title">Edit Task — {editingTask.taskNumber}</h3>
@@ -52,11 +75,14 @@ export default function EditTaskModal({ show, onClose, onSubmit, editingTask, se
               </div>
 
               <div className="form-group">
-                <label className="form-label">Assignee</label>
+                <label className="form-label">
+                  {loadingMembers ? "Loading Project Members..." : "Assignee"}
+                </label>
                 <select
                   className="form-input"
                   value={editingTask.assignedTo}
                   onChange={(e) => setEditingTask(prev => ({ ...prev, assignedTo: e.target.value }))}
+                  disabled={loadingMembers}
                 >
                   <option value="">Unassigned</option>
                   {availableUsers.map(u => (

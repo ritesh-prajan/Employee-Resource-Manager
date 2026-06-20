@@ -1,38 +1,41 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import {
   CheckSquare, Clock, Check, ShieldAlert, Calendar,
   Video, Megaphone, MessageSquare, UserX, CalendarX,
   TrendingUp, Eye, EyeOff, ExternalLink, Trash2
 } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 
 const TYPE_META = {
-  TASK_ASSIGNED:      { icon: CheckSquare, color: '#0010AE' },
-  TASK_UPDATED:       { icon: Clock,        color: '#2dd4bf' },
-  TASK_REJECTED:      { icon: ShieldAlert,  color: '#ef4444' },
-  TIMESHEET_APPROVED: { icon: Check,        color: '#4ade80' },
-  TIMESHEET_REJECTED: { icon: ShieldAlert,  color: '#ef4444' },
-  APPROVAL_REVERTED:  { icon: Clock,        color: '#fbbf24' },
-  BACKLOG_CLAIMED:    { icon: CheckSquare,  color: '#2dd4bf' },
-  ETA_REQUEST:        { icon: Calendar,     color: '#fbbf24' },
-  ETA_DECISION:       { icon: Calendar,     color: '#fbbf24' },
-  TRANSFER_REQUEST:   { icon: ShieldAlert,  color: '#c084fc' },
-  TRANSFER_DECISION:  { icon: ShieldAlert,  color: '#c084fc' },
-  MEETING_REMINDER:   { icon: Video,        color: '#06b6d4' },
-  ANNOUNCEMENT:       { icon: Megaphone,    color: '#ec4899' },
-  WATCHDOG_LATE:      { icon: Clock,        color: '#fbbf24' },
-  WATCHDOG_ABSENT:    { icon: UserX,        color: '#ef4444' },
-  overdue:            { icon: CalendarX,    color: '#ef4444' },
-  overtime:           { icon: TrendingUp,   color: '#fbbf24' },
+  TASK_ASSIGNED:      { icon: CheckSquare, color: 'var(--primary)', label: 'Task Assigned' },
+  TASK_UPDATED:       { icon: Clock,        color: '#2dd4bf',        label: 'Task Updated' },
+  TASK_REJECTED:      { icon: ShieldAlert,  color: '#ef4444',        label: 'Task Rejected' },
+  TIMESHEET_APPROVED: { icon: Check,        color: '#4ade80',        label: 'Approved' },
+  TIMESHEET_REJECTED: { icon: ShieldAlert,  color: '#ef4444',        label: 'Rejected' },
+  APPROVAL_REVERTED:  { icon: Clock,        color: '#fbbf24',        label: 'Reverted' },
+  BACKLOG_CLAIMED:    { icon: CheckSquare,  color: '#2dd4bf',        label: 'Backlog Claimed' },
+  BACKLOG_CLAIM_REQUEST: { icon: CheckSquare, color: '#3b82f6',        label: 'Claim Request' },
+  ETA_REQUEST:        { icon: Calendar,     color: '#fbbf24',        label: 'ETA Request' },
+  ETA_DECISION:       { icon: Calendar,     color: '#fbbf24',        label: 'ETA Decision' },
+  TRANSFER_REQUEST:   { icon: ShieldAlert,  color: '#c084fc',        label: 'Transfer Request' },
+  TRANSFER_DECISION:  { icon: ShieldAlert,  color: '#c084fc',        label: 'Transfer Decision' },
+  MEETING_REMINDER:   { icon: Video,        color: '#06b6d4',        label: 'Meeting' },
+  ANNOUNCEMENT:       { icon: Megaphone,    color: '#ec4899',        label: 'Announcement' },
+  WATCHDOG_LATE:      { icon: Clock,        color: '#fbbf24',        label: 'Late Check-in' },
+  WATCHDOG_ABSENT:    { icon: UserX,        color: '#ef4444',        label: 'Absent' },
+  overdue:            { icon: CalendarX,    color: '#ef4444',        label: 'Overdue' },
+  overtime:           { icon: TrendingUp,   color: '#fbbf24',        label: 'Overtime' },
 };
 
-const DEFAULT_META = { icon: MessageSquare, color: '#8b939c' };
+const DEFAULT_META = { icon: MessageSquare, color: '#8b939c', label: 'Notification' };
 
 const isSystemGenerated = (id) =>
   id && (id.startsWith('overdue') || id.startsWith('overtime'));
 
 export default function AlertCard({ notification: n, onNavigate, onToggleRead, onDelete }) {
-  const { icon: Icon, color } = TYPE_META[n.type] || DEFAULT_META;
+  const { approveClaimRequest, rejectClaimRequest } = useApp();
+  const { icon: Icon, color, label } = TYPE_META[n.type] || DEFAULT_META;
   const sys = isSystemGenerated(n.id);
 
   return (
@@ -45,41 +48,47 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
       style={{
         display: 'flex',
         alignItems: 'center',
-        padding: '1rem 1.25rem',
         gap: '1rem',
-        borderLeft: `4px solid ${color}`,
+        padding: '0.875rem 1.125rem',
         backgroundColor: 'var(--card)',
         border: '1px solid var(--border)',
-        borderLeft: `4px solid ${color}`,
+        borderLeft: `3px solid ${color}`,
         borderRadius: '0.875rem',
-        opacity: n.isRead ? 0.72 : 1,
+        opacity: n.isRead ? 0.7 : 1,
         transition: 'opacity 0.2s',
       }}
     >
       {/* Type icon circle */}
       <div style={{
-        width: 32, height: 32, borderRadius: '50%',
-        backgroundColor: 'var(--secondary)',
-        border: '1px solid var(--border)',
+        width: 34, height: 34, borderRadius: '50%',
+        backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
+        border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>
-        <Icon size={16} style={{ color }} />
+        <Icon size={15} style={{ color }} />
       </div>
 
-      {/* Body — clickable */}
-      <div
-        onClick={() => onNavigate(n)}
-        style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-        title="Click to go to details"
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      {/* Body */}
+      <div onClick={() => onNavigate(n)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
           <span style={{
-            fontSize: '0.85rem',
-            fontWeight: n.isRead ? 600 : 750,
+            fontSize: '0.83rem',
+            fontWeight: n.isRead ? 500 : 700,
             color: 'var(--foreground)',
           }}>
             {n.title}
           </span>
+          {/* Type badge */}
+          <span style={{
+            fontSize: '0.62rem', fontWeight: 600,
+            color,
+            backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
+            borderRadius: 4, padding: '1px 6px', flexShrink: 0,
+          }}>
+            {label}
+          </span>
+          {/* Unread dot */}
           {!n.isRead && (
             <span style={{
               width: 6, height: 6, borderRadius: '50%',
@@ -87,24 +96,62 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
             }} />
           )}
         </div>
+
         <p style={{
-          fontSize: '0.75rem', color: 'var(--muted-foreground)',
-          margin: '3px 0 0', textOverflow: 'ellipsis',
-          overflow: 'hidden', whiteSpace: 'nowrap',
+          fontSize: '0.73rem', color: 'var(--muted-foreground)',
+          margin: '3px 0 0', overflow: 'hidden',
+          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {n.message}
         </p>
+
         <span style={{
-          fontSize: '0.65rem', color: 'var(--muted-foreground)',
-          display: 'block', marginTop: 4,
+          fontSize: '0.63rem', color: 'var(--muted-foreground)',
+          display: 'block', marginTop: 3,
         }}>
-          {new Date(n.createdAt).toLocaleDateString()} at{' '}
+          {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+          {' · '}
           {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
+
+        {n.type === 'BACKLOG_CLAIM_REQUEST' && !n.isRead && (
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); approveClaimRequest(n); }}
+              style={{
+                padding: '0.3rem 0.75rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                backgroundColor: 'var(--primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              Agree
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); rejectClaimRequest(n); }}
+              style={{
+                padding: '0.3rem 0.75rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                backgroundColor: 'color-mix(in srgb, var(--destructive) 10%, transparent)',
+                color: 'var(--destructive)',
+                border: '1px solid color-mix(in srgb, var(--destructive) 25%, transparent)',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              Reject
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
         {!sys && (
           <button
             onClick={() => onToggleRead(n)}

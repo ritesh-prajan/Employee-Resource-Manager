@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Play, CheckSquare, Clock, Calendar, AlertTriangle,
   CheckCircle2, MessageSquare, Send, ChevronDown, ChevronUp,
@@ -22,19 +22,38 @@ export default function TaskDetailPanel({
   onResolveETA, onResolveTransfer,
   onDirectReassign, onDirectUpdateETA,
   onEditTask, onDeleteTask,
-  onClaimBacklog, claimBacklogTask,
+  onClaimBacklog, claimBacklogTask, requestClaimBacklogTask,
   getStatusColor, checkTaskExceedsETA,
   getDatetimeInputValue,
 }) {
+  const [sessionDate, setSessionDate] = useState('');
+  const [sessionStartTime, setSessionStartTime] = useState('09:00');
+  const [sessionHours, setSessionHours] = useState('');
+  const [sessionCategory, setSessionCategory] = useState('Story');
+  const [sessionDescription, setSessionDescription] = useState('');
+  const [sessionJustification, setSessionJustification] = useState('');
+
+  useEffect(() => {
+    if (task) {
+      setSessionDate(new Date().toISOString().split('T')[0]);
+      setSessionStartTime('09:00');
+      setSessionHours('');
+      setSessionCategory(task.type || 'Story');
+      setSessionDescription('');
+      setSessionJustification('');
+    }
+  }, [task?.id, task?.type]);
   if (!task) return null;
+  const enteredHours = parseFloat(sessionHours) || 0;
 
   const proj = projects.find(p => p.id === task.projectId);
   const assignee = users.find(u => u.id === task.assignedTo);
-  const comments = (taskComments[task.id] || []);
+  const comments = task.comments || (taskComments && taskComments[task.id]) || [];
   const isMyTask = task.assignedTo === currentUser.id;
   const isActive = timerState.isClockedIn && timerState.taskId === task.id;
   const isOverrun = checkTaskExceedsETA(task);
-  const canLead = isAdmin || (isLeader && (ledProjectIds.includes(task.projectId) || ledMemberIds.has(task.assignedTo)));
+  const isBacklog = !task.assignedTo || task.assignedTo === '';
+  const canLead = isAdmin || (isLeader && (isBacklog || ledProjectIds.map(id => String(id)).includes(String(task.projectId)) || ledMemberIds.has(String(task.assignedTo || ''))));
   const pct = Math.min(100, Math.round((task.logged / task.eta) * 100)) || 0;
 
   const pendingETA = etaExtensions.find(e => e.taskId === task.id && e.status === 'Pending');
@@ -44,43 +63,55 @@ export default function TaskDetailPanel({
   return (
     <AnimatePresence>
       {show && (
-        <div className="modal-overlay" onClick={onClose}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[6px] p-4"
+          onClick={onClose}
+        >
           <motion.div
-            className="modal-content liquid-glass-card"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 40 }}
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '680px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
+            className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl text-left"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            style={{ fontFamily: "Inter, system-ui, sans-serif" }}
           >
             {/* Header */}
-            <div className="modal-header" style={{ position: 'sticky', top: 0, backgroundColor: 'var(--bg-card)', zIndex: 10, paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span className="badge" style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', fontSize: '0.7rem' }}>
+            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-500 font-mono text-[10px] uppercase font-bold tracking-wider">
                     {task.taskNumber}
                   </span>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: getStatusColor(task.status) }}>
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-wider"
+                    style={{ color: getStatusColor(task.status) }}
+                  >
                     {task.status}
                   </span>
-                  {task.status === 'Rejected' && <AlertTriangle size={13} color="#eab308" />}
+                  {task.status === 'Rejected' && <AlertTriangle size={13} className="text-amber-500" />}
                 </div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>{task.name}</h3>
+                <h3 className="text-lg font-bold text-slate-800">{task.name}</h3>
               </div>
-              <button className="modal-close" onClick={onClose}>×</button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full bg-slate-100 px-4 py-1.5 hover:bg-slate-200 text-xs font-semibold flex items-center gap-1 text-slate-700 transition cursor-pointer border-none"
+              >
+                <ChevronUp size={14} /> Close
+              </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingTop: '1rem' }}>
+            <div className="flex flex-col gap-5 pt-2">
 
               {/* Rejected warning */}
               {task.status === 'Rejected' && task.etaExceededComment && (
-                <div style={{ padding: '0.75rem 1rem', backgroundColor: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)', borderRadius: '8px', fontSize: '0.8rem', color: '#eab308' }}>
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 font-medium leading-relaxed">
                   <strong>Rejection Note:</strong> {task.etaExceededComment}
                 </div>
               )}
 
               {/* Meta grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+              <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: 'Project', value: proj?.name.split(' (')[0] || 'General', color: proj?.color },
                   { label: 'Type', value: task.type },
@@ -89,32 +120,20 @@ export default function TaskDetailPanel({
                   { label: 'Estimate', value: `${task.eta}h` },
                   { label: 'Logged', value: `${task.logged}h`, color: task.logged > task.eta ? '#ef4444' : undefined },
                 ].map(({ label, value, color }) => (
-                  <div key={label} style={{ padding: '0.65rem 0.85rem', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '3px' }}>{label}</div>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: color || 'var(--text-primary)' }}>{value}</div>
+                  <div key={label} className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{label}</div>
+                    <div className="text-sm font-semibold" style={{ color: color || '#1e293b' }}>{value}</div>
                   </div>
                 ))}
               </div>
 
-              {/* Progress bar */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Progress</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{task.progress || pct}%</span>
-                </div>
-                <div style={{ height: '6px', width: '100%', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '3px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ width: `${task.progress || pct}%`, height: '100%', backgroundColor: task.logged > task.eta ? '#ef4444' : (proj?.color || '#2998ff'), borderRadius: '3px' }} />
-                </div>
-              </div>
-
               {/* Assignee + ETA Date */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Assignee</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Assignee</span>
                   {canLead ? (
                     <select
-                      className="form-input"
-                      style={{ fontSize: '0.8rem', padding: '0.4rem 0.65rem' }}
+                      className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
                       value={task.assignedTo || ''}
                       onChange={(e) => onDirectReassign(task.id, e.target.value)}
                     >
@@ -122,27 +141,26 @@ export default function TaskDetailPanel({
                       {activeUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                     </select>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 600 }}>
-                      <div className="user-initials-badge" style={{ width: '22px', height: '22px', fontSize: '0.6rem' }}>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 py-1">
+                      <div className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 border border-slate-200">
                         {assignee ? (() => { const p = assignee.name.trim().split(/\s+/); return p.length > 1 ? (p[0][0] + p[p.length - 1][0]).toUpperCase() : assignee.name.substring(0, 2).toUpperCase(); })() : '?'}
                       </div>
                       {assignee?.name || 'Unassigned'}
                     </div>
                   )}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>ETA Date</span>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ETA Date</span>
                   {canLead ? (
                     <input
                       type="datetime-local"
-                      className="form-input"
-                      style={{ fontSize: '0.8rem', padding: '0.4rem 0.65rem' }}
+                      className="w-full rounded-xl border border-slate-200 py-2 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                       value={getDatetimeInputValue(task.etaDate)}
                       onChange={(e) => onDirectUpdateETA(task.id, e.target.value, undefined)}
                     />
                   ) : (
-                    <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
-                      {task.etaDate ? new Date(task.etaDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                    <span className="text-sm font-semibold text-slate-800 py-1.5 block">
+                      {task.etaDate ? new Date(task.etaDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                     </span>
                   )}
                 </div>
@@ -150,31 +168,168 @@ export default function TaskDetailPanel({
 
               {/* Action buttons — member actions */}
               {isMyTask && (
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  {(task.status === 'Open' || task.status === 'Paused' || task.status === 'Rejected') && !isActive && (
-                    <button className="btn btn-primary" onClick={() => onStartTask(task)} style={{ fontSize: '0.8rem', gap: '0.4rem' }}>
-                      <Play size={13} /> Start Task
-                    </button>
-                  )}
-                  {isActive && (
-                    <>
-                      <button className="btn btn-secondary" onClick={() => onTriggerPause(task)} style={{ fontSize: '0.8rem' }}>
-                        <Clock size={13} /> Pause
-                      </button>
-                      <button className="btn btn-primary" onClick={() => onTriggerFinish(task)} style={{ fontSize: '0.8rem', backgroundColor: '#32bf90', borderColor: '#32bf90' }}>
-                        <CheckSquare size={13} /> Submit for Review
-                      </button>
-                    </>
-                  )}
-                  {!isActive && task.status !== 'Completed' && task.status !== 'Pending Review' && (
-                    <>
-                      <button className="btn btn-secondary" onClick={() => { onClose(); onOpenETA(task.id); }} style={{ fontSize: '0.8rem' }}>
-                        <Calendar size={13} /> Request ETA Extension
-                      </button>
-                      <button className="btn btn-secondary" onClick={() => { onClose(); onOpenTransfer(task.id); }} style={{ fontSize: '0.8rem' }}>
-                        <User size={13} /> Request Transfer
-                      </button>
-                    </>
+                <div className="w-full">
+                  {isActive ? (
+                    <div className="flex flex-col gap-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl mb-3 text-slate-700">
+                      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                        <Clock size={16} className="text-[#0010AE]" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">Timesheet Session Logging</h4>
+                      </div>
+
+                      {/* Date & Start Time */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Date Working</label>
+                          <input
+                            type="date"
+                            className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                            value={sessionDate}
+                            onChange={(e) => setSessionDate(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Start Time</label>
+                          <input
+                            type="time"
+                            className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                            value={sessionStartTime}
+                            onChange={(e) => setSessionStartTime(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Hours Worked & Category */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Hours Worked</label>
+                          <input
+                            type="number"
+                            step="0.25"
+                            min="0"
+                            placeholder="e.g. 2.5"
+                            className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                            value={sessionHours}
+                            onChange={(e) => setSessionHours(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Category</label>
+                          <select
+                            className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800 cursor-pointer"
+                            value={sessionCategory}
+                            onChange={(e) => setSessionCategory(e.target.value)}
+                          >
+                            <option value="Story">Story</option>
+                            <option value="Bug">Bug</option>
+                            <option value="Feature">Feature</option>
+                            <option value="Review">Review</option>
+                            <option value="R&D">R&D</option>
+                            <option value="General">General</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Log Description</label>
+                        <textarea
+                          placeholder="Provide details of the work done in this session..."
+                          rows="2"
+                          className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800 resize-none"
+                          value={sessionDescription}
+                          onChange={(e) => setSessionDescription(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Over-ETA breach warning and Justification */}
+                      {enteredHours > Math.max(0, task.eta - task.logged) && (
+                        <div className="flex flex-col gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                          <div className="flex items-center gap-1.5 font-bold">
+                            <AlertTriangle size={14} className="text-red-500" />
+                            ETA Limit Alert
+                          </div>
+                          <div>
+                            Adding {enteredHours}h will bring the total logged time to {(task.logged + enteredHours).toFixed(2)}h, which exceeds the task's ETA of {task.eta}h. Justification is required.
+                          </div>
+                          <div className="flex flex-col gap-1 mt-1 text-slate-700">
+                            <label className="text-[10px] text-red-600 font-bold uppercase tracking-wider">Over-ETA Justification (Required)</label>
+                            <input
+                              type="text"
+                              placeholder="Provide a brief explanation for exceeding the ETA..."
+                              className="w-full rounded-lg border border-red-200 py-1.5 px-2.5 outline-none focus:border-red-500 transition text-xs bg-white text-slate-800"
+                              value={sessionJustification}
+                              onChange={(e) => setSessionJustification(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Buttons */}
+                      <div className="flex flex-col gap-2 pt-2">
+                        <button
+                          type="button"
+                          className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition cursor-pointer flex items-center justify-center gap-2 border border-emerald-500"
+                          onClick={() => {
+                            const entryData = {
+                              date: sessionDate,
+                              startTime: sessionStartTime,
+                              duration: enteredHours,
+                              workCategory: sessionCategory,
+                              description: sessionDescription,
+                              justification: sessionJustification
+                            };
+                            onTriggerFinish(task, entryData);
+                          }}
+                        >
+                          <CheckSquare size={16} /> Submit for Review
+                        </button>
+                        <button
+                          type="button"
+                          className="w-full py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer bg-white flex items-center justify-center gap-1.5"
+                          onClick={() => {
+                            const entryData = {
+                              date: sessionDate,
+                              startTime: sessionStartTime,
+                              duration: enteredHours,
+                              workCategory: sessionCategory,
+                              description: sessionDescription,
+                              justification: sessionJustification
+                            };
+                            onTriggerPause(task, entryData);
+                          }}
+                        >
+                          <Clock size={14} /> Pause Working
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    task.status !== 'Completed' && task.status !== 'Pending Review' && (
+                      <div className="flex flex-col gap-2.5">
+                        <button
+                          type="button"
+                          className="w-full py-3.5 bg-[#0010AE] hover:bg-blue-800 text-white rounded-xl text-sm font-bold transition cursor-pointer flex items-center justify-center gap-2 border border-[#0010AE]"
+                          onClick={() => onStartTask(task)}
+                        >
+                          <Play size={16} /> Start Working
+                        </button>
+                        <div className="grid grid-cols-2 gap-3 w-full">
+                          <button
+                            type="button"
+                            className="w-full py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer bg-white flex items-center justify-center gap-1.5"
+                            onClick={() => { onClose(); onOpenETA(task.id); }}
+                          >
+                            <Calendar size={14} /> Request ETA Extension
+                          </button>
+                          <button
+                            type="button"
+                            className="w-full py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer bg-white flex items-center justify-center gap-1.5"
+                            onClick={() => { onClose(); onOpenTransfer(task.id); }}
+                          >
+                            <User size={14} /> Request Transfer
+                          </button>
+                        </div>
+                      </div>
+                    )
                   )}
                 </div>
               )}
@@ -182,111 +337,104 @@ export default function TaskDetailPanel({
               {/* Backlog claim button */}
               {!task.assignedTo && !isAdmin && (
                 <button
-                  className="btn btn-primary"
-                  onClick={() => { claimBacklogTask(task.id); onClose(); }}
-                  style={{ fontSize: '0.8rem', backgroundColor: '#32bf90', borderColor: '#32bf90', alignSelf: 'flex-start' }}
+                  type="button"
+                  className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-500 text-white rounded-xl text-sm font-bold transition cursor-pointer flex items-center justify-center gap-2"
+                  onClick={() => {
+                    if (isLeader) {
+                      claimBacklogTask(task.id);
+                    } else {
+                      requestClaimBacklogTask(task.id);
+                    }
+                    onClose();
+                  }}
                 >
-                  <CheckSquare size={13} /> Claim This Task
+                  <CheckSquare size={16} /> Claim This Task
                 </button>
-              )}
-
-              {/* Leader actions */}
-              {canLead && (
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  <button className="btn btn-secondary" onClick={() => { onEditTask(task); onClose(); }} style={{ fontSize: '0.8rem' }}>
-                    <Pencil size={13} /> Edit Task
-                  </button>
-                  {isAdmin && (
-                    <button className="btn btn-secondary" onClick={() => { onDeleteTask(task.id); onClose(); }} style={{ fontSize: '0.8rem', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}>
-                      <Trash2 size={13} /> Delete
-                    </button>
-                  )}
-                </div>
               )}
 
               {/* Pending ETA review */}
               {canLead && pendingETA && (
-                <div style={{ padding: '0.85rem 1rem', backgroundColor: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fbbf24', marginBottom: '4px' }}>⏳ Pending ETA Extension Request</div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                    Proposed: {new Date(pendingETA.proposedDate).toLocaleDateString()} — {pendingETA.reason}
+                <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-2xl flex flex-col gap-2">
+                  <div className="text-xs font-bold text-amber-600 flex items-center gap-1">⏳ Pending ETA Extension Request</div>
+                  <div className="text-xs text-slate-600">
+                    Proposed: <strong className="text-slate-800 font-medium">{new Date(pendingETA.proposedDate).toLocaleDateString()}</strong> — {pendingETA.reason}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-primary" onClick={() => onResolveETA(task.id, true)} style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem', backgroundColor: '#32bf90', borderColor: '#32bf90' }}>Approve</button>
-                    <button className="btn btn-secondary" onClick={() => onResolveETA(task.id, false)} style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem', color: '#ef4444', borderColor: '#ef4444' }}>Decline</button>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-500 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
+                      onClick={() => onResolveETA(task.id, true)}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3.5 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition cursor-pointer bg-white"
+                      onClick={() => onResolveETA(task.id, false)}
+                    >
+                      Decline
+                    </button>
                   </div>
                 </div>
               )}
 
               {/* Pending Transfer review */}
               {canLead && pendingTransfer && (
-                <div style={{ padding: '0.85rem 1rem', backgroundColor: 'rgba(192,132,252,0.08)', border: '1px solid rgba(192,132,252,0.25)', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c084fc', marginBottom: '4px' }}>🔁 Pending Transfer Request</div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                    To: {users.find(u => u.id === pendingTransfer.toUserId)?.name || 'Unknown'} — {pendingTransfer.reason}
+                <div className="p-4 bg-purple-50/50 border border-purple-200 rounded-2xl flex flex-col gap-2">
+                  <div className="text-xs font-bold text-purple-600 flex items-center gap-1">🔁 Pending Transfer Request</div>
+                  <div className="text-xs text-slate-600">
+                    To: <strong className="text-slate-800 font-medium">{users.find(u => String(u.id) === String(pendingTransfer.toUserId))?.name || 'Unknown'}</strong> — {pendingTransfer.reason}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-primary" onClick={() => onResolveTransfer(task.id, true)} style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem', backgroundColor: '#32bf90', borderColor: '#32bf90' }}>Approve</button>
-                    <button className="btn btn-secondary" onClick={() => onResolveTransfer(task.id, false)} style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem', color: '#ef4444', borderColor: '#ef4444' }}>Decline</button>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-500 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
+                      onClick={() => onResolveTransfer(task.id, true)}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3.5 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition cursor-pointer bg-white"
+                      onClick={() => onResolveTransfer(task.id, false)}
+                    >
+                      Decline
+                    </button>
                   </div>
-                </div>
-              )}
-
-              {/* Progress update — member only */}
-              {isMyTask && task.status === 'In Progress' && (
-                <div style={{ padding: '0.85rem 1rem', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Update Progress</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                    <input
-                      type="range"
-                      min={0} max={100} step={5}
-                      value={progressValue[task.id] ?? task.progress ?? pct}
-                      onChange={(e) => setProgressValue(prev => ({ ...prev, [task.id]: parseInt(e.target.value) }))}
-                      style={{ flex: 1 }}
-                    />
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, minWidth: '36px' }}>{progressValue[task.id] ?? task.progress ?? pct}%</span>
-                  </div>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Progress note (optional)..."
-                    value={progressNote[task.id] || ''}
-                    onChange={(e) => setProgressNote(prev => ({ ...prev, [task.id]: e.target.value }))}
-                    style={{ marginBottom: '0.5rem', fontSize: '0.8rem' }}
-                  />
-                  <button className="btn btn-primary" onClick={() => onProgressUpdate(task.id)} style={{ fontSize: '0.78rem', padding: '0.35rem 0.85rem' }}>
-                    Save Progress
-                  </button>
                 </div>
               )}
 
               {/* Comments */}
-              <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+              <div className="flex flex-col gap-3">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider border-b border-slate-100 pb-1.5">
                   Activity ({comments.length})
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto', marginBottom: '0.75rem' }}>
+                <div className="flex flex-col gap-3.5 max-h-48 overflow-y-auto pr-1">
                   {comments.length === 0 && (
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No activity yet.</div>
+                    <div className="text-xs text-slate-400 italic py-2">No activity yet.</div>
                   )}
                   {comments.map((c, i) => {
-                    const author = users.find(u => u.id === c.userId);
+                    const author = users.find(u => String(u.id) === String(c.userId));
                     const isSystem = c.text?.startsWith('[');
                     return (
-                      <div key={i} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                      <div key={i} className="flex gap-2.5 items-start">
                         {!isSystem && (
-                          <div className="user-initials-badge" style={{ width: '22px', height: '22px', fontSize: '0.6rem', flexShrink: 0, marginTop: '2px' }}>
+                          <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 border border-slate-200 flex-shrink-0 mt-0.5">
                             {author ? (() => { const p = author.name.trim().split(/\s+/); return p.length > 1 ? (p[0][0] + p[p.length - 1][0]).toUpperCase() : author.name.substring(0, 2).toUpperCase(); })() : '?'}
                           </div>
                         )}
-                        <div style={{ flex: 1 }}>
-                          {!isSystem && <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{author?.name || 'Unknown'} · </span>}
-                          <span style={{ fontSize: isSystem ? '0.72rem' : '0.8rem', color: isSystem ? 'var(--text-muted)' : 'var(--text-primary)', fontStyle: isSystem ? 'italic' : 'normal' }}>
-                            {c.text}
-                          </span>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                            {c.timestamp ? new Date(c.timestamp).toLocaleString() : ''}
+                        <div className="flex-1 text-left">
+                          <div className="text-xs">
+                            {!isSystem && <strong className="font-semibold text-slate-700 mr-1">{author?.name || 'Unknown'}</strong>}
+                            <span className={isSystem ? 'text-slate-400 italic text-[11px]' : 'text-slate-600'}>
+                              {c.text}
+                            </span>
                           </div>
+                          {c.timestamp && (
+                            <div className="text-[9px] text-slate-400 mt-0.5">
+                              {new Date(c.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -294,22 +442,21 @@ export default function TaskDetailPanel({
                 </div>
 
                 {/* Add comment */}
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className="flex gap-2 pt-1">
                   <input
                     type="text"
-                    className="form-input"
+                    className="flex-1 rounded-xl border border-slate-200 py-2 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                     placeholder="Add a comment..."
                     value={newComment[task.id] || ''}
                     onChange={(e) => setNewComment(prev => ({ ...prev, [task.id]: e.target.value }))}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onAddComment(task.id); } }}
-                    style={{ flex: 1, fontSize: '0.8rem' }}
                   />
                   <button
-                    className="btn btn-primary"
+                    type="button"
+                    className="px-4 py-2 bg-[#0010AE] hover:bg-blue-800 text-white rounded-xl text-sm font-semibold transition cursor-pointer flex items-center justify-center border border-[#0010AE] hover:border-blue-800"
                     onClick={() => onAddComment(task.id)}
-                    style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
                   >
-                    <Send size={13} />
+                    <Send size={14} />
                   </button>
                 </div>
               </div>

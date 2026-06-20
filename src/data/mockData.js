@@ -14,10 +14,10 @@ employee_code: "EMP-0001",
 notification_preference: "ALL"
 },
 {
-id: "user-admin",
+id: "user-purushothaman-saminathan",
 name: "Purushothaman Saminathan",
 email: "[purushothaman.saminathan@elite.com](mailto:purushothaman.saminathan@elite.com)",
-role: "Admin",
+role: "System-Admin",
 avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150",
 status: "Active",
 department: "Management",
@@ -4135,20 +4135,26 @@ export function generateMockTimeEntries(
 
   const entries = [];
 
-  users.forEach(user => {
-    const userTasks = tasks.filter(
-      task =>
-        task.assignedTo === user.id &&
-        task.status !== "Backlog"
+  const activeTasks = tasks.filter(
+    task =>
+      task.assignedTo &&
+      task.status !== "Backlog"
+  );
+
+  activeTasks.forEach(task => {
+
+    const user = users.find(
+      u => u.id === task.assignedTo
     );
 
-    if (userTasks.length === 0) return;
+    if (!user) return;
 
     const descriptions =
       WORK_DESCRIPTIONS[user.department] ||
       WORK_DESCRIPTIONS.Engineering;
 
     WORKING_DAYS.forEach(day => {
+
       const dailyHours =
         getDailyHours(user);
 
@@ -4157,34 +4163,49 @@ export function generateMockTimeEntries(
 
       let startHour = 9;
 
-      chunks.forEach((chunk, index) => {
-        const task = userTasks[index % userTasks.length];
+      chunks.forEach(chunk => {
 
-        const startH = Math.floor(startHour);
-        const startM = Math.round((startHour - startH) * 60);
-        const startTime = `${String(startH).padStart(2, "0")}:${String(startM).padStart(2, "0")}`;
+        const startTime =
+          `${String(startHour).padStart(2, "0")}:00`;
 
-        const endHour = startHour + chunk;
-        const endH = Math.floor(endHour);
-        const endM = Math.round((endHour - endH) * 60);
-        const endTime = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+        const endHour =
+          startHour + chunk;
+
+        const endTime =
+          `${String(Math.floor(endHour))
+            .padStart(2, "0")}:00`;
 
         entries.push({
           id: `entry-${entryCounter++}`,
+
           userId: user.id,
+
           taskId: task.id,
+
           projectId: task.projectId,
-          description: pick(descriptions),
+
+          description:
+            pick(descriptions),
+
           date: day,
+
           startTime,
+
           endTime,
-          duration: chunk.toString(),
+
+          duration:
+            chunk.toString(),
+
           status: "Approved",
-          workCategory: task.type,
+
+          workCategory:
+            task.type,
+
           justification: ""
         });
 
-        startHour = endHour + 0.5;
+        startHour +=
+          Math.ceil(chunk) + 1;
       });
     });
   });

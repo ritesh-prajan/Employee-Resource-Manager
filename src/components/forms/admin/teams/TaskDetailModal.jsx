@@ -60,24 +60,7 @@ export default function TaskDetailModal({ isOpen, onClose, task, users = [], pro
           {task.type && <Field label="Type">{task.type}</Field>}
         </div>
 
-        {/* Hours progress bar — only shown if eta is set */}
-        {eta > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-              <span style={{ color: 'var(--muted-foreground)', fontWeight: 600 }}>Hours Logged / Estimate</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: isOverBudget ? '#ef4444' : 'var(--foreground)' }}>
-                {logged}h / {eta}h ({pct}%)
-              </span>
-            </div>
-            <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--muted)', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{
-                width: `${pct}%`, height: '100%', borderRadius: '4px',
-                backgroundColor: isOverBudget ? '#ef4444' : (proj?.color || 'var(--primary)'),
-                transition: 'width 0.3s ease',
-              }} />
-            </div>
-          </div>
-        )}
+
 
       </div>
 

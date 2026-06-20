@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { CheckSquare, X } from 'lucide-react';
 
 export default function TaskAssignedToast({ task, onClose, onView, duration = 5000 }) {
@@ -9,7 +10,7 @@ export default function TaskAssignedToast({ task, onClose, onView, duration = 50
     return () => clearTimeout(t);
   }, [task, duration, onClose]);
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {task && (
         <motion.div
@@ -85,6 +86,7 @@ export default function TaskAssignedToast({ task, onClose, onView, duration = 50
           </div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

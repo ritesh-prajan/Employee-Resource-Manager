@@ -1,11 +1,84 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {Search, ChevronDown, LogOut, Bell } from 'lucide-react';
+import {Search, ChevronDown, LogOut, Bell, Menu } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 
-export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed }) {
-  const { theme, toggleTheme, currentUser, changeUser, users, logout, notifications = [] } = useApp();
+export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed, isMobileSidebarOpen, setIsMobileSidebarOpen }) {
+  const { theme, toggleTheme, currentUser, changeUser, users, notifications = [] } = useApp();
+  const { logout } = useAuth();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const menuRef = useRef(null);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef(null);
+
+  const getSearchableItems = () => {
+    const items = [];
+    const isAdminView = currentUser.role === 'Admin' && !currentPage.startsWith('lead-') && currentPage !== 'dashboard' && currentPage !== 'timesheet';
+    const isLeadView = (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && !currentPage.startsWith('admin-');
+
+    if (currentUser.role === 'Admin' && !isLeadView && currentPage !== 'dashboard' && currentPage !== 'timesheet') {
+      items.push(
+        { label: 'Dashboard', page: 'admin-dashboard' },
+        { label: 'Employees', page: 'admin-employees' },
+        { label: 'Teams', page: 'admin-teams' },
+        { label: 'Projects', page: 'admin-projects' },
+        { label: 'Tasks', page: 'admin-tasks' },
+        { label: 'Timesheets', page: 'admin-timesheets' },
+        { label: 'Approvals', page: 'admin-approvals' },
+        { label: 'Feed', page: 'admin-announcements' },
+        { label: 'Link Room', page: 'admin-meetings' },
+        { label: 'Profile', page: 'settings' },
+        { label: 'Alerts Center', page: 'admin-alerts' }
+      );
+    } else if (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') {
+      items.push(
+        { label: 'Dashboard', page: 'lead-dashboard' },
+        { label: 'Tasks', page: 'lead-tasks' },
+        { label: 'Timesheet', page: 'lead-timesheet' },
+        { label: 'Team Attendance', page: 'lead-attendance' },
+        { label: 'Approvals', page: 'lead-approvals' },
+        { label: 'My Teams', page: 'lead-teams' },
+        { label: 'My Projects', page: 'lead-projects' },
+        { label: 'Link Room', page: 'lead-meetings' },
+        { label: 'Profile', page: 'settings' },
+        { label: 'Alerts Center', page: 'lead-alerts' }
+      );
+      if (currentUser.role !== 'Sub Lead') {
+        items.push({ label: 'Feed', page: 'lead-announcements' });
+      }
+    } else {
+      items.push(
+        { label: 'Dashboard', page: 'dashboard' },
+        { label: 'Tasks', page: 'tasks' },
+        { label: 'Timesheet', page: 'timesheet' },
+        { label: 'Attendance', page: 'attendance' },
+        { label: 'Link Room', page: 'meetings' },
+        { label: 'My Teams', page: 'teams' },
+        { label: 'My Projects', page: 'projects' },
+        { label: 'Feed', page: 'announcements' },
+        { label: 'Profile', page: 'settings' },
+        { label: 'Alerts Center', page: 'alerts' }
+      );
+    }
+    return items;
+  };
+
+  const searchableItems = getSearchableItems();
+  const matchedItems = searchQuery.trim()
+    ? searchableItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()))
+    : [];
+
+  useEffect(() => {
+    function handleClickOutsideSearch(event) {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchResults(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutsideSearch);
+    return () => document.removeEventListener('mousedown', handleClickOutsideSearch);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -18,6 +91,14 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
   }, []);
 
   if (!currentUser) return null;
+
+  // Resolve full profile: prefer the employee record from users[] (has name/phone/etc)
+  // Fall back to currentUser itself (which may be the thin auth object right after login)
+  const displayUser = users.find(u => 
+    String(u.id) === String(currentUser?.id) || 
+    (u.email && currentUser?.email && u.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+    (u.workEmail && currentUser?.email && u.workEmail.toLowerCase() === currentUser.email.toLowerCase())
+  ) || currentUser;
 
   const userNotifications = notifications.filter(n => n.recipientId === currentUser.id);
   const unreadCount = userNotifications.filter(n => !n.isRead).length;
@@ -58,8 +139,29 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
 
       {/* Left: Logo + Search */}
       <div style={{ display: 'flex', alignItems: 'center' }}>
+        <button
+          className="mobile-menu-btn"
+          onClick={() => setIsMobileSidebarOpen(prev => !prev)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--foreground)',
+            cursor: 'pointer',
+            padding: '8px',
+            marginLeft: '12px',
+            marginRight: '-4px',
+            display: 'none',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '8px',
+            flexShrink: 0
+          }}
+        >
+          <Menu size={20} />
+        </button>
         {/* Logo area — mirrors sidebar width */}
         <div
+          className="topbar-logo-area"
           onClick={() => setCurrentPage('admin-dashboard')}
           style={{
             display: 'flex',
@@ -87,7 +189,7 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
               )}
               {currentPage.startsWith('lead-') && (
                 <span style={{ marginLeft: '8px', fontSize: '0.65rem', fontWeight: 700, backgroundColor: 'color-mix(in oklch, var(--primary) 10%, transparent)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  team lead
+                  {currentUser.role === 'Sub Lead' ? 'sub lead' : 'team lead'}
                 </span>
               )}
             </>
@@ -95,11 +197,12 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
         </div>
 
         {/* Search */}
-        <div style={{ position: 'relative', marginLeft: '16px', display: 'flex', alignItems: 'center' }}>
+        <div className="topbar-search-container" ref={searchRef} style={{ position: 'relative', marginLeft: '16px', display: 'flex', alignItems: 'center' }}>
           <Search size={16} style={{ position: 'absolute', left: '12px', color: 'var(--muted-foreground)', pointerEvents: 'none' }} />
           <input
             type="text"
-            placeholder="Search anything"
+            placeholder="Search pages (e.g. Tasks, Projects...)"
+            className="topbar-search-input"
             style={{
               padding: '8px 16px 8px 36px',
               borderRadius: '20px',
@@ -111,9 +214,62 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
               color: 'var(--foreground)',
               transition: 'border-color 0.2s'
             }}
-            onFocus={(e) => e.target.style.borderColor = 'var(--ring)'}
-            onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSearchResults(true);
+            }}
+            onFocus={() => setShowSearchResults(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && matchedItems.length > 0) {
+                setCurrentPage(matchedItems[0].page);
+                setSearchQuery('');
+                setShowSearchResults(false);
+              }
+            }}
           />
+          {showSearchResults && matchedItems.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: '40px',
+              left: 0,
+              width: '260px',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              boxShadow: 'var(--shadow-lg)',
+              zIndex: 120,
+              overflow: 'hidden',
+              padding: '4px 0'
+            }}>
+              {matchedItems.map(item => (
+                <button
+                  key={item.page}
+                  onClick={() => {
+                    setCurrentPage(item.page);
+                    setSearchQuery('');
+                    setShowSearchResults(false);
+                  }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '8px 16px',
+                    border: 'none',
+                    background: 'none',
+                    textAlign: 'left',
+                    fontSize: '0.825rem',
+                    color: 'var(--foreground)',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--accent)'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -148,10 +304,10 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
             style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: '8px', outline: 'none' }}
           >
             <div className="user-initials-badge" style={{ width: '34px', height: '34px', fontSize: '0.8rem' }}>
-              {getInitials(currentUser.name)}
+              {getInitials(displayUser.name)}
             </div>
-            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)' }}>
-              {currentUser.name}
+            <span className="topbar-user-name" style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)' }}>
+              {displayUser.name || displayUser.email || 'User'}
             </span>
             <ChevronDown size={14} style={{ color: 'var(--muted-foreground)' }} />
           </button>
@@ -167,8 +323,8 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
             }}>
               {/* User info */}
               <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>{currentUser.name}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', wordBreak: 'break-all' }}>{currentUser.email}</div>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>{displayUser.name || displayUser.email}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', wordBreak: 'break-all' }}>{displayUser.email || currentUser.email}</div>
                 <span style={{
                   display: 'inline-block', marginTop: '6px',
                   backgroundColor: 'color-mix(in oklch, var(--primary) 10%, transparent)',
@@ -176,31 +332,9 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
                   fontSize: '0.7rem', fontWeight: 700,
                   padding: '2px 8px', borderRadius: '10px'
                 }}>
-                  {currentUser.role}
+                  {displayUser.role || currentUser.role}
                 </span>
               </div>
-
-              {/* Demo switcher */}
-              <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--secondary)' }}>
-                <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-                  Demo: Switch Persona
-                </div>
-                <select
-                  value={currentUser.id}
-                  onChange={handleUserChange}
-                  style={{
-                    width: '100%', padding: '6px', borderRadius: '6px',
-                    border: '1px solid var(--border)', fontSize: '0.8rem',
-                    outline: 'none', cursor: 'pointer',
-                    backgroundColor: 'var(--background)', color: 'var(--foreground)'
-                  }}
-                >
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-                  ))}
-                </select>
-              </div>
-
               {/* Settings */}
               <button
                 onClick={() => { setCurrentPage('settings'); setShowProfileMenu(false); }}

@@ -1,17 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect} from 'react';
 import { ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import MultiSearchSelect from '../../../ui/MultiSelectDropdown';
 
 export default function AddEmployeeModal({ show, onClose, users, teams, projects, onSubmit }) {
-  const [empData, setEmpData] = useState({
-    name: '', employee_code: '', email: '', personalEmail: '',
-    phone: '', password: '', designation: '', role: 'Employee', teams: [], projects: []
-  });
+  const generateNextCode = () => {
+  const codes = users
+    .map(u => u.employee_code)
+    .filter(c => c && /^EMP-\d+$/i.test(c))
+    .map(c => parseInt(c.split('-')[1], 10));
+  const next = codes.length > 0 ? Math.max(...codes) + 1 : 1;
+  return `EMP-${String(next).padStart(3, '0')}`;
+};
+
+const [empData, setEmpData] = useState({
+  name: '', employee_code: generateNextCode(), email: '', personalEmail: '',
+  phone: '', password: '', designation: '', role: 'Employee', teams: [], projects: []
+});
   const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState('');
 
   const teamOptions = teams.map(t => ({ value: t.id, label: t.name }));
   const projectOptions = projects.map(p => ({ value: p.id, label: p.name, color: p.color }));
+
+  useEffect(() => {
+    if (show) {
+      setEmpData(prev => ({ ...prev, employee_code: generateNextCode() }));
+    }
+  }, [show]);
 
   const handleGeneratePassword = () => {
     const chars = '0123456789ABCDEF';
@@ -66,22 +81,22 @@ export default function AddEmployeeModal({ show, onClose, users, teams, projects
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">FULL NAME *</label>
-              <input type="text" className="input-control" placeholder="E.g. David Miller" value={empData.name} onChange={(e) => setEmpData(prev => ({ ...prev, name: e.target.value }))} required />
+              <input type="text" className="input-control" placeholder="Enter Name" value={empData.name} onChange={(e) => setEmpData(prev => ({ ...prev, name: e.target.value }))} required />
             </div>
             <div className="form-group">
               <label className="form-label">EMPLOYEE NUMBER *</label>
-              <input type="text" className="input-control" placeholder="E.g. EMP-0046" value={empData.employee_code} onChange={(e) => setEmpData(prev => ({ ...prev, employee_code: e.target.value }))} required />
+              <input type="text" className="input-control" placeholder="Enter Employee Number" value={empData.employee_code} onChange={(e) => setEmpData(prev => ({ ...prev, employee_code: e.target.value }))} required />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">WORK EMAIL *</label>
-              <input type="email" className="input-control" placeholder="E.g. david.m@office.com" value={empData.email} onChange={(e) => setEmpData(prev => ({ ...prev, email: e.target.value }))} required />
+              <input type="email" className="input-control" placeholder="Enter Work Email" value={empData.email} onChange={(e) => setEmpData(prev => ({ ...prev, email: e.target.value }))} required />
             </div>
             <div className="form-group">
               <label className="form-label">PERSONAL EMAIL (OPTIONAL)</label>
-              <input type="email" className="input-control" placeholder="E.g. david.m.personal@gmail.com" value={empData.personalEmail} onChange={(e) => setEmpData(prev => ({ ...prev, personalEmail: e.target.value }))} />
+              <input type="email" className="input-control" placeholder="Enter Personal Email" value={empData.personalEmail} onChange={(e) => setEmpData(prev => ({ ...prev, personalEmail: e.target.value }))} />
             </div>
           </div>
 
@@ -101,6 +116,7 @@ export default function AddEmployeeModal({ show, onClose, users, teams, projects
               <label className="form-label">ORGANIZATIONAL ROLE</label>
               <select className="input-control" value={empData.role} onChange={(e) => setEmpData(prev => ({ ...prev, role: e.target.value }))}>
                 <option value="Employee">Employee</option>
+                <option value="Sub Lead">Sub Team Lead</option>
                 <option value="Team Lead">Team Lead</option>
                 <option value="Admin">Administrator</option>
               </select> 

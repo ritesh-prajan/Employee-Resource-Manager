@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function CreateBacklogTaskModal({ show, onClose, onSubmit, projects, isAdmin, ledProjectIds, backlogCreateData, setBacklogCreateData }) {
 

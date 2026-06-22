@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { projectService } from '#services/projectService';
 
 export default function EditTaskModal({ show, onClose, onSubmit, editingTask, setEditingTask, projects, users, isAdmin, ledProjectIds }) {

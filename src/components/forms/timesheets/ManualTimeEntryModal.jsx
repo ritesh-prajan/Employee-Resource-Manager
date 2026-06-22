@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Clock, AlertTriangle, Coffee, Briefcase, Calendar } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import SearchableSelect from '../../ui/SearchableSelect';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 export default function ManualTimeEntryModal({ show, onClose, defaultDate, editingEntry }) {
   const { currentUser, tasks, projects, addManualEntry, editTimeEntry, timeEntries } = useApp();
@@ -91,16 +91,16 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
     }
 
     // Overlap validation (entries must not overlap)
-    const newStart = moment(`${date}T${startTime}:00`);
-    const newEnd = newStart.clone().add(durationVal, 'hours');
+    const newStart = dayjs(`${date}T${startTime}:00`);
+    const newEnd = newStart.add(durationVal, 'hour');
 
     const hasOverlap = timeEntries.some(e => {
       if (editingEntry && e.id === editingEntry.id) return false;
       return (
         e.userId === currentUser?.id &&
         e.date === date &&
-        moment(`${e.date}T${e.startTime}:00`).isBefore(newEnd) &&
-        newStart.isBefore(moment(`${e.date}T${e.endTime}:00`))
+        dayjs(`${e.date}T${e.startTime}:00`).isBefore(newEnd) &&
+        newStart.isBefore(dayjs(`${e.date}T${e.endTime}:00`))
       );
     });
 

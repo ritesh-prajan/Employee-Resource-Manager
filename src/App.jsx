@@ -1,5 +1,5 @@
-import React, {useState, useEffect} from 'react';
-import {motion, AnimatePresence} from 'framer-motion';
+import React, { useState, useEffect, Suspense } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { AppProvider } from './context/AppContext';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -8,36 +8,36 @@ import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
-import {Route,Routes,Navigate} from 'react-router-dom'
+import { Route, Routes, Navigate } from 'react-router-dom';
 import Forgotpassword from './pages/Forgotpassword.jsx';
-import Resetpassword from './pages/Resetpassword.jsx'
+import Resetpassword from './pages/Resetpassword.jsx';
 import { useLocation } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import GlobalLoader from './components/GlobalLoader';
 
-// Employee Pages
-import Tasks from './pages/employee/Tasks';
-import Attendance from './pages/employee/Attendance';
-import Meetings from './pages/employee/Meetings';
-import EmployeeDashboard from './pages/employee/Dashboard';
+// Employee Pages (Lazy Loaded)
+const Tasks = React.lazy(() => import('./pages/employee/Tasks'));
+const Attendance = React.lazy(() => import('./pages/employee/Attendance'));
+const Meetings = React.lazy(() => import('./pages/employee/Meetings'));
+const EmployeeDashboard = React.lazy(() => import('./pages/employee/Dashboard'));
 
-// Team Lead / Sub Lead Pages
-import TeamAttendance from './pages/lead/TeamAttendance';
-import LeadRequests from './pages/lead/Requests';
-import TeamLeadDashboard from './pages/lead/TeamLeadDashboard';
+// Team Lead / Sub Lead Pages (Lazy Loaded)
+const TeamAttendance = React.lazy(() => import('./pages/lead/TeamAttendance'));
+const LeadRequests = React.lazy(() => import('./pages/lead/Requests'));
+const TeamLeadDashboard = React.lazy(() => import('./pages/lead/TeamLeadDashboard'));
 
-// Admin Pages
-import AdminDashboard from './pages/admin/Dashboard';
-import Teams from './pages/admin/Teams';
-import Projects from './pages/admin/Projects';
-import Employees from './pages/admin/Employees';
-import Approvals from './pages/admin/Approvals';
-import AdminAnnouncements from './pages/admin/Announcements';
-import AdminTimesheets from './pages/admin/Timesheets';
+// Admin Pages (Lazy Loaded)
+const AdminDashboard = React.lazy(() => import('./pages/admin/Dashboard'));
+const Teams = React.lazy(() => import('./pages/admin/Teams'));
+const Projects = React.lazy(() => import('./pages/admin/Projects'));
+const Employees = React.lazy(() => import('./pages/admin/Employees'));
+const Approvals = React.lazy(() => import('./pages/admin/Approvals'));
+const AdminAnnouncements = React.lazy(() => import('./pages/admin/Announcements'));
+const AdminTimesheets = React.lazy(() => import('./pages/admin/Timesheets'));
 
-// Shared / Settings Pages
-import Alerts from './pages/Alerts';
-import ProfileSettings from './pages/ProfileSettings';
+// Shared / Settings Pages (Lazy Loaded)
+const Alerts = React.lazy(() => import('./pages/Alerts'));
+const ProfileSettings = React.lazy(() => import('./pages/ProfileSettings'));
 
 function MainAppContent() {
   const { user: currentUser, isAuthenticated, loading, logout } = useAuth();
@@ -45,7 +45,7 @@ function MainAppContent() {
   const [prevUserId, setPrevUserId] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const location=useLocation();
+  const location = useLocation();
 
   useEffect(() => {
     setIsMobileSidebarOpen(false);
@@ -84,7 +84,7 @@ function MainAppContent() {
       if (!adminRoutes.includes(currentPage)) setCurrentPage('admin-dashboard');
     } else if (isTL || isSL) {
       const leadRoutes = [
-        'lead-dashboard', 'lead-timesheet', 'lead-tasks', 'lead-backlog', 'lead-attendance','lead-projects',
+        'lead-dashboard', 'lead-timesheet', 'lead-tasks', 'lead-backlog', 'lead-attendance', 'lead-projects',
         'lead-approvals', 'lead-requests', 'lead-announcements', 'lead-meetings', 'settings',
         'dashboard', 'timesheet', 'tasks', 'backlog', 'attendance', 'meetings', 'teams', 'lead-teams', 'announcements',
         'lead-alerts', 'alerts'
@@ -261,7 +261,9 @@ function MainAppContent() {
             <ErrorBoundary>
               <AnimatePresence mode="wait">
                 <motion.div key={currentPage} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} style={{ width: '100%' }}>
-                  {renderPage()}
+                  <Suspense fallback={<GlobalLoader />}>
+                    {renderPage()}
+                  </Suspense>
                 </motion.div>
               </AnimatePresence>
             </ErrorBoundary>

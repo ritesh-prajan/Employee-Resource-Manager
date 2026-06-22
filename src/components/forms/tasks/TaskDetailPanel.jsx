@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Play, CheckSquare, Clock, Calendar, AlertTriangle,
   CheckCircle2, MessageSquare, Send, ChevronDown, ChevronUp,

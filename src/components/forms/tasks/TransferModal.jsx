@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function TransferModal({ show, onClose, onSubmit, users, currentUser, transferTarget, setTransferTarget, transferReason, setTransferReason }) {
   const handleSubmit = (e) => {

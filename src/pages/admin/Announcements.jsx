@@ -1,16 +1,16 @@
 // pages/admin/Announcements.jsx
 import React, { useState, useMemo } from "react";
 import { Plus, Search } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from 'motion/react';
 
 import DataTable from "../../components/ui/DataTable";
 import CreatePage from "../../components/Announcements/CreatePage";
 import AnnouncementDetailsModal from "../../components/Announcements/AnnouncementDetailsModal";
-import { MOCK_ANNOUNCEMENTS } from "../../components/mock_dataset/Data_admin_alert";
 import { SEVERITY_CONFIG, ALL_SEVERITIES, timeago, getteambyid, getchannelbyid } from "../../components/Announcements/healpers";
 
 export default function Announcements() {
-  const [announcements, setAnnouncements] = useState(MOCK_ANNOUNCEMENTS);
+  // TODO: replace with API call
+  const [announcements, setAnnouncements] = useState([]);
   const [activeTab, setActiveTab] = useState("Feed"); // "Feed" or "Create"
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");

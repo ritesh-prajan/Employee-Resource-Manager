@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Trash2, Link2, ChevronUp } from 'lucide-react';
 import { projectService } from '#services/projectService';
 import SearchableSelect from '../../ui/SearchableSelect';

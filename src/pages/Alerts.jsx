@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { Bell, Inbox, CheckCheck, Trash2, ChevronDown, X, CalendarX } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import AlertCard from '../components/alerts/AlertCard';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function ETAExtensionModal({ show, onClose, onSubmit, etaDate, setEtaDate, etaReason, setEtaReason }) {
   const handleSubmit = (e) => {

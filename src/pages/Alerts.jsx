@@ -1,13 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import { Bell, Inbox, CheckCheck, Trash2, ChevronDown, X, CalendarX } from 'lucide-react';
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion } from 'motion/react';
+import {
+  Bell, Inbox, CheckCheck, Trash2, ChevronDown, X, CalendarX,
+  Eye, EyeOff, ExternalLink, CheckSquare, Clock, Check, ShieldAlert,
+  Calendar, Video, Megaphone, MessageSquare, UserX, TrendingUp
+} from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import AlertCard from '../components/alerts/AlertCard';
-import OverdueCard from '../components/alerts/OverdueCard';
+import DataTable from '../components/ui/DataTable';
 import ETABreachPopup from '../components/alerts/ETABreachPopup';
 import DailyTaskPrompt, { shouldShowDailyPrompt } from '../components/alerts/DailyTaskPrompt';
 import TaskAssignedToast from '../components/alerts/TaskAssignedToast';
 import { useNavigate } from 'react-router-dom';
+
+
 // ─── Navigation helper ────────────────────────────────────────────────────────
 function resolveNavTarget(type, role) {
   const prefix =
@@ -93,12 +99,52 @@ function FilterSelect({ label, value, onChange, options }) {
   );
 }
 
+const TYPE_META = {
+  TASK_ASSIGNED:      { icon: CheckSquare, color: 'var(--primary)', label: 'Task Assigned' },
+  TASK_UPDATED:       { icon: Clock,        color: '#2dd4bf',        label: 'Task Updated' },
+  TASK_REJECTED:      { icon: ShieldAlert,  color: '#ef4444',        label: 'Task Rejected' },
+  TIMESHEET_APPROVED: { icon: Check,        color: '#4ade80',        label: 'Approved' },
+  TIMESHEET_REJECTED: { icon: ShieldAlert,  color: '#ef4444',        label: 'Rejected' },
+  APPROVAL_REVERTED:  { icon: Clock,        color: '#fbbf24',        label: 'Reverted' },
+  BACKLOG_CLAIMED:    { icon: CheckSquare,  color: '#2dd4bf',        label: 'Backlog Claimed' },
+  BACKLOG_CLAIM_REQUEST: { icon: CheckSquare, color: '#3b82f6',        label: 'Claim Request' },
+  ETA_REQUEST:        { icon: Calendar,     color: '#fbbf24',        label: 'ETA Request' },
+  ETA_DECISION:       { icon: Calendar,     color: '#fbbf24',        label: 'ETA Decision' },
+  TRANSFER_REQUEST:   { icon: ShieldAlert,  color: '#c084fc',        label: 'Transfer Request' },
+  TRANSFER_DECISION:  { icon: ShieldAlert,  color: '#c084fc',        label: 'Transfer Decision' },
+  MEETING_REMINDER:   { icon: Video,        color: '#06b6d4',        label: 'Meeting' },
+  ANNOUNCEMENT:       { icon: Megaphone,    color: '#ec4899',        label: 'Announcement' },
+  WATCHDOG_LATE:      { icon: Clock,        color: '#fbbf24',        label: 'Late Check-in' },
+  WATCHDOG_ABSENT:    { icon: UserX,        color: '#ef4444',        label: 'Absent' },
+  overdue:            { icon: CalendarX,    color: '#ef4444',        label: 'Overdue' },
+  overtime:           { icon: TrendingUp,   color: '#fbbf24',        label: 'Overtime' },
+};
+
+const DEFAULT_META = { icon: MessageSquare, color: '#8b939c', label: 'Notification' };
+
+function actionBtn(accent) {
+  if (!accent) return {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    width: 28, height: 28, borderRadius: 6,
+    border: '1px solid var(--border)', background: 'none',
+    color: 'var(--muted-foreground)', cursor: 'pointer',
+  };
+  return {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    width: 28, height: 28, borderRadius: 6,
+    border: `1px solid color-mix(in srgb, ${accent} 30%, transparent)`,
+    backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`,
+    color: accent, cursor: 'pointer',
+  };
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Alerts() {
   const {
     currentUser, notifications, tasks, users, projects, teams,
     markNotificationRead, markNotificationUnread,
     deleteNotification, clearNotifications,
+    approveClaimRequest, rejectClaimRequest
   } = useApp();
 
   const [tab, setTab]                         = useState('all');
@@ -147,7 +193,7 @@ export default function Alerts() {
       const taskObj = tasks.find(t => t.id === latest.entityId) || { name: latest.title, taskNumber: '' };
       setToastTask({ ...taskObj, _notifId: latest.id });
     }
-  }, [notifications, role]);
+  }, [notifications, role, currentUser, seenToastIds, tasks]);
 
   // ── Regular notifications (non-overdue) ────────────────────────────────────
   const mine = notifications.filter(n => n.recipientId === currentUser?.id);
@@ -216,14 +262,16 @@ export default function Alerts() {
     return mine.filter(n => matchesTab(n, key)).length;
   };
   const navigate=useNavigate();
-  const handleNavigate = (n) => {
+  const handleNavigate = useCallback((n) => {
     if (n && n.id && !isSystemGenerated(n.id)) markNotificationRead(n.id);
-    navigate(`/${resolveNavTarget(n?.type || 'overdue', role)}`)
-  };
-  const handleNavigateTask = () => {
+    navigate(`/${resolveNavTarget(n?.type || 'overdue', role)}`);
+  }, [markNotificationRead, navigate, role]);
+
+  const handleNavigateTask = useCallback(() => {
     navigate(role === 'Admin' ? '/admin/tasks' : role === 'Team Lead' || role === 'Sub Lead' ? '/lead/tasks' : '/tasks');
-  };
-  const handleToggleRead  = (n) => n.isRead ? markNotificationUnread(n.id) : markNotificationRead(n.id);
+  }, [role, navigate]);
+
+  const handleToggleRead  = useCallback((n) => n.isRead ? markNotificationUnread(n.id) : markNotificationRead(n.id), [markNotificationRead, markNotificationUnread]);
   const handleMarkAllRead = () => mine.filter(n => !n.isRead).forEach(n => markNotificationRead(n.id));
 
   const teamMembers = users.filter(u => {
@@ -242,6 +290,292 @@ export default function Alerts() {
     setToastTask(null);
     if (shouldNavigate) navigate('/tasks');
   };
+
+  // ── Column definitions for regular notifications ───────────────────────
+  const notificationColumns = useMemo(() => [
+    {
+      id: 'status',
+      header: 'STATUS',
+      cell: ({ row }) => {
+        const n = row.original;
+        const { icon: Icon, color } = TYPE_META[n.type] || DEFAULT_META;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: 8, display: 'flex', justifyContent: 'center' }}>
+              {!n.isRead && (
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  backgroundColor: 'var(--primary)', flexShrink: 0,
+                }} />
+              )}
+            </div>
+            <div style={{
+              width: 30, height: 30, borderRadius: '50%',
+              backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <Icon size={13} style={{ color }} />
+            </div>
+          </div>
+        );
+      }
+    },
+    {
+      id: 'details',
+      header: 'DETAILS',
+      cell: ({ row }) => {
+        const n = row.original;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{
+              fontSize: '0.83rem',
+              fontWeight: n.isRead ? 500 : 700,
+              color: 'var(--foreground)',
+            }}>
+              {n.title}
+            </span>
+            <p style={{
+              fontSize: '0.73rem', color: 'var(--muted-foreground)',
+              margin: 0, whiteSpace: 'normal', wordBreak: 'break-word',
+            }}>
+              {n.message}
+            </p>
+            {n.type === 'BACKLOG_CLAIM_REQUEST' && !n.isRead && (
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }} onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); approveClaimRequest(n); }}
+                  style={{
+                    padding: '0.3rem 0.75rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    backgroundColor: 'var(--primary)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Agree
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); rejectClaimRequest(n); }}
+                  style={{
+                    padding: '0.3rem 0.75rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    backgroundColor: 'color-mix(in srgb, var(--destructive) 10%, transparent)',
+                    color: 'var(--destructive)',
+                    border: '1px solid color-mix(in srgb, var(--destructive) 25%, transparent)',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Reject
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      id: 'type',
+      header: 'TYPE',
+      cell: ({ row }) => {
+        const n = row.original;
+        const { color, label } = TYPE_META[n.type] || DEFAULT_META;
+        return (
+          <span style={{
+            fontSize: '0.62rem', fontWeight: 600,
+            color,
+            backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
+            borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap',
+          }}>
+            {label}
+          </span>
+        );
+      }
+    },
+    {
+      id: 'created',
+      header: 'CREATED',
+      cell: ({ row }) => {
+        const n = row.original;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.73rem', color: 'var(--muted-foreground)' }}>
+            <span style={{ whiteSpace: 'nowrap' }}>
+              {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+            <span style={{ whiteSpace: 'nowrap' }}>
+              {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
+      id: 'actions',
+      header: 'ACTIONS',
+      cell: ({ row }) => {
+        const n = row.original;
+        const sys = isSystemGenerated(n.id);
+        return (
+          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-start' }} onClick={(e) => e.stopPropagation()}>
+            {!sys && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleToggleRead(n); }}
+                title={n.isRead ? 'Mark as unread' : 'Mark as read'}
+                style={actionBtn()}
+              >
+                {n.isRead ? <EyeOff size={13} /> : <Eye size={13} />}
+              </button>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); handleNavigate(n); }}
+              title="View details"
+              style={actionBtn('var(--primary)')}
+            >
+              <ExternalLink size={13} />
+            </button>
+            {!sys && (
+              <button
+                onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
+                title="Dismiss"
+                style={actionBtn('var(--destructive)')}
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
+          </div>
+        );
+      }
+    }
+  ], [handleToggleRead, handleNavigate, deleteNotification, approveClaimRequest, rejectClaimRequest]);
+
+  // ── Column definitions for Crossed ETA breaches ──────────────────────────
+  const etaBreachColumns = useMemo(() => [
+    {
+      id: 'task',
+      header: 'TASK',
+      cell: ({ row }) => {
+        const task = row.original;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{
+              width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+              backgroundColor: 'color-mix(in srgb, var(--destructive) 12%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--destructive) 22%, transparent)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <CalendarX size={13} style={{ color: 'var(--destructive)' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted-foreground)', letterSpacing: '0.04em' }}>
+                {task.taskNumber}
+              </span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                {task.name}
+              </span>
+            </div>
+          </div>
+        );
+      }
+    },
+    {
+      id: 'etaOverdue',
+      header: 'ETA & OVERDUE',
+      cell: ({ row }) => {
+        const task = row.original;
+        const daysOverdue = task.etaDate
+          ? Math.max(0, Math.floor((new Date() - new Date(task.etaDate)) / (1000 * 60 * 60 * 24)))
+          : null;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            {task.etaDate && (
+              <span style={{ fontSize: '0.78rem', color: 'var(--destructive)', fontWeight: 600 }}>
+                {new Date(task.etaDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            )}
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <span style={{
+                fontSize: '0.62rem', fontWeight: 700,
+                color: 'var(--destructive)',
+                backgroundColor: 'color-mix(in srgb, var(--destructive) 10%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--destructive) 25%, transparent)',
+                borderRadius: 4, padding: '1px 5px', flexShrink: 0,
+              }}>
+                Overdue{daysOverdue !== null ? ` · ${daysOverdue}d` : ''}
+              </span>
+              <span style={{
+                fontSize: '0.62rem', fontWeight: 600,
+                color: 'var(--muted-foreground)',
+                backgroundColor: 'var(--secondary)',
+                border: '1px solid var(--border)',
+                borderRadius: 4, padding: '1px 5px', flexShrink: 0,
+              }}>
+                {task.status}
+              </span>
+            </div>
+          </div>
+        );
+      }
+    },
+    {
+      id: 'assignedTo',
+      header: 'ASSIGNED TO',
+      cell: ({ row }) => {
+        const task = row.original;
+        const assignee = users.find(u => u.id === task.assignedTo);
+        const team = teams.find(tm => tm.members.includes(task.assignedTo));
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            {assignee && (
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                {assignee.name}
+              </span>
+            )}
+            {team && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)' }}>
+                {team.name}
+              </span>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      id: 'project',
+      header: 'PROJECT',
+      cell: ({ row }) => {
+        const task = row.original;
+        const project = projects.find(p => p.id === task.projectId);
+        return (
+          <span style={{ fontSize: '0.8rem', color: 'var(--foreground)' }}>
+            {project ? project.name : '—'}
+          </span>
+        );
+      }
+    },
+    {
+      id: 'actions',
+      header: 'ACTIONS',
+      cell: () => {
+        return (
+          <div style={{ display: 'flex', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleNavigateTask(); }}
+              title="View task"
+              style={actionBtn('var(--primary)')}
+            >
+              <ExternalLink size={13} />
+            </button>
+          </div>
+        );
+      }
+    }
+  ], [users, teams, projects, handleNavigateTask]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
@@ -349,7 +683,7 @@ export default function Alerts() {
         })}
       </div>
 
-      {/* ── Crossed ETA: filters + task cards ── */}
+      {/* ── Crossed ETA: filters + task table ── */}
       {tab === 'crossedEta' ? (
         <>
           {/* Filters */}
@@ -374,51 +708,11 @@ export default function Alerts() {
             </div>
           )}
 
-          {/* ETA breach cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <AnimatePresence mode="popLayout">
-              {filteredBreaches.length === 0 ? (
-                <motion.div
-                  key="empty-eta"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  style={{
-                    padding: '4rem 2rem', textAlign: 'center',
-                    border: '1px dashed var(--border)', borderRadius: '0.875rem',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
-                  }}
-                >
-                  <CalendarX size={32} style={{ opacity: 0.3, color: 'var(--destructive)' }} />
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-                      {hasActiveFilters ? 'No results match your filters' : 'No ETA breaches'}
-                    </h4>
-                    <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                      {hasActiveFilters ? 'Try adjusting or clearing the filters.' : 'All tasks are on track.'}
-                    </p>
-                  </div>
-                </motion.div>
-              ) : (
-                filteredBreaches.map(task => (
-                  <OverdueCard
-                    key={task.id}
-                    task={task}
-                    users={users}
-                    projects={projects}
-                    teams={teams}
-                    onNavigate={handleNavigateTask}
-                  />
-                ))
-              )}
-            </AnimatePresence>
-          </div>
-        </>
-      ) : (
-        /* ── Regular notification feed ── */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <AnimatePresence mode="popLayout">
-            {filteredNotifs.length === 0 ? (
+          {/* ETA breach table */}
+          <div>
+            {filteredBreaches.length === 0 ? (
               <motion.div
-                key="empty-notifs"
+                key="empty-eta"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                 style={{
                   padding: '4rem 2rem', textAlign: 'center',
@@ -426,28 +720,55 @@ export default function Alerts() {
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
                 }}
               >
-                <Inbox size={32} style={{ opacity: 0.3 }} />
+                <CalendarX size={32} style={{ opacity: 0.3, color: 'var(--destructive)' }} />
                 <div>
                   <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-                    No alerts here
+                    {hasActiveFilters ? 'No results match your filters' : 'No ETA breaches'}
                   </h4>
                   <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                    There are no alerts matching this category.
+                    {hasActiveFilters ? 'Try adjusting or clearing the filters.' : 'All tasks are on track.'}
                   </p>
                 </div>
               </motion.div>
             ) : (
-              filteredNotifs.map(n => (
-                <AlertCard
-                  key={n.id}
-                  notification={n}
-                  onNavigate={handleNavigate}
-                  onToggleRead={handleToggleRead}
-                  onDelete={deleteNotification}
-                />
-              ))
+              <DataTable
+                Data={filteredBreaches}
+                columns={etaBreachColumns}
+                onRowClick={handleNavigateTask}
+              />
             )}
-          </AnimatePresence>
+          </div>
+        </>
+      ) : (
+        /* ── Regular notification feed ── */
+        <div>
+          {filteredNotifs.length === 0 ? (
+            <motion.div
+              key="empty-notifs"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              style={{
+                padding: '4rem 2rem', textAlign: 'center',
+                border: '1px dashed var(--border)', borderRadius: '0.875rem',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
+              }}
+            >
+              <Inbox size={32} style={{ opacity: 0.3 }} />
+              <div>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
+                  No alerts here
+                </h4>
+                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                  There are no alerts matching this category.
+                </p>
+              </div>
+            </motion.div>
+          ) : (
+            <DataTable
+              Data={filteredNotifs}
+              columns={notificationColumns}
+              onRowClick={handleNavigate}
+            />
+          )}
         </div>
       )}
 

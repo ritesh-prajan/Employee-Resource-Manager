@@ -45,7 +45,7 @@ export default function Meetings() {
     return [
       {
         id: "personal-live-1",
-        duration: 30
+        duration: 30,
         host: name,
         title: "1-on-1 Performance & Goal Alignment Sync",
         description: "Reviewing active tasks, roadmap scoping, and professional development milestones.",

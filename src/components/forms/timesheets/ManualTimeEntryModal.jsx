@@ -194,7 +194,7 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
               </div>
 
               {/* Date & Start Time */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="keep-inline-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="form-group">
                   <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Date</label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -257,7 +257,7 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
                   </div>
 
                   {/* Task Status & Work Category */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="keep-inline-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div className="form-group">
                       <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Task Progress</label>
                       <select

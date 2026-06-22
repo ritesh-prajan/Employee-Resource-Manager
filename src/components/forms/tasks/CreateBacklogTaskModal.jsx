@@ -72,7 +72,7 @@ export default function CreateBacklogTaskModal({ show, onClose, onSubmit, projec
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+              <div className="keep-inline-mobile-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group">
                   <label className="form-label">Estimate (hrs)</label>
                   <input
@@ -111,7 +111,7 @@ export default function CreateBacklogTaskModal({ show, onClose, onSubmit, projec
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="keep-inline-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group">
                   <label className="form-label">ETA Date</label>
                   <input

@@ -45,7 +45,8 @@ export default function Teams() {
   const canManage  = isAdmin || isLeadRole;
 
   const scopedTeams = teams.filter(t => {
-    const isLeadOfTeam = t.leadId != null && String(t.leadId) === String(currentUser.id);
+    const isLeadOfTeam = (t.leadId != null && String(t.leadId) === String(currentUser.id)) ||
+                         (t.subLeadId != null && String(t.subLeadId) === String(currentUser.id));
     const isMemberOfTeam = (t.members || []).map(id => String(id)).includes(String(currentUser.id));
     if (isAdmin) {
       if (teamFilter === 'my') return isLeadOfTeam || isMemberOfTeam;

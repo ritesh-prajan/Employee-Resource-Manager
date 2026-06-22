@@ -20,7 +20,7 @@ export default function SearchableSelect({ options, value, onChange, placeholder
   const selectedOption = options.find(opt => opt.value === value);
 
   return (
-    <div ref={wrapperRef} style={{ position: 'relative', minWidth: '150px', ...style }}>
+    <div ref={wrapperRef} className="searchable-select-container" style={{ position: 'relative', minWidth: '150px', ...style }}>
       <div 
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={`${className} border border-zinc-200`}

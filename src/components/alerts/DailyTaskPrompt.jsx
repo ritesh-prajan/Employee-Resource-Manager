@@ -48,6 +48,7 @@ export default function DailyTaskPrompt({ isOpen, teamMembers = [], onAssign, on
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          className="modal-overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -61,6 +62,7 @@ export default function DailyTaskPrompt({ isOpen, teamMembers = [], onAssign, on
           onClick={handleClose}
         >
           <motion.div
+            className="modal-content"
             initial={{ scale: 0.92, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.92, opacity: 0, y: 20 }}
@@ -77,7 +79,7 @@ export default function DailyTaskPrompt({ isOpen, teamMembers = [], onAssign, on
             }}
           >
             {/* Header */}
-            <div style={{
+            <div className="modal-header" style={{
               display: 'flex', alignItems: 'flex-start',
               justifyContent: 'space-between', marginBottom: '1rem',
             }}>
@@ -98,7 +100,7 @@ export default function DailyTaskPrompt({ isOpen, teamMembers = [], onAssign, on
                   </p>
                 </div>
               </div>
-              <button onClick={handleClose} style={{
+              <button onClick={handleClose} className="modal-close" style={{
                 background: 'none', border: '1px solid var(--border)',
                 borderRadius: 6, width: 30, height: 30,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',

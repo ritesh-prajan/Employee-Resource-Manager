@@ -120,7 +120,7 @@ export default function AssignTaskModal({ show, onClose, assignee, tasks, projec
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="keep-inline-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">ESTIMATED HOURS (ETA) *</label>
               <input type="number" className="input-control" min="1" value={taskData.eta} onChange={(e) => setTaskData(prev => ({ ...prev, eta: e.target.value }))} required />

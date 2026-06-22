@@ -18,7 +18,7 @@ export default function ViewProfileModal({ show, onClose, user, users, teams, pr
         onClick={e => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div style={{
+        <div className="modal-header" style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',

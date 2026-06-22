@@ -138,18 +138,18 @@ export default function CreateTaskModal({
     <AnimatePresence>
       {show && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[6px] p-4"
+          className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[6px] p-4"
           onClick={onClose}
         >
           <motion.div
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl text-left"
+            className="modal-content max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl text-left"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             style={{ fontFamily: "Inter, system-ui, sans-serif" }}
           >
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between modal-header">
               <div className="flex items-center gap-2">
                 <Plus size={20} className="text-[#0010AE]" />
                 <h2 className="text-lg font-semibold text-slate-800">

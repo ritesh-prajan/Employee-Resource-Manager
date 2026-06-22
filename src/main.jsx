@@ -17,6 +17,47 @@ const queryClient = new QueryClient({
   },
 })
 
+// ─── Global custom form validation ───────────────────────────────────────────
+// Suppress browser native tooltip bubbles and show clean red text below fields.
+document.addEventListener('invalid', (e) => {
+  const field = e.target;
+  e.preventDefault(); // Kill the default browser tooltip
+
+  // Mark field as red-bordered
+  field.classList.add('field-invalid');
+
+  // Remove any existing error message for this field
+  const existingMsg = field.parentElement?.querySelector('.field-error-msg');
+  if (existingMsg) existingMsg.remove();
+
+  // Build the error message text
+  let msg = field.validationMessage || 'This field is required.';
+  // Make email-specific messages friendlier
+  if (field.type === 'email' && field.validity.typeMismatch) {
+    msg = 'Please enter a valid email address.';
+  }
+  if (field.validity.valueMissing) {
+    msg = field.dataset.errorMsg || 'This field is required.';
+  }
+
+  const errorSpan = document.createElement('span');
+  errorSpan.className = 'field-error-msg';
+  errorSpan.textContent = msg;
+  field.parentElement?.appendChild(errorSpan);
+
+  // Clear error when the user starts correcting the field
+  const clearError = () => {
+    field.classList.remove('field-invalid');
+    const msg = field.parentElement?.querySelector('.field-error-msg');
+    if (msg) msg.remove();
+    field.removeEventListener('input', clearError);
+    field.removeEventListener('change', clearError);
+  };
+  field.addEventListener('input', clearError);
+  field.addEventListener('change', clearError);
+}, true); // capture phase so it fires before React's handlers
+// ─────────────────────────────────────────────────────────────────────────────
+
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
     <QueryClientProvider client={queryClient}>

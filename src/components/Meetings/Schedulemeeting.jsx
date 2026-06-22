@@ -127,16 +127,16 @@ export default function Schedulemeeting({ onSchedule }) {
       {/* Modal */}
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[6px] p-4"
+          className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[6px] p-4"
           onClick={handleClose}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+            className="modal-content max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
             style={{ fontFamily: "Inter, system-ui, sans-serif" }}
           >
             {/* Header */}
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between modal-header">
               <div className="flex items-center gap-2">
                 <CirclePlus size={20} className="text-[#0010AE]" />
                 <h2 className="text-lg font-semibold text-slate-800">
@@ -227,7 +227,7 @@ export default function Schedulemeeting({ onSchedule }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="form-group">
                   <label className="mb-1 block font-semibold text-sm text-slate-700">
                     Link Project (Optional)

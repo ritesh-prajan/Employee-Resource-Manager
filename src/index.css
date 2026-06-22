@@ -275,6 +275,31 @@
   background-color: color-mix(in srgb, var(--border) 60%, transparent);
 }
 
+/* ===== CUSTOM FORM VALIDATION STYLES ===== */
+/* Red border injected on invalid fields via JS global interceptor */
+.field-invalid {
+  border-color: #ef4444 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, #ef4444 20%, transparent) !important;
+}
+
+/* Red error message injected below the field */
+.field-error-msg {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #ef4444;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+  animation: errorFadeIn 0.18s ease-out;
+}
+
+@keyframes errorFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ===== GLOBAL MODAL STYLES ===== */
 .modal-overlay {
   position: fixed;
@@ -778,13 +803,13 @@ select option {
   h2, .text-xl { font-size: 1.15rem !important; }
   h3, .text-lg { font-size: 1rem !important; }
 
-  /* Scale KPI cards grids into 2 columns on mobile screens */
+  /* Scale KPI cards grids into 1 column (each on one line) on mobile screens */
   .kpi-cards-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: 1fr !important;
   }
 
   .lead-kpi-grid > div {
-    flex: 1 1 calc(50% - 0.875rem) !important;
+    flex: 1 1 100% !important;
   }
 
   /* Responsive layout for Approval KPI bar */
@@ -825,18 +850,19 @@ select option {
   .overflow-x-auto table.w-full tr {
     display: flex !important;
     flex-direction: column !important;
-    background: var(--card) !important;
+    background: linear-gradient(135deg, var(--card) 0%, color-mix(in oklch, var(--card) 98%, var(--primary)) 100%) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 12px !important;
+    border-left: 4px solid var(--primary) !important;
+    border-radius: 14px !important;
     margin-bottom: 1rem !important;
-    padding: 1rem !important;
-    box-shadow: var(--shadow-sm) !important;
-    gap: 0.5rem !important;
-    transition: transform 0.2s, box-shadow 0.2s !important;
+    padding: 1.25rem 1rem !important;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 2px 8px -1px rgba(0, 0, 0, 0.02) !important;
+    gap: 0.6rem !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
   }
   .overflow-x-auto table.w-full tr:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: var(--shadow-md) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 30px -4px rgba(0, 16, 174, 0.08) !important;
   }
   .overflow-x-auto table.w-full td {
     display: flex !important;
@@ -874,25 +900,236 @@ select option {
     width: 100% !important;
   }
 
-  /* Automatically scale and adjust overlay modals for small screens */
+  /* Automatically scale and adjust overlay modals for small screens (full-screen in portrait) */
+  .modal-overlay {
+    padding: 0 !important;
+    background-color: var(--background) !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    z-index: 99999 !important;
+    position: fixed !important;
+    inset: 0 !important;
+  }
+
   .modal-content {
-    width: 95% !important;
-    padding: 1.25rem !important;
-  }
-
-  /* Force multi-column form grids inside modals to stack vertically on mobile */
-  .modal-content div[style*="grid"] {
-    grid-template-columns: 1fr !important;
-    gap: 0.75rem !important;
-  }
-
-  /* Make sure modal content headers and footer buttons stack cleanly */
-  .modal-footer {
-    flex-direction: column !important;
-    gap: 0.5rem !important;
-  }
-  .modal-footer button {
     width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    background-color: var(--background) !important; /* Ensure theme background */
+    border-radius: 0 !important;
+    padding: 1.5rem 1.25rem !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    border: none !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Make title and descriptions bigger and readable inside modals, but adapt to headers */
+  .modal-content .modal-title,
+  .modal-content h2,
+  .modal-content h3 {
+    font-size: 1.15rem !important;
+    font-weight: 750 !important;
+    line-height: 1.35 !important;
+    color: var(--foreground) !important;
+  }
+
+  .modal-content p {
+    font-size: 0.9rem !important;
+    line-height: 1.45 !important;
+    color: var(--muted-foreground) !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  /* Make labels inside modals bigger and extremely readable */
+  .modal-content label,
+  .modal-content .form-label {
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    color: var(--foreground) !important;
+    letter-spacing: 0.04em !important;
+    margin-bottom: 0.45rem !important;
+    display: block !important;
+    text-transform: uppercase !important;
+  }
+
+  /* Prevent inputs, select elements and searchable select containers from overflowing, make them taller and text bigger */
+  .modal-content select,
+  .modal-content .input-control,
+  .modal-content .form-input,
+  .modal-content .searchable-select-container,
+  .modal-content input,
+  .modal-content textarea {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 0.95rem !important;
+    padding: 0.75rem 0.85rem !important;
+    height: auto !important;
+    min-height: 44px !important;
+    border-radius: 12px !important;
+    background-color: var(--background) !important;
+    color: var(--foreground) !important;
+    border: 1px solid var(--border) !important;
+  }
+
+  /* Specific styles for searchable select and custom nested dropdowns to scale up */
+  .modal-content .searchable-select-container div {
+    font-size: 0.95rem !important;
+  }
+  .modal-content .searchable-select-container input {
+    font-size: 0.95rem !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+  .modal-content .searchable-select-container span {
+    font-size: 0.95rem !important;
+  }
+
+  /* Force multi-column form grids inside modals to stack vertically on mobile, EXCEPT small inline ones */
+  .modal-content div[style*="grid"]:not(.keep-inline-mobile):not(.keep-inline-mobile-3):not(.keep-inline-mobile-4) {
+    grid-template-columns: 1fr !important;
+    gap: 1.1rem !important;
+  }
+
+  .keep-inline-mobile {
+    grid-template-columns: repeat(2, 1fr) !important;
+    display: grid !important;
+    gap: 0.85rem !important;
+  }
+  .keep-inline-mobile-3 {
+    grid-template-columns: repeat(3, 1fr) !important;
+    display: grid !important;
+    gap: 0.85rem !important;
+  }
+  .keep-inline-mobile-4 {
+    grid-template-columns: repeat(4, 1fr) !important;
+    display: grid !important;
+    gap: 0.85rem !important;
+  }
+
+  /* Ensure modal headers align names, titles and close buttons properly without squishing */
+  .modal-header,
+  .modal-content .modal-header {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important; /* Top-aligned close button looks much better with wrapping text */
+    justify-content: space-between !important;
+    gap: 1.25rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding-bottom: 0.85rem !important;
+    margin-bottom: 1.25rem !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+
+  /* Make modal titles wrap and fit properly on mobile screens */
+  .modal-header .modal-title,
+  .modal-header h2,
+  .modal-header h3,
+  .modal-content .modal-header h2,
+  .modal-content .modal-header h3 {
+    font-size: 1.15rem !important; /* Dynamic & readable font size for mobile */
+    font-weight: 750 !important;
+    line-height: 1.35 !important;
+    margin: 0 !important;
+    flex: 1 !important; /* Allow the title to grow/wrap */
+    min-width: 0 !important; /* Prevent layout stretching */
+    word-break: break-word !important;
+    color: var(--foreground) !important;
+  }
+
+  /* Ensure close buttons inside headers do not squish, stretch, or look weird */
+  .modal-content .modal-close,
+  .modal-header .modal-close,
+  .modal-content .modal-header .modal-close {
+    font-size: 1.4rem !important; /* Keep a prominent '×' close icon size */
+    line-height: 1 !important;
+    padding: 0.25rem 0.5rem !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: unset !important;
+    min-height: 0 !important;
+    background: none !important;
+    border: none !important;
+    cursor: pointer !important;
+    color: var(--muted-foreground) !important;
+    flex-shrink: 0 !important; /* CRITICAL: Never squish the close button! */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Keep pill-shaped text close buttons inline and correctly proportioned on mobile */
+  .modal-header button[class*="rounded-full"][class*="bg-slate-100"],
+  .modal-content .modal-header button[class*="rounded-full"][class*="bg-slate-100"] {
+    width: auto !important;
+    flex-shrink: 0 !important; /* CRITICAL: Never squish the close button! */
+    min-height: 0 !important;
+    font-size: 0.75rem !important;
+    padding: 0.35rem 0.75rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+    background-color: var(--secondary) !important; /* Ensure theme compatibility */
+    color: var(--foreground) !important;
+    border: 1px solid var(--border) !important;
+  }
+
+  /* Make sure modal footer buttons stack cleanly */
+  .modal-footer,
+  .modal-content .flex.gap-2.justify-end,
+  .modal-content .flex.gap-3.justify-end {
+    flex-direction: column !important;
+    gap: 0.65rem !important;
+    margin-top: auto !important; /* Push footer to bottom on full screen modal */
+    padding-top: 1.25rem !important;
+    border-top: 1px solid var(--border) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Exclude close buttons and small icons from full-width styling */
+  .modal-footer button,
+  .modal-content .modal-footer button,
+  .modal-content .flex.gap-2.justify-end button,
+  .modal-content .flex.gap-3.justify-end button,
+  .modal-content .btn-primary,
+  .modal-content .btn-secondary,
+  .modal-content .btn-danger {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 0.75rem 1.25rem !important;
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    min-height: 46px !important;
+  }
+
+  /* Unify page toolbars/filters on mobile to stack and occupy full viewport width */
+  .content-body div[style*="display: flex"][style*="flex-wrap: wrap"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    gap: 0.75rem !important;
+    box-sizing: border-box !important;
+  }
+
+  .content-body div[style*="display: flex"][style*="flex-wrap: wrap"] > div,
+  .content-body div[style*="display: flex"][style*="flex-wrap: wrap"] > button,
+  .content-body div[style*="display: flex"][style*="flex-wrap: wrap"] > .searchable-select-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .content-body div[style*="display: flex"][style*="flex-wrap: wrap"] > button {
     justify-content: center !important;
   }
 

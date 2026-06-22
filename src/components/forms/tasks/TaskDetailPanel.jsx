@@ -64,19 +64,19 @@ export default function TaskDetailPanel({
     <AnimatePresence>
       {show && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[6px] p-4"
+          className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-[6px] p-4"
           onClick={onClose}
         >
           <motion.div
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl text-left"
+            className="modal-content max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl text-left"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             style={{ fontFamily: "Inter, system-ui, sans-serif" }}
           >
             {/* Header */}
-            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3 modal-header">
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-500 font-mono text-[10px] uppercase font-bold tracking-wider">
@@ -111,7 +111,7 @@ export default function TaskDetailPanel({
               )}
 
               {/* Meta grid */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
                   { label: 'Project', value: proj?.name.split(' (')[0] || 'General', color: proj?.color },
                   { label: 'Type', value: task.type },
@@ -312,7 +312,7 @@ export default function TaskDetailPanel({
                         >
                           <Play size={16} /> Start Working
                         </button>
-                        <div className="grid grid-cols-2 gap-3 w-full">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                           <button
                             type="button"
                             className="w-full py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer bg-white flex items-center justify-center gap-1.5"

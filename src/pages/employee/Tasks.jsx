@@ -99,9 +99,20 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   };
 
   const checkTaskExceedsETA = (task) => {
+    // 1. Hours overrun — logged time exceeds the hours estimate
+    const eta = parseFloat(task.eta);
     const isActive = timerState.isClockedIn && timerState.taskId === task.id;
     const sessionHours = isActive ? getActiveSessionHours() : 0;
-    return (task.logged + sessionHours) > task.eta;
+    const logged = parseFloat(task.logged) || 0;
+    const hoursExceeded = eta > 0 && (logged + sessionHours) > eta;
+
+    // 2. Date overrun — etaDate deadline has passed and task is still open
+    const completedStatuses = ['Completed', 'Pending Review'];
+    const dateExceeded = task.etaDate &&
+      new Date(task.etaDate) < new Date() &&
+      !completedStatuses.includes(task.status);
+
+    return hoursExceeded || dateExceeded;
   };
 
   const getDatetimeInputValue = (isoString) => {

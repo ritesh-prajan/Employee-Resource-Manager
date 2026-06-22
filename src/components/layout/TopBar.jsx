@@ -1,13 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {Search, ChevronDown, LogOut, Bell, Menu } from 'lucide-react';
+import { Search, ChevronDown, LogOut, Bell, Menu } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 
-export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed, isMobileSidebarOpen, setIsMobileSidebarOpen }) {
+export default function TopBar({ title, isCollapsed, isMobileSidebarOpen, setIsMobileSidebarOpen }) {
   const { theme, toggleTheme, currentUser, changeUser, users, notifications = [] } = useApp();
   const { logout } = useAuth();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const menuRef = useRef(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentpath = location.pathname;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -15,51 +19,51 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
 
   const getSearchableItems = () => {
     const items = [];
-    const isAdminView = currentUser.role === 'Admin' && !currentPage.startsWith('lead-') && currentPage !== 'dashboard' && currentPage !== 'timesheet';
-    const isLeadView = (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && !currentPage.startsWith('admin-');
+    const isAdminView = currentUser.role === 'Admin' && !currentpath.startsWith('/lead') && currentpath !== '/dashboard' && currentpath !== '/timesheet';
+    const isLeadView = (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && !currentpath.startsWith('/admin');
 
-    if (currentUser.role === 'Admin' && !isLeadView && currentPage !== 'dashboard' && currentPage !== 'timesheet') {
+    if (currentUser.role === 'Admin' && !isLeadView && currentpath !== '/dashboard' && currentpath !== '/timesheet') {
       items.push(
-        { label: 'Dashboard', page: 'admin-dashboard' },
-        { label: 'Employees', page: 'admin-employees' },
-        { label: 'Teams', page: 'admin-teams' },
-        { label: 'Projects', page: 'admin-projects' },
-        { label: 'Tasks', page: 'admin-tasks' },
-        { label: 'Timesheets', page: 'admin-timesheets' },
-        { label: 'Approvals', page: 'admin-approvals' },
-        { label: 'Feed', page: 'admin-announcements' },
-        { label: 'Link Room', page: 'admin-meetings' },
-        { label: 'Profile', page: 'settings' },
-        { label: 'Alerts Center', page: 'admin-alerts' }
+        { label: 'Dashboard', page: '/admin/dashboard' },
+        { label: 'Employees', page: '/admin/employees' },
+        { label: 'Teams', page: '/admin/teams' },
+        { label: 'Projects', page: '/admin/projects' },
+        { label: 'Tasks', page: '/admin/tasks' },
+        { label: 'Timesheets', page: '/admin/timesheets' },
+        { label: 'Approvals', page: '/admin/approvals' },
+        { label: 'Feed', page: '/admin/announcements' },
+        { label: 'Link Room', page: '/admin/meetings' },
+        { label: 'Profile', page: '/settings' },
+        { label: 'Alerts Center', page: '/alerts' }
       );
     } else if (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') {
       items.push(
-        { label: 'Dashboard', page: 'lead-dashboard' },
-        { label: 'Tasks', page: 'lead-tasks' },
-        { label: 'Timesheet', page: 'lead-timesheet' },
-        { label: 'Team Attendance', page: 'lead-attendance' },
-        { label: 'Approvals', page: 'lead-approvals' },
-        { label: 'My Teams', page: 'lead-teams' },
-        { label: 'My Projects', page: 'lead-projects' },
-        { label: 'Link Room', page: 'lead-meetings' },
-        { label: 'Profile', page: 'settings' },
-        { label: 'Alerts Center', page: 'lead-alerts' }
+        { label: 'Dashboard', page: '/lead/dashboard' },
+        { label: 'Tasks', page: '/lead/tasks' },
+        { label: 'Timesheet', page: '/lead/timesheet' },
+        { label: 'Team Attendance', page: '/lead/attendance' },
+        { label: 'Approvals', page: '/lead/approvals' },
+        { label: 'My Teams', page: '/lead/teams' },
+        { label: 'My Projects', page: '/lead/projects' },
+        { label: 'Link Room', page: '/lead/meetings' },
+        { label: 'Profile', page: '/settings' },
+        { label: 'Alerts Center', page: '/alerts' }
       );
       if (currentUser.role !== 'Sub Lead') {
-        items.push({ label: 'Feed', page: 'lead-announcements' });
+        items.push({ label: 'Feed', page: '/lead/announcements' });
       }
     } else {
       items.push(
-        { label: 'Dashboard', page: 'dashboard' },
-        { label: 'Tasks', page: 'tasks' },
-        { label: 'Timesheet', page: 'timesheet' },
-        { label: 'Attendance', page: 'attendance' },
-        { label: 'Link Room', page: 'meetings' },
-        { label: 'My Teams', page: 'teams' },
-        { label: 'My Projects', page: 'projects' },
-        { label: 'Feed', page: 'announcements' },
-        { label: 'Profile', page: 'settings' },
-        { label: 'Alerts Center', page: 'alerts' }
+        { label: 'Dashboard', page: '/dashboard' },
+        { label: 'Tasks', page: '/tasks' },
+        { label: 'Timesheet', page: '/timesheet' },
+        { label: 'Attendance', page: '/attendance' },
+        { label: 'Link Room', page: '/meetings' },
+        { label: 'My Teams', page: '/teams' },
+        { label: 'My Projects', page: '/projects' },
+        { label: 'Feed', page: '/announcements' },
+        { label: 'Profile', page: '/settings' },
+        { label: 'Alerts Center', page: '/alerts' }
       );
     }
     return items;
@@ -109,9 +113,9 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
     setShowProfileMenu(false);
     const newUser = users.find(u => u.id === selectedUserId);
     if (newUser) {
-      if (newUser.role === 'Admin') setCurrentPage('admin-dashboard');
-      else if (newUser.role === 'Team Lead' || newUser.role === 'Sub Lead') setCurrentPage('lead-dashboard');
-      else setCurrentPage('dashboard');
+      if (newUser.role === 'Admin') navigate('/admin/dashboard');
+      else if (newUser.role === 'Team Lead' || newUser.role === 'Sub Lead') navigate('/lead/dashboard');
+      else navigate('/dashboard');
     }
   };
 
@@ -162,7 +166,10 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
         {/* Logo area — mirrors sidebar width */}
         <div
           className="topbar-logo-area"
-          onClick={() => setCurrentPage('admin-dashboard')}
+          onClick={() => {
+            const logoTarget = currentUser.role === 'Admin' ? '/admin/dashboard' : (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') ? '/lead/dashboard' : '/dashboard';
+            navigate(logoTarget);
+          }}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -182,12 +189,12 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
           {!isCollapsed && (
             <>
               <span style={{ color: 'var(--foreground)', fontWeight: 800, fontSize: '1.5rem', letterSpacing: '-0.5px' }}>LITE</span>
-              {currentPage.startsWith('admin-') && (
+              {currentpath.startsWith('/admin') && (
                 <span style={{ marginLeft: '8px', fontSize: '0.65rem', fontWeight: 700, backgroundColor: 'color-mix(in oklch, var(--primary) 10%, transparent)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   admin
                 </span>
               )}
-              {currentPage.startsWith('lead-') && (
+              {currentpath.startsWith('/lead') && (
                 <span style={{ marginLeft: '8px', fontSize: '0.65rem', fontWeight: 700, backgroundColor: 'color-mix(in oklch, var(--primary) 10%, transparent)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {currentUser.role === 'Sub Lead' ? 'sub lead' : 'team lead'}
                 </span>
@@ -222,31 +229,34 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
             onFocus={() => setShowSearchResults(true)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && matchedItems.length > 0) {
-                setCurrentPage(matchedItems[0].page);
+                navigate(matchedItems[0].page);
                 setSearchQuery('');
                 setShowSearchResults(false);
               }
             }}
           />
           {showSearchResults && matchedItems.length > 0 && (
-            <div style={{
-              position: 'absolute',
-              top: '40px',
-              left: 0,
-              width: '260px',
-              backgroundColor: 'var(--card)',
-              border: '1px solid var(--border)',
-              borderRadius: '12px',
-              boxShadow: 'var(--shadow-lg)',
-              zIndex: 120,
-              overflow: 'hidden',
-              padding: '4px 0'
-            }}>
+            <div
+              className="topbar-search-dropdown"
+              style={{
+                position: 'absolute',
+                top: '40px',
+                left: 0,
+                width: '260px',
+                backgroundColor: 'var(--card)',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                boxShadow: 'var(--shadow-lg)',
+                zIndex: 120,
+                overflow: 'hidden',
+                padding: '4px 0'
+              }}
+            >
               {matchedItems.map(item => (
                 <button
                   key={item.page}
                   onClick={() => {
-                    setCurrentPage(item.page);
+                    navigate(item.page);
                     setSearchQuery('');
                     setShowSearchResults(false);
                   }}
@@ -278,7 +288,7 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
 
         {/* Notification Bell */}
         <button
-          onClick={() => setCurrentPage(currentPage.startsWith('admin-') ? 'admin-alerts' : currentPage.startsWith('lead-') ? 'lead-alerts' : 'alerts')}
+          onClick={() => navigate('/alerts')}
           title="Alerts"
           style={{ background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center', borderRadius: '8px', position: 'relative' }}
         >
@@ -337,7 +347,7 @@ export default function TopBar({ title, currentPage, setCurrentPage, isCollapsed
               </div>
               {/* Settings */}
               <button
-                onClick={() => { setCurrentPage('settings'); setShowProfileMenu(false); }}
+                onClick={() => { navigate('/settings'); setShowProfileMenu(false); }}
                 style={{ width: '100%', textAlign: 'left', padding: '10px 16px', background: 'none', border: 'none', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--foreground)', fontFamily: 'inherit' }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--accent)'}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}

@@ -7,15 +7,15 @@ import OverdueCard from '../components/alerts/OverdueCard';
 import ETABreachPopup from '../components/alerts/ETABreachPopup';
 import DailyTaskPrompt, { shouldShowDailyPrompt } from '../components/alerts/DailyTaskPrompt';
 import TaskAssignedToast from '../components/alerts/TaskAssignedToast';
-
+import { useNavigate } from 'react-router-dom';
 // ─── Navigation helper ────────────────────────────────────────────────────────
 function resolveNavTarget(type, role) {
   const prefix =
-    role === 'Admin'                              ? 'admin-' :
-    (role === 'Team Lead' || role === 'Sub Lead') ? 'lead-'  : '';
+    role === 'Admin'                              ? 'admin/' :
+    (role === 'Team Lead' || role === 'Sub Lead') ? 'lead/'  : '';
   switch (type) {
     case 'overdue':           return prefix ? `${prefix}tasks` : 'tasks';
-    case 'overtime':          return prefix === 'admin-' ? 'admin-approvals' : prefix === 'lead-' ? 'lead-requests' : 'dashboard';
+    case 'overtime':          return prefix === 'admin/' ? 'admin/approvals' : prefix === 'lead/' ? 'lead/requests' : 'dashboard';
     case 'TASK_ASSIGNED':
     case 'TASK_UPDATED':
     case 'TASK_REJECTED':
@@ -25,11 +25,11 @@ function resolveNavTarget(type, role) {
     case 'BACKLOG_CLAIM_REQUEST':   return prefix ? `${prefix}tasks` : 'tasks';
     case 'TIMESHEET_APPROVED':
     case 'TIMESHEET_REJECTED':
-    case 'APPROVAL_REVERTED': return prefix === 'admin-' ? 'admin-timesheets' : prefix === 'lead-' ? 'lead-timesheet' : 'timesheet';
+    case 'APPROVAL_REVERTED': return prefix === 'admin/' ? 'admin/timesheets' : prefix === 'lead/' ? 'lead/timesheet' : 'timesheet';
     case 'ETA_REQUEST':
-    case 'TRANSFER_REQUEST':  return prefix === 'admin-' ? 'admin-approvals' : prefix === 'lead-' ? 'lead-requests' : 'dashboard';
+    case 'TRANSFER_REQUEST':  return prefix === 'admin/' ? 'admin/approvals' : prefix === 'lead/' ? 'lead/requests' : 'dashboard';
     case 'WATCHDOG_LATE':
-    case 'WATCHDOG_ABSENT':   return 'admin-dashboard';
+    case 'WATCHDOG_ABSENT':   return 'admin/dashboard';
     case 'ANNOUNCEMENT':      return prefix ? `${prefix}announcements` : 'announcements';
     case 'MEETING_REMINDER':  return prefix ? `${prefix}meetings` : 'meetings';
     default:                  return prefix ? `${prefix}dashboard` : 'dashboard';
@@ -94,7 +94,7 @@ function FilterSelect({ label, value, onChange, options }) {
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function Alerts({ setCurrentPage }) {
+export default function Alerts() {
   const {
     currentUser, notifications, tasks, users, projects, teams,
     markNotificationRead, markNotificationUnread,
@@ -112,14 +112,29 @@ export default function Alerts({ setCurrentPage }) {
 
   const role = currentUser?.role;
 
+  // ── All breached tasks — same source as the popup ──────────────────────────
+  const etaBreaches = useMemo(() => tasks.filter(t =>
+    t.status !== 'Completed' && t.status !== 'Cancelled'
+    && t.etaDate && new Date(t.etaDate) < new Date()
+  ), [tasks]);
+
+  // Guard via sessionStorage instead of useRef so the "already shown" flag
+  // survives StrictMode's intentional double-mount in dev, and survives
+  // navigating away from /alerts and back during the same browser session.
   useEffect(() => {
     if (role !== 'Admin') return;
-    if (etaBreaches.length > 0) setShowETAPopup(true);
-  }, [role]);
+    const alreadyShown = sessionStorage.getItem('etaPopupShown') === 'true';
+    if (etaBreaches.length > 0 && !alreadyShown) {
+      setShowETAPopup(true);
+    }
+  }, [role, etaBreaches.length]);
 
   useEffect(() => {
     if (role !== 'Team Lead' && role !== 'Sub Lead') return;
-    if (shouldShowDailyPrompt()) setShowDailyPrompt(true);
+    const alreadyShown = sessionStorage.getItem('dailyPromptShown') === 'true';
+    if (!alreadyShown && shouldShowDailyPrompt()) {
+      setShowDailyPrompt(true);
+    }
   }, [role]);
 
   useEffect(() => {
@@ -133,12 +148,6 @@ export default function Alerts({ setCurrentPage }) {
       setToastTask({ ...taskObj, _notifId: latest.id });
     }
   }, [notifications, role]);
-
-  // ── All breached tasks — same source as the popup ──────────────────────────
-  const etaBreaches = useMemo(() => tasks.filter(t =>
-    t.status !== 'Completed' && t.status !== 'Cancelled'
-    && t.etaDate && new Date(t.etaDate) < new Date()
-  ), [tasks]);
 
   // ── Regular notifications (non-overdue) ────────────────────────────────────
   const mine = notifications.filter(n => n.recipientId === currentUser?.id);
@@ -206,13 +215,13 @@ export default function Alerts({ setCurrentPage }) {
     if (key === 'all')        return mine.length;
     return mine.filter(n => matchesTab(n, key)).length;
   };
-
+  const navigate=useNavigate();
   const handleNavigate = (n) => {
     if (n && n.id && !isSystemGenerated(n.id)) markNotificationRead(n.id);
-    if (setCurrentPage) setCurrentPage(resolveNavTarget(n?.type || 'overdue', role));
+    navigate(`/${resolveNavTarget(n?.type || 'overdue', role)}`)
   };
   const handleNavigateTask = () => {
-    if (setCurrentPage) setCurrentPage(role === 'Admin' ? 'admin-tasks' : role === 'Team Lead' || role === 'Sub Lead' ? 'lead-tasks' : 'tasks');
+    navigate(role === 'Admin' ? '/admin/tasks' : role === 'Team Lead' || role === 'Sub Lead' ? '/lead/tasks' : '/tasks');
   };
   const handleToggleRead  = (n) => n.isRead ? markNotificationUnread(n.id) : markNotificationRead(n.id);
   const handleMarkAllRead = () => mine.filter(n => !n.isRead).forEach(n => markNotificationRead(n.id));
@@ -225,13 +234,13 @@ export default function Alerts({ setCurrentPage }) {
     return !tasks.some(t => t.assignedTo === u.id && new Date(t.createdAt).toDateString() === today);
   });
 
-  const dismissToast = (notifId, navigate = false) => {
+  const dismissToast = (notifId, shouldNavigate = false) => {
     if (notifId) {
       setSeenToastIds(prev => new Set([...prev, notifId]));
       markNotificationRead(notifId);
     }
     setToastTask(null);
-    if (navigate && setCurrentPage) setCurrentPage('tasks');
+    if (shouldNavigate) navigate('/tasks');
   };
 
   return (
@@ -443,20 +452,27 @@ export default function Alerts({ setCurrentPage }) {
       )}
 
       {/* ── Modals & toasts ── */}
-      <AnimatePresence>
-        {role === 'Admin' && showETAPopup && (
-          <ETABreachPopup breaches={etaBreaches} onClose={() => setShowETAPopup(false)} />
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {(role === 'Team Lead' || role === 'Sub Lead') && showDailyPrompt && (
-          <DailyTaskPrompt
-            teamMembers={teamMembers}
-            onClose={() => setShowDailyPrompt(false)}
-            onAssign={() => { setShowDailyPrompt(false); if (setCurrentPage) setCurrentPage('lead-tasks'); }}
-          />
-        )}
-      </AnimatePresence>
+      <ETABreachPopup
+        isOpen={role === 'Admin' && showETAPopup}
+        breaches={etaBreaches}
+        onClose={() => {
+          setShowETAPopup(false);
+          sessionStorage.setItem('etaPopupShown', 'true');
+        }}
+      />
+      <DailyTaskPrompt
+        isOpen={(role === 'Team Lead' || role === 'Sub Lead') && showDailyPrompt}
+        teamMembers={teamMembers}
+        onClose={() => {
+          setShowDailyPrompt(false);
+          sessionStorage.setItem('dailyPromptShown', 'true');
+        }}
+        onAssign={() => {
+          setShowDailyPrompt(false);
+          sessionStorage.setItem('dailyPromptShown', 'true');
+          navigate('/lead/tasks');
+        }}
+      />
       <TaskAssignedToast
         task={toastTask}
         onClose={() => dismissToast(toastTask?._notifId, false)}

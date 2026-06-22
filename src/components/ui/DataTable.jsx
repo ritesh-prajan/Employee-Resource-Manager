@@ -61,6 +61,7 @@ export default function DataTable({ Data = [], columns = [], onRowClick }) {
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
+                      data-label={typeof cell.column.columnDef.header === 'string' ? cell.column.columnDef.header : cell.column.id}
                       className={`px-6 py-4 text-sm text-slate-600 align-middle ${
                         cell.column.id === 'actions' ? 'sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]' : ''
                       }`}

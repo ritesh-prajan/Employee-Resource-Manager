@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import {
   CheckSquare, AlertTriangle, Clock, UserCheck, Calendar, Archive, TrendingUp, ArrowRight, ExternalLink
@@ -11,7 +12,8 @@ import TaskStatusDonut from '../../components/teamlead/TaskStatusDonut';
 import ProjectProgressPanel from '../../components/teamlead/ProjectProgressPanel';
 import { getLast7Days, fmtDay, TODAY } from '../../utils/dateHelpers';
 
-export default function EmployeeDashboard({ setCurrentPage }) {
+export default function EmployeeDashboard() {
+  const navigate = useNavigate();
   const {
     currentUser,
     projects,
@@ -101,7 +103,7 @@ export default function EmployeeDashboard({ setCurrentPage }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', overflowY: 'auto', height: '100%', boxSizing: 'border-box', padding: '0.25rem 0 1.5rem 0' }}>
 
       {/* KPI Cards Grid */}
-      <EmployeeKpiCards kpis={kpiValues} onNavigate={setCurrentPage} />
+      <EmployeeKpiCards kpis={kpiValues} onNavigate={navigate} />
 
       {/* Row 2: Task Status & Hours Chart */}
       <div className="employee-dashboard-grid-1" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.875rem', height: '280px', flexShrink: 0 }}>
@@ -159,7 +161,7 @@ export default function EmployeeDashboard({ setCurrentPage }) {
               <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--foreground)' }}>My Active Tasks</span>
             </div>
             <button
-              onClick={() => setCurrentPage?.('tasks')}
+              onClick={() => navigate('/tasks')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -243,7 +245,7 @@ export default function EmployeeDashboard({ setCurrentPage }) {
                         {task.status?.replace('_', ' ')}
                       </span>
                       <button
-                        onClick={() => setCurrentPage?.('tasks')}
+                        onClick={() => navigate('/tasks')}
                         style={{
                           background: 'none',
                           border: 'none',

@@ -8,7 +8,7 @@ const cards = [
     icon: CheckSquare,
     accent: '#3b82f6',
     danger: false,
-    page: 'tasks',
+    page: '/tasks',
   },
   {
     key: 'overdueTasks',
@@ -16,7 +16,7 @@ const cards = [
     icon: AlertTriangle,
     accent: '#ef4444',
     danger: true,
-    page: 'tasks',
+    page: '/tasks',
   },
   {
     key: 'hoursThisWeek',
@@ -24,7 +24,7 @@ const cards = [
     icon: Clock,
     accent: '#8b5cf6',
     danger: false,
-    page: 'timesheet',
+    page: '/timesheet',
   },
   {
     key: 'completedTasks',
@@ -32,7 +32,7 @@ const cards = [
     icon: UserCheck,
     accent: '#10b981',
     danger: false,
-    page: 'tasks',
+    page: '/tasks',
   },
   {
     key: 'pendingETAs',

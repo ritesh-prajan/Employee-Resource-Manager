@@ -12,6 +12,7 @@ import WeeklyTeamHoursChart from '../../components/teamlead/WeeklyTeamHoursChart
 import MemberPerformanceTable from '../../components/teamlead/MemberPerformanceTable';
 import ProjectProgressPanel from '../../components/teamlead/ProjectProgressPanel';
 import { getLast7Days, TODAY } from '../../utils/dateHelpers';
+import { useNavigate } from 'react-router-dom';
 
 const CARD_SCHEME = [
   { key: 'activeTasks',      label: 'Active Tasks',       icon: CheckSquare,   accent: '#3b82f6' },
@@ -22,7 +23,8 @@ const CARD_SCHEME = [
   { key: 'backlogTasks',     label: 'Backlog',      icon: Archive,       accent: '#6b7280' },
 ];
 
-export default function TeamLeadDashboard({ setCurrentPage }) {
+export default function TeamLeadDashboard() {
+  const navigate=useNavigate();
   const { currentUser, users, teams, projects, tasks, timeEntries, reports } = useApp();
 
   if (!currentUser) return null;
@@ -103,9 +105,9 @@ export default function TeamLeadDashboard({ setCurrentPage }) {
             <KpiCard
               key={key} icon={icon} label={label} value={kpi.value} sub={kpi.sub} accent={accent}
               onClick={
-                key === 'pendingApprovals' ? () => setCurrentPage?.('lead-approvals') :
-                key === 'activeTasks'      ? () => setCurrentPage?.('lead-tasks') :
-                key === 'backlogTasks'     ? () => setCurrentPage?.('backlog') :
+                key === 'pendingApprovals' ? () => navigate('/lead/approvals') :
+                key === 'activeTasks'      ? () => navigate('/lead/tasks') :
+                key === 'backlogTasks'     ? () => navigate('/backlog') :
                 undefined
               }
             />

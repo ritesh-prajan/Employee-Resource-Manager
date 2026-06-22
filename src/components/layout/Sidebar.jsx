@@ -17,9 +17,13 @@ import {
   Archive
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useNavigate,useLocation,NavLink } from 'react-router-dom';
 
-export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setIsCollapsed, isMobileSidebarOpen, setIsMobileSidebarOpen }) {
+export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileSidebarOpen, setIsMobileSidebarOpen }) {
   const { currentUser, users = [], notifications = [] } = useApp();
+  const navigate=useNavigate();
+  const location=useLocation();
+  const currentpath=location.pathname;
 
   if (!currentUser) return null;
 
@@ -32,8 +36,8 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
   const userNotifications = notifications.filter(n => n.recipientId === currentUser.id);
   const unreadCount = userNotifications.filter(n => !n.isRead).length;
 
-  const isAdminView = currentUser.role === 'Admin' && !currentPage.startsWith('lead-') && currentPage !== 'dashboard' && currentPage !== 'timesheet';
-  const isLeadView = (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && !currentPage.startsWith('admin-');
+  const isAdminView = currentUser.role === 'Admin' && !currentpath.startsWith('/lead') && currentpath !== '/dashboard' && currentpath !== '/timesheet';
+  const isLeadView = (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && !currentpath.startsWith('/admin');
   const isEmployeeMode = !isAdminView && !isLeadView;
 
   const getInitials = (name) => {
@@ -56,161 +60,163 @@ export default function Sidebar({ currentPage, setCurrentPage, isCollapsed, setI
     );
   };
 
-  const renderAlertsLink = (alertsPageKey) => (
-    <button
-      className={`sidebar-link ${currentPage === alertsPageKey ? 'active' : ''}`}
-      onClick={() => setCurrentPage(alertsPageKey)}
-      style={getLinkStyle()}
-      title={isCollapsed ? 'Alerts Center' : undefined}
+  const renderAlertsLink = (alertsPath) => (
+    <NavLink
+    to={alertsPath}
+    className={({isActive})=>`sidebar-link ${isActive?'active':''}`}
+    style={getLinkStyle()}
+    title={isCollapsed?'Alerts Center':undefined}
     >
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Bell size={18} />
-        {unreadCount > 0 && (
-          <span className={isCollapsed ? 'sidebar-notif-dot' : 'sidebar-notif-badge'}>
-            {isCollapsed ? '' : unreadCount}
+      <div
+      style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}
+      >
+        <Bell size={10}/>
+        {unreadCount>0&&(
+          <span className={isCollapsed?'sidebar-notif-dot':'sidebar-notif-badge'}>
+            {isCollapsed?'':unreadCount}
           </span>
         )}
+
       </div>
-      {!isCollapsed && <span>Alerts Center</span>}
-    </button>
+      {!isCollapsed&&<span>Alerts Center</span>}
+    </NavLink>
   );
 
-  const renderNavLinks = () => {
+const renderNavLinks = () => {
 
-    // ── ADMIN VIEW ──────────────────────────────────────────────
-    if (currentUser.role === 'Admin' && !isEmployeeMode) {
-      return (
-        <>
-          {renderSectionHeader('Admin view', true)}
-          <button className={`sidebar-link ${currentPage === 'admin-dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-dashboard')} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
-            <LayoutDashboard size={18} />{!isCollapsed && <span>Dashboard</span>}
-          </button>
-          <button className={`sidebar-link ${currentPage === 'admin-employees' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-employees')} style={getLinkStyle()} title={isCollapsed ? 'Employees' : undefined}>
-            <Users size={18} />{!isCollapsed && <span>Employees</span>}
-          </button>
-          <button className={`sidebar-link ${currentPage === 'admin-teams' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-teams')} style={getLinkStyle()} title={isCollapsed ? 'Teams' : undefined}>
-            <Users size={18} />{!isCollapsed && <span>Teams</span>}
-          </button>
-          <button className={`sidebar-link ${currentPage === 'admin-projects' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-projects')} style={getLinkStyle()} title={isCollapsed ? 'Projects' : undefined}>
-            <Briefcase size={18} />{!isCollapsed && <span>Projects</span>}
-          </button>
+  // ── ADMIN VIEW ──────────────────────────────────────────────
+  if (currentUser.role === 'Admin' && !isEmployeeMode) {
+    return (
+      <>
+        {renderSectionHeader('Admin view', true)}
+        <NavLink to="/admin/dashboard" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
+          <LayoutDashboard size={18} />{!isCollapsed && <span>Dashboard</span>}
+        </NavLink>
+        <NavLink to="/admin/employees" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Employees' : undefined}>
+          <Users size={18} />{!isCollapsed && <span>Employees</span>}
+        </NavLink>
+        <NavLink to="/admin/teams" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Teams' : undefined}>
+          <Users size={18} />{!isCollapsed && <span>Teams</span>}
+        </NavLink>
+        <NavLink to="/admin/projects" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Projects' : undefined}>
+          <Briefcase size={18} />{!isCollapsed && <span>Projects</span>}
+        </NavLink>
 
-          {renderSectionHeader('Operations')}
-          <button className={`sidebar-link ${(currentPage === 'admin-tasks' || currentPage === 'admin-backlog') ? 'active' : ''}`} onClick={() => setCurrentPage('admin-tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
-            <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
-          </button>
-          <button className={`sidebar-link ${currentPage === 'admin-timesheets' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-timesheets')} style={getLinkStyle()} title={isCollapsed ? 'Timesheets' : undefined}>
-            <Calendar size={18} />{!isCollapsed && <span>Timesheets</span>}
-          </button>
-          <button className={`sidebar-link ${currentPage === 'admin-approvals' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-approvals')} style={getLinkStyle()} title={isCollapsed ? 'Approvals' : undefined}>
-            <UserCheck size={18} />{!isCollapsed && <span>Approvals</span>}
-          </button>
-          {renderAlertsLink('admin-alerts')}
+        {renderSectionHeader('Operations')}
+        <NavLink to="/admin/tasks" className={`sidebar-link ${(currentpath === '/admin/tasks' || currentpath === '/admin/backlog') ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
+          <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
+        </NavLink>
+        <NavLink to="/admin/timesheets" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Timesheets' : undefined}>
+          <Calendar size={18} />{!isCollapsed && <span>Timesheets</span>}
+        </NavLink>
+        <NavLink to="/admin/approvals" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Approvals' : undefined}>
+          <UserCheck size={18} />{!isCollapsed && <span>Approvals</span>}
+        </NavLink>
+        {renderAlertsLink('/alerts')}
 
-          {renderSectionHeader('Communication')}
-          <button className={`sidebar-link ${currentPage === 'admin-announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-announcements')} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
-            <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
-          </button>
-          <button className={`sidebar-link ${currentPage === 'admin-meetings' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-meetings')} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
-            <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
-          </button>
+        {renderSectionHeader('Communication')}
+        <NavLink to="/admin/announcements" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
+          <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
+        </NavLink>
+        <NavLink to="/admin/meetings" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
+          <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
+        </NavLink>
 
-          {renderSectionHeader('Account')}
-          <button className={`sidebar-link ${currentPage === 'settings' ? 'active' : ''}`} onClick={() => setCurrentPage('settings')} style={getLinkStyle()} title={isCollapsed ? 'Profile' : undefined}>
-            <User size={18} />{!isCollapsed && <span>Profile</span>}
-          </button>
-        </>
-      );
-    }
+        {renderSectionHeader('Account')}
+        <NavLink to="/settings" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Profile' : undefined}>
+          <User size={18} />{!isCollapsed && <span>Profile</span>}
+        </NavLink>
+      </>
+    );
+  }
 
-    // ── TEAM LEAD / SUB LEAD VIEW ───────────────────────────────
-    if ((currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && !isEmployeeMode) {
-      return (
-        <>
-          {renderSectionHeader('Work', true)}
-          <button className={`sidebar-link ${currentPage === 'lead-dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-dashboard')} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
-            <LayoutDashboard size={18} />{!isCollapsed && <span>Dashboard</span>}
-          </button>
-          <button className={`sidebar-link ${(currentPage === 'lead-tasks' || currentPage === 'lead-backlog' || currentPage === 'backlog') ? 'active' : ''}`} onClick={() => setCurrentPage('lead-tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
-            <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
-          </button>
-          <button className={`sidebar-link ${currentPage === 'lead-timesheet' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-timesheet')} style={getLinkStyle()} title={isCollapsed ? 'Timesheet' : undefined}>
-            <Calendar size={18} />{!isCollapsed && <span>Timesheet</span>}
-          </button>
-          <button className={`sidebar-link ${currentPage === 'lead-attendance' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-attendance')} style={getLinkStyle()} title={isCollapsed ? 'Team Attendance' : undefined}>
-            <Fingerprint size={18} />{!isCollapsed && <span>Team Attendance</span>}
-          </button>
-
-          {renderSectionHeader('Management')}
-          <button className={`sidebar-link ${currentPage === 'lead-approvals' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-approvals')} style={getLinkStyle()} title={isCollapsed ? 'Approvals' : undefined}>
-            <UserCheck size={18} />{!isCollapsed && <span>Approvals</span>}
-          </button>
-          <button className={`sidebar-link ${currentPage === 'lead-teams' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-teams')} style={getLinkStyle()} title={isCollapsed ? 'My Team' : undefined}>
-            <Users size={18} />{!isCollapsed && <span>My Teams </span>}
-          </button>
-          <button className={`sidebar-link ${currentPage === 'lead-projects' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-projects')} style={getLinkStyle()} title={isCollapsed ? 'Projects' : undefined}>
-            <Briefcase size={18} />{!isCollapsed && <span>My Projects</span>}
-          </button>
-          {renderAlertsLink('lead-alerts')}
-
-          {renderSectionHeader('Communication')}
-          <button className={`sidebar-link ${currentPage === 'lead-meetings' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-meetings')} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
-            <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
-          </button>
-          {currentUser.role !== 'Sub Lead' && (
-            <button className={`sidebar-link ${currentPage === 'lead-announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('lead-announcements')} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
-              <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
-            </button>
-          )}
-
-          {renderSectionHeader('Account')}
-          <button className={`sidebar-link ${currentPage === 'settings' ? 'active' : ''}`} onClick={() => setCurrentPage('settings')} style={getLinkStyle()} title={isCollapsed ? 'Profile' : undefined}>
-            <User size={18} />{!isCollapsed && <span>Profile</span>}
-          </button>
-        </>
-      );
-    }
-
-    // ── EMPLOYEE VIEW ───────────────────────────────────────────
+  // ── TEAM LEAD / SUB LEAD VIEW ───────────────────────────────
+  if ((currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') && !isEmployeeMode) {
     return (
       <>
         {renderSectionHeader('Work', true)}
-        <button className={`sidebar-link ${currentPage === 'dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('dashboard')} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
+        <NavLink to="/lead/dashboard" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
           <LayoutDashboard size={18} />{!isCollapsed && <span>Dashboard</span>}
-        </button>
-        <button className={`sidebar-link ${(currentPage === 'tasks' || currentPage === 'backlog') ? 'active' : ''}`} onClick={() => setCurrentPage('tasks')} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
+        </NavLink>
+        <NavLink to="/lead/tasks" className={`sidebar-link ${(currentpath === '/lead/tasks' || currentpath === '/lead/backlog' || currentpath === '/backlog') ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
           <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
-        </button>
-        <button className={`sidebar-link ${currentPage === 'timesheet' ? 'active' : ''}`} onClick={() => setCurrentPage('timesheet')} style={getLinkStyle()} title={isCollapsed ? 'Timesheet' : undefined}>
+        </NavLink>
+        <NavLink to="/lead/timesheet" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Timesheet' : undefined}>
           <Calendar size={18} />{!isCollapsed && <span>Timesheet</span>}
-        </button>
-        <button className={`sidebar-link ${currentPage === 'attendance' ? 'active' : ''}`} onClick={() => setCurrentPage('attendance')} style={getLinkStyle()} title={isCollapsed ? 'Attendance' : undefined}>
-          <Fingerprint size={18} />{!isCollapsed && <span>Attendance</span>}
-        </button>
-        {renderSectionHeader('Communication')}
-        <button className={`sidebar-link ${currentPage === 'meetings' ? 'active' : ''}`} onClick={() => setCurrentPage('meetings')} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
-          <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
-        </button>
-        <button className={`sidebar-link ${currentPage === 'teams' ? 'active' : ''}`} onClick={() => setCurrentPage('teams')} style={getLinkStyle()} title={isCollapsed ? 'My Teams' : undefined}>
-          <Users size={18} />{!isCollapsed && <span>My Teams</span>}
-        </button>
-        <button className={`sidebar-link ${currentPage === 'projects' ? 'active' : ''}`} onClick={() => setCurrentPage('projects')} style={getLinkStyle()} title={isCollapsed ? 'My Projects' : undefined}>
+        </NavLink>
+        <NavLink to="/lead/attendance" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Team Attendance' : undefined}>
+          <Fingerprint size={18} />{!isCollapsed && <span>Team Attendance</span>}
+        </NavLink>
+
+        {renderSectionHeader('Management')}
+        <NavLink to="/lead/approvals" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Approvals' : undefined}>
+          <UserCheck size={18} />{!isCollapsed && <span>Approvals</span>}
+        </NavLink>
+        <NavLink to="/lead/teams" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'My Team' : undefined}>
+          <Users size={18} />{!isCollapsed && <span>My Teams </span>}
+        </NavLink>
+        <NavLink to="/lead/projects" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Projects' : undefined}>
           <Briefcase size={18} />{!isCollapsed && <span>My Projects</span>}
-        </button>
+        </NavLink>
+        {renderAlertsLink('/alerts')}
+
+        {renderSectionHeader('Communication')}
+        <NavLink to="/lead/meetings" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
+          <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
+        </NavLink>
         {currentUser.role !== 'Sub Lead' && (
-          <button className={`sidebar-link ${currentPage === 'announcements' ? 'active' : ''}`} onClick={() => setCurrentPage('announcements')} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
+          <NavLink to="/lead/announcements" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
             <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
-          </button>
+          </NavLink>
         )}
-        {renderAlertsLink('alerts')}
+
         {renderSectionHeader('Account')}
-        <button className={`sidebar-link ${currentPage === 'settings' ? 'active' : ''}`} onClick={() => setCurrentPage('settings')} style={getLinkStyle()} title={isCollapsed ? 'Profile' : undefined}>
+        <NavLink to="/settings" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Profile' : undefined}>
           <User size={18} />{!isCollapsed && <span>Profile</span>}
-        </button>
+        </NavLink>
       </>
     );
-  };
+  }
 
+  // ── EMPLOYEE VIEW ───────────────────────────────────────────
+  return (
+    <>
+      {renderSectionHeader('Work', true)}
+      <NavLink to="/dashboard" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Dashboard' : undefined}>
+        <LayoutDashboard size={18} />{!isCollapsed && <span>Dashboard</span>}
+      </NavLink>
+      <NavLink to="/tasks" className={`sidebar-link ${(currentpath === '/tasks' || currentpath === '/backlog') ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Tasks' : undefined}>
+        <CheckSquare size={18} />{!isCollapsed && <span>Tasks</span>}
+      </NavLink>
+      <NavLink to="/timesheet" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Timesheet' : undefined}>
+        <Calendar size={18} />{!isCollapsed && <span>Timesheet</span>}
+      </NavLink>
+      <NavLink to="/attendance" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Attendance' : undefined}>
+        <Fingerprint size={18} />{!isCollapsed && <span>Attendance</span>}
+      </NavLink>
+      {renderSectionHeader('Communication')}
+      <NavLink to="/meetings" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
+        <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}
+      </NavLink>
+      <NavLink to="/teams" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'My Teams' : undefined}>
+        <Users size={18} />{!isCollapsed && <span>My Teams</span>}
+      </NavLink>
+      <NavLink to="/projects" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'My Projects' : undefined}>
+        <Briefcase size={18} />{!isCollapsed && <span>My Projects</span>}
+      </NavLink>
+      {currentUser.role !== 'Sub Lead' && (
+        <NavLink to="/announcements" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Feed' : undefined}>
+          <Megaphone size={18} />{!isCollapsed && <span>Feed</span>}
+        </NavLink>
+      )}
+      {renderAlertsLink('/alerts')}
+      {renderSectionHeader('Account')}
+      <NavLink to="/settings" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Profile' : undefined}>
+        <User size={18} />{!isCollapsed && <span>Profile</span>}
+      </NavLink>
+    </>
+  );
+};
   return (
     <>
       {isMobileSidebarOpen && (

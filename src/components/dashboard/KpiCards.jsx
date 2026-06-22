@@ -10,7 +10,7 @@ const cards = [
     pulse: true,
     format: (v) => `${v.count} / ${v.total}`,
     danger: false,
-    page: 'admin-employees',
+    page: '/admin/employees',
   },
   {
     key: 'hoursToday',
@@ -19,7 +19,7 @@ const cards = [
     accent: 'var(--primary)',
     format: (v) => `${v.toFixed(1)}h`,
     danger: false,
-    page: 'admin-timesheets',
+    page: '/admin/timesheets',
   },
   {
     key: 'openTasks',
@@ -28,7 +28,7 @@ const cards = [
     accent: 'var(--primary)',
     format: (v) => v,
     danger: false,
-    page: 'admin-tasks',
+    page: '/admin/tasks',
   },
   {
     key: 'overdueTasks',
@@ -37,7 +37,7 @@ const cards = [
     accent: '#ef4444',
     format: (v) => v,
     danger: true,
-    page: 'admin-tasks',
+    page: '/admin/tasks',
   },
   {
     key: 'pendingApprovals',
@@ -46,7 +46,7 @@ const cards = [
     accent: '#f59e0b',
     format: (v) => v,
     danger: false,
-    page: 'admin-approvals',
+    page: '/admin/approvals',
   },
   {
     key: 'backlogSize',
@@ -55,7 +55,7 @@ const cards = [
     accent: 'var(--muted-foreground)',
     format: (v) => v,
     danger: false,
-    page: 'admin-backlog',
+    page: '/admin/backlog',
   },
 ];
 

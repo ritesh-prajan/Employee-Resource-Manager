@@ -8,10 +8,9 @@ import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
-import { Route, Routes, Navigate } from 'react-router-dom';
+import { Route, Routes, Navigate, useNavigate, useLocation,Outlet } from 'react-router-dom';
 import Forgotpassword from './pages/Forgotpassword.jsx';
 import Resetpassword from './pages/Resetpassword.jsx';
-import { useLocation } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
 import GlobalLoader from './components/GlobalLoader';
 
@@ -39,62 +38,104 @@ const AdminTimesheets = React.lazy(() => import('./pages/admin/Timesheets'));
 const Alerts = React.lazy(() => import('./pages/Alerts'));
 const ProfileSettings = React.lazy(() => import('./pages/ProfileSettings'));
 
+// Page titles keyed by real path
+const PAGE_TITLES = {
+  '/dashboard': 'Time Tracker',
+  '/lead/dashboard': 'Time Tracker',
+  '/admin/dashboard': 'Dashboard',
+  '/timesheet': 'Timesheet',
+  '/lead/timesheet': 'Timesheet',
+  '/admin/timesheets': 'Timesheets',
+  '/tasks': 'Tasks',
+  '/admin/tasks': 'Tasks',
+  '/lead/tasks': 'Tasks',
+  '/backlog': 'Backlog',
+  '/admin/backlog': 'Backlog',
+  '/lead/backlog': 'Backlog',
+  '/attendance': 'Attendance',
+  '/lead/attendance': 'Team Attendance',
+  '/meetings': 'Link Room',
+  '/admin/meetings': 'Link Room',
+  '/lead/meetings': 'Link Room',
+  '/teams': 'My Teams',
+  '/admin/teams': 'Teams',
+  '/lead/teams': 'My Teams',
+  '/projects': 'My Projects',
+  '/admin/projects': 'Projects',
+  '/lead/projects': 'My Projects',
+  '/admin/employees': 'Employees',
+  '/admin/approvals': 'Approvals',
+  '/lead/approvals': 'Approvals',
+  '/lead/requests': 'Requests',
+  '/announcements': 'Announcements',
+  '/admin/announcements': 'Announcements',
+  '/lead/announcements': 'Announcements',
+  '/settings': 'Profile',
+  '/alerts': 'Alerts Center',
+  '/admin/alerts': 'Alerts Center',
+  '/lead/alerts': 'Alerts Center',
+};
+
+// Which paths each role is allowed to be on
+const ADMIN_ROUTES = [
+  '/admin/dashboard', '/admin/timesheets', '/admin/tasks', '/admin/backlog',
+  '/admin/teams', '/admin/projects', '/admin/employees', '/admin/approvals',
+  '/admin/announcements', '/admin/meetings', '/admin/alerts', '/settings',
+];
+const LEAD_ROUTES = [
+  '/lead/dashboard', '/lead/timesheet', '/lead/tasks', '/lead/backlog',
+  '/lead/attendance', '/lead/projects', '/lead/approvals', '/lead/requests',
+  '/lead/announcements', '/lead/meetings', '/lead/teams', '/lead/alerts', '/settings',
+];
+const EMPLOYEE_ROUTES = [
+  '/dashboard', '/timesheet', '/tasks', '/backlog', '/attendance', '/meetings',
+  '/teams', '/projects', '/announcements', '/alerts', '/settings',
+];
+
+function ProtectedRoute({allowedRoles}){
+  const {user:currentUser,isAuthenticated}=useAuth();
+  if(!isAuthenticated){
+    return <Navigate to="/login" replace/>
+  }
+  if(allowedRoles&&!allowedRoles.includes(currentUser.role)){
+    const isadmin=currentUser.role==='Admin';
+    const islead=currentUser.role==='Team Lead'|| currentUser.role==='Sub Lead';
+    const home=isadmin?'/admin/dashboard':islead?'/lead/dashboard':'/dashboard';
+    return <Navigate to ={home} replace/>
+  }
+  return <Outlet/>
+}
+
 function MainAppContent() {
-  const { user: currentUser, isAuthenticated, loading, logout } = useAuth();
-  const [currentPage, setCurrentPage] = useState('');
+  const { user: currentUser, isAuthenticated, loading } = useAuth();
   const [prevUserId, setPrevUserId] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsMobileSidebarOpen(false);
-  }, [currentPage]);
+  }, [location.pathname]);
 
+  // Role-based redirect: send to home page on login, and guard against
+  // a user manually visiting a path outside their role's allowed routes.
   useEffect(() => {
     if (!isAuthenticated || !currentUser) {
       setPrevUserId(null);
       return;
     }
-
-    const isAdmin = currentUser.role === 'Admin';
-    const isTL = currentUser.role === 'Team Lead';
-    const isSL = currentUser.role === 'Sub Lead';
-    const isEmployee = currentUser.role === 'Employee';
-
-    if (prevUserId !== currentUser.id) {
+    if(prevUserId!==currentUser.id){
       setPrevUserId(currentUser.id);
-      if (isAdmin) {
-        setCurrentPage('admin-dashboard');
-      } else if (isTL || isSL) {
-        setCurrentPage('lead-dashboard');
-      } else {
-        setCurrentPage('dashboard');
-      }
-      return;
+      const isadmin=currentUser.role==='Admin';
+      const islead=currentUser.role==='Team Lead'||currentUser.role==='Sub Lead'
+      if(isadmin) navigate('/admin/dashboard',{replace:true})
+      if(islead) navigate('/lead/dashboard',{replace:true})
+      else navigate('/dashboard',{replace:true})
     }
 
-    if (isAdmin) {
-      const adminRoutes = [
-        'admin-dashboard', 'admin-timesheets', 'admin-tasks', 'admin-backlog', 'admin-teams', 'admin-projects',
-        'admin-employees', 'admin-approvals', 'admin-announcements', 'admin-meetings', 'settings',
-        'dashboard', 'timesheet', 'tasks', 'backlog', 'attendance', 'meetings', 'teams', 'announcements',
-        'admin-alerts', 'alerts'
-      ];
-      if (!adminRoutes.includes(currentPage)) setCurrentPage('admin-dashboard');
-    } else if (isTL || isSL) {
-      const leadRoutes = [
-        'lead-dashboard', 'lead-timesheet', 'lead-tasks', 'lead-backlog', 'lead-attendance', 'lead-projects',
-        'lead-approvals', 'lead-requests', 'lead-announcements', 'lead-meetings', 'settings',
-        'dashboard', 'timesheet', 'tasks', 'backlog', 'attendance', 'meetings', 'teams', 'lead-teams', 'announcements',
-        'lead-alerts', 'alerts'
-      ];
-      if (!leadRoutes.includes(currentPage)) setCurrentPage('lead-dashboard');
-    } else if (isEmployee) {
-      const employeeRoutes = ['dashboard', 'timesheet', 'tasks', 'backlog', 'attendance', 'meetings', 'settings', 'teams', 'projects', 'announcements', 'alerts'];
-      if (!employeeRoutes.includes(currentPage)) setCurrentPage('dashboard');
-    }
-  }, [currentUser, isAuthenticated, currentPage, prevUserId]);
+    
+  }, [currentUser, isAuthenticated,prevUserId, navigate]);
 
   useEffect(() => {
     const handleGlobalMouseMove = (e) => {
@@ -125,145 +166,77 @@ function MainAppContent() {
     );
   }
 
-  const getPageTitle = () => {
-    switch (currentPage) {
-      case 'dashboard':
-      case 'lead-dashboard':
-        return 'Time Tracker';
-      case 'timesheet':
-      case 'lead-timesheet':
-        return 'Timesheet';
-      case 'tasks':
-      case 'admin-tasks':
-      case 'lead-tasks':
-        return 'Tasks';
-      case 'backlog':
-      case 'admin-backlog':
-      case 'lead-backlog':
-        return 'Backlog';
-      case 'attendance':
-        return 'Attendance';
-      case 'lead-attendance':
-      case 'team-attendance':
-        return 'Team Attendance';
-      case 'meetings':
-      case 'admin-meetings':
-      case 'lead-meetings':
-        return 'Link Room';
-      case 'admin-dashboard':
-        return 'Dashboard';
-      case 'admin-timesheets':
-        return 'Timesheets';
-      case 'teams':
-      case 'admin-teams':
-      case 'lead-teams':
-        return currentUser?.role === 'Admin' ? 'Teams' : 'My Teams';
-      case 'projects':
-      case 'admin-projects':
-      case 'lead-projects':
-        return currentUser?.role === 'Admin' ? 'Projects' : 'My Projects';
-      case 'employees':
-      case 'admin-employees':
-        return 'Employees';
-      case 'approvals':
-      case 'admin-approvals':
-      case 'lead-approvals':
-        return 'Approvals';
-      case 'lead-requests':
-        return 'Requests';
-      case 'announcements':
-      case 'admin-announcements':
-      case 'lead-announcements':
-        return 'Announcements';
-      case 'settings':
-        return 'Profile';
-      case 'alerts':
-      case 'admin-alerts':
-      case 'lead-alerts':
-        return 'Alerts Center';
-      default:
-        return 'Elite';
-    }
-  };
-
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'tasks':
-      case 'admin-tasks':
-      case 'lead-tasks':
-        return <Tasks setCurrentPage={setCurrentPage} />;
-      case 'backlog':
-      case 'admin-backlog':
-      case 'lead-backlog':
-        return <Tasks setCurrentPage={setCurrentPage} initialScope="backlog" />;
-      case 'attendance':
-        return <Attendance />;
-      case 'lead-attendance':
-      case 'team-attendance':
-        return <TeamAttendance />;
-      case 'meetings':
-      case 'admin-meetings':
-      case 'lead-meetings':
-        return <Meetings />;
-      case 'admin-dashboard':
-        return <AdminDashboard setCurrentPage={setCurrentPage} />;
-      case 'admin-timesheets':
-      case 'timesheet':
-      case 'lead-timesheet':
-        return <AdminTimesheets />;
-      case 'teams':
-      case 'admin-teams':
-      case 'lead-teams':
-        return <Teams />;
-      case 'projects':
-      case 'admin-projects':
-      case 'lead-projects':
-        return <Projects />;
-      case 'employees':
-      case 'admin-employees':
-        return <Employees />;
-      case 'approvals':
-      case 'admin-approvals':
-      case 'lead-approvals':
-        return <Approvals />;
-      case 'lead-requests':
-        return <LeadRequests />;
-      case 'announcements':
-      case 'admin-announcements':
-      case 'lead-announcements':
-        return <AdminAnnouncements />;
-      case 'settings':
-        return <ProfileSettings />;
-
-      case 'alerts':
-      case 'admin-alerts':
-      case 'lead-alerts':
-        return <Alerts setCurrentPage={setCurrentPage} />;
-      case 'dashboard':
-        if (currentUser?.role === 'Team Lead' || currentUser?.role === 'Sub Lead') {
-          return <TeamLeadDashboard setCurrentPage={setCurrentPage} />;
-        }
-        return <EmployeeDashboard setCurrentPage={setCurrentPage} />;
-      case 'lead-dashboard':
-        return <TeamLeadDashboard setCurrentPage={setCurrentPage} />;
-      default:
-        return <AdminDashboard setCurrentPage={setCurrentPage} />;
-    }
-  };
+  const pageTitle = PAGE_TITLES[location.pathname] || 'Elite';
 
   return (
     <div className="app-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      <TopBar title={getPageTitle()} currentPage={currentPage} setCurrentPage={setCurrentPage} isCollapsed={isCollapsed} isMobileSidebarOpen={isMobileSidebarOpen} setIsMobileSidebarOpen={setIsMobileSidebarOpen} />
+      <TopBar title={pageTitle} isCollapsed={isCollapsed} isMobileSidebarOpen={isMobileSidebarOpen} setIsMobileSidebarOpen={setIsMobileSidebarOpen} />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} isMobileSidebarOpen={isMobileSidebarOpen} setIsMobileSidebarOpen={setIsMobileSidebarOpen} />
+        <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} isMobileSidebarOpen={isMobileSidebarOpen} setIsMobileSidebarOpen={setIsMobileSidebarOpen} />
+        {isMobileSidebarOpen && (
+          <div
+            className="mobile-sidebar-backdrop"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+        )}
         <main className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div className="content-body" style={{ flex: 1, overflowY: 'auto', position: 'relative', overflowX: 'hidden', backgroundColor: 'var(--bg-canvas)', padding: '24px' }}>
             <ErrorBoundary>
               <AnimatePresence mode="wait">
-                <motion.div key={currentPage} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} style={{ width: '100%' }}>
+                <motion.div key={location.pathname} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} style={{ width: '100%' }}>
                   <Suspense fallback={<GlobalLoader />}>
-                    {renderPage()}
-                  </Suspense>
+                    <Routes>
+                      {/* Admin section */}
+                      <Route path="/admin" element={<ProtectedRoute allowedRoles={['Admin']} />}>
+                        <Route path="dashboard" element={<AdminDashboard />} />
+                        <Route path="tasks" element={<Tasks />} />
+                        <Route path="backlog" element={<Tasks initialScope="backlog" />} />
+                        <Route path="timesheets" element={<AdminTimesheets />} />
+                        <Route path="teams" element={<Teams />} />
+                        <Route path="projects" element={<Projects />} />
+                        <Route path="employees" element={<Employees />} />
+                        <Route path="approvals" element={<Approvals />} />
+                        <Route path="announcements" element={<AdminAnnouncements />} />
+                        <Route path="meetings" element={<Meetings />} />
+                      </Route>
+
+                      {/* Team Lead / Sub Lead section */}
+                      <Route path="/lead" element={<ProtectedRoute allowedRoles={['Team Lead', 'Sub Lead']} />}>
+                        <Route path="dashboard" element={<TeamLeadDashboard />} />
+                        <Route path="tasks" element={<Tasks />} />
+                        <Route path="backlog" element={<Tasks initialScope="backlog" />} />
+                        <Route path="timesheet" element={<AdminTimesheets />} />
+                        <Route path="attendance" element={<TeamAttendance />} />
+                        <Route path="teams" element={<Teams />} />
+                        <Route path="projects" element={<Projects />} />
+                        <Route path="approvals" element={<LeadRequests />} />
+                        <Route path="requests" element={<LeadRequests />} />
+                        <Route path="announcements" element={<AdminAnnouncements />} />
+                        <Route path="meetings" element={<Meetings />} />
+                      </Route>
+
+                      {/* Employee section (no prefix) */}
+                      <Route path="/" element={<ProtectedRoute allowedRoles={['Employee']} />}>
+                        <Route path="dashboard" element={<EmployeeDashboard />} />
+                        <Route path="tasks" element={<Tasks />} />
+                        <Route path="backlog" element={<Tasks initialScope="backlog" />} />
+                        <Route path="timesheet" element={<AdminTimesheets />} />
+                        <Route path="attendance" element={<Attendance />} />
+                        <Route path="meetings" element={<Meetings />} />
+                        <Route path="teams" element={<Teams />} />
+                        <Route path="projects" element={<Projects />} />
+                        <Route path="announcements" element={<AdminAnnouncements />} />
+                      </Route>
+
+                      {/* Shared, any authenticated role */}
+                      <Route element={<ProtectedRoute />}>
+                        <Route path="/settings" element={<ProfileSettings />} />
+                        <Route path="/alerts" element={<Alerts />} />
+                      </Route>
+
+                      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                    </Routes>
+                                      </Suspense>
                 </motion.div>
               </AnimatePresence>
             </ErrorBoundary>

@@ -6,10 +6,11 @@ import HourRankings from '../../components/dashboard/HourRankings';
 import WeeklyHoursChart from '../../components/dashboard/WeeklyHoursChart';
 import ProjectTaskHealth from '../../components/dashboard/ProjectTaskHealth';
 import WorkCategoryChart from '../../components/dashboard/WorkCategoryChart';
-
+import { useNavigate } from 'react-router-dom';
 const TODAY = new Date().toISOString().split('T')[0];
 
-export default function AdminDashboard({ setCurrentPage }) {
+export default function AdminDashboard() {
+  const navigate=useNavigate()
   const {
     currentUser, users, projects, tasks,
     timeEntries, reports, timerState,
@@ -87,7 +88,7 @@ export default function AdminDashboard({ setCurrentPage }) {
     }}>
 
       {/* Row 1 — KPI Cards */}
-      <KpiCards kpis={kpis} onNavigate={setCurrentPage} />
+      <KpiCards kpis={kpis} onNavigate={navigate} />
 
       {/* Row 2 — Staff Status | Weekly Hours | Work Category */}
       <div className="admin-dashboard-grid-1" style={{

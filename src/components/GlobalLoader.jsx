@@ -19,6 +19,14 @@ export default function GlobalLoader() {
         zIndex: 9999,
       }}
     >
+      <style>{`
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
+
       {/* Animated logo mark */}
       <div style={{ position: 'relative', width: 56, height: 56 }}>
         {/* Outer ring */}
@@ -28,8 +36,8 @@ export default function GlobalLoader() {
             inset: 0,
             borderRadius: '50%',
             border: '3px solid transparent',
-            borderTopColor: 'var(--primary, #6366f1)',
-            borderRightColor: 'var(--primary, #6366f1)',
+            borderTopColor: 'var(--primary, #0010ae)',
+            borderRightColor: 'var(--primary, #0010ae)',
             animation: 'spin 0.9s linear infinite',
           }}
         />
@@ -40,7 +48,7 @@ export default function GlobalLoader() {
             inset: 10,
             borderRadius: '50%',
             border: '2px solid transparent',
-            borderBottomColor: 'color-mix(in oklch, var(--primary, #6366f1) 50%, transparent)',
+            borderBottomColor: 'color-mix(in oklch, var(--primary, #0010ae) 50%, transparent)',
             animation: 'spin 1.4s linear infinite reverse',
           }}
         />

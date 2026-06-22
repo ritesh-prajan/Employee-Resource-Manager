@@ -58,7 +58,7 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
         transition: 'opacity 0.2s',
       }}
     >
-      {/* Type icon */}
+      {/* Type icon circle */}
       <div style={{
         width: 34, height: 34, borderRadius: '50%',
         backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
@@ -92,7 +92,7 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
           {!n.isRead && (
             <span style={{
               width: 6, height: 6, borderRadius: '50%',
-              backgroundColor: 'var(--primary)', flexShrink: 0,
+              backgroundColor: '#0010AE', flexShrink: 0,
             }} />
           )}
         </div>
@@ -164,7 +164,7 @@ export default function AlertCard({ notification: n, onNavigate, onToggleRead, o
         <button
           onClick={() => onNavigate(n)}
           title="View details"
-          style={actionBtn('var(--primary)')}
+          style={actionBtn('#0010AE')}
         >
           <ExternalLink size={13} />
         </button>
@@ -194,6 +194,6 @@ function actionBtn(accent) {
     width: 30, height: 30, borderRadius: 6,
     border: `1px solid color-mix(in srgb, ${accent} 30%, transparent)`,
     backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`,
-    color: accent, cursor: 'pointer',
+    color: accent, cursor: 'pointerr',
   };
 }

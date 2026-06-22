@@ -3,13 +3,14 @@ import { useApp } from '../../context/AppContext';
 import Schedulemeeting from '../../components/Meetings/Schedulemeeting';
 import DataTable from '../../components/ui/DataTable';
 import { Video, Trash2, Search } from 'lucide-react';
-
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 const tabs = ["Personal Meetings", "Meetings for Everyone"];
 
 export default function Meetings() { 
   const { currentUser } = useApp();
   // TODO: replace with API call
   const [live, setLive] = useState([]);
+  const [pendingcancelmeeting,setpendingcancelmeeting]=useState(null);
   const [upcoming, setUpcoming] = useState([]);
   const [completed, setCompleted] = useState([]);
   const [activetab, setactivetab] = useState("Personal Meetings");
@@ -44,7 +45,7 @@ export default function Meetings() {
     return [
       {
         id: "personal-live-1",
-        duration: 30,
+        duration: 30
         host: name,
         title: "1-on-1 Performance & Goal Alignment Sync",
         description: "Reviewing active tasks, roadmap scoping, and professional development milestones.",
@@ -183,9 +184,7 @@ export default function Meetings() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (confirm("Are you sure you want to cancel/delete this meeting?")) {
-                deleteMeeting(row.original.id);
-              }
+              setpendingcancelmeeting(row.original.id);
             }}
             className="text-red-500 hover:text-red-700 transition"
             title="Cancel/Delete Meeting"
@@ -253,6 +252,18 @@ export default function Meetings() {
       <div style={{ borderRadius: '1rem', border: '1px solid var(--border)', backgroundColor: 'var(--card)', padding: '0px', overflow: 'hidden' }}>
         <DataTable Data={activeMeetingsList} columns={columns} onRowClick={handleRowClick} />
       </div>
+      <ConfirmDialog
+      isOpen={!!pendingcancelmeeting}
+      onClose={()=>setpendingcancelmeeting(null)}
+      onConfirm={()=>{
+        if(pendingcancelmeeting){
+          deleteMeeting(pendingcancelmeeting.id)
+        }
+        setpendingcancelmeeting(null);
+      }}
+      title="Cancel Meeting"
+      message={`Are you sure you want to cancel/delete meeting "${pendingcancelmeeting?.name}"?`}
+      />
 
     </div>
   );

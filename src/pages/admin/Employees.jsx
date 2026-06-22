@@ -10,10 +10,11 @@ import EditEmployeeModal from '../../components/forms/admin/employee/EditEmploye
 import AssignTaskModal from '../../components/forms/admin/employee/AssignTaskModal';
 import ViewProfileModal from '../../components/forms/admin/employee/ViewProfileModal';
 import ReassignLeadModal from '../../components/forms/admin/employee/ReassignLeadModal';
-
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 export default function EmployeesPage() {
 const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee, editTeam, currentUser, createTask, editTask, employeesLoading, employeesError } = useApp();   const [searchQuery, setSearchQuery] = useState('');
   const [filterProjectBy, setFilterProjectBy] = useState('');
+  const [pendingdeleteemp,setpendingdeleteemp]=useState(null);
   const [filterTeamBy, setFilterTeamBy] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -249,18 +250,7 @@ const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee
                     setReassignTarget(user);
                     setShowReassignModal(true);
                   } else {
-                    if (window.confirm(`Remove ${user.name}?`)) {
-                      try {
-                        await deleteEmployee(user.id, 'Removed by admin');
-                      } catch (err) {
-                        try {
-                          const parsed = JSON.parse(err.message);
-                          alert(parsed.message || 'Failed to delete employee.');
-                        } catch {
-                          alert(err.message || 'Failed to delete employee.');
-                        }
-                      }
-                    }
+                    setpendingdeleteemp(user);
                   }
                 }}
                 title="Delete"
@@ -350,6 +340,23 @@ const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee
         setShowReassignModal(false);
         setReassignTarget(null);
       }}
+    />
+    <ConfirmDialog
+    isOpen={!!pendingdeleteemp}
+    onClose={()=>setpendingdeleteemp(null)}
+    onConfirm={async()=>{
+      if(pendingdeleteemp){
+        try{
+          await deleteEmployee(pendingdeleteemp.id,'Removed by admin');
+
+        }catch (err){
+          console.error(err);
+        }
+      }
+      setpendingdeleteemp(null);
+    }}
+    title="Remove Employee"
+    message={`Are you sure you want to remove "${pendingdeleteemp?.name}"?`}
     />
     </div>
   );

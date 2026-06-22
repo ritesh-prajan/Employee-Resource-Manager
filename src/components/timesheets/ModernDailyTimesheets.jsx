@@ -9,6 +9,7 @@ import { Coffee, X, Clock, Tag, FileText, CheckCircle, Search, Layers, Filter, B
 import ModernMonthlyTimesheets from "./ModernMonthlyTimesheets";
 import ManualTimeEntryModal from "../forms/timesheets/ManualTimeEntryModal";
 
+import ConfirmDialog from "../ui/ConfirmDialog";
 const keys = {
   groupIdKey: "id",
   groupTitleKey: "title",
@@ -39,7 +40,7 @@ const STATUS_META = {
 
 export default function Timesheets() {
   const { users, timeEntries, tasks, teams, projects, currentUser, editTimeEntry, deleteTimeEntry } = useApp();
-
+  const [pendingdeleteentryid,setpendingdeleteentryid]=useState(null);
   const [popup, setPopup] = useState(null);
   const [showManualModal, setShowManualModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
@@ -559,11 +560,10 @@ export default function Timesheets() {
         };
 
         const handleDelete = () => {
-          if (confirm("Are you sure you want to delete this time entry?")) {
-            deleteTimeEntry(popup.item.id);
-            setPopup(null);
-          }
-        };
+          setpendingdeleteentryid(popup.item.id)
+          setPopup(null)
+        }
+       
 
         return (
           <div className="fixed z-[999] rounded-2xl shadow-xl w-72 p-4 animate-in fade-in zoom-in-95 duration-150"
@@ -648,6 +648,19 @@ export default function Timesheets() {
         }}
         defaultDate={currentDate.format("YYYY-MM-DD")}
         editingEntry={editingEntry}
+      />
+      <ConfirmDialog
+      isOpen={!!pendingdeleteentryid}
+      onClose={()=>setpendingdeleteentryid(null)}
+      onConfirm={()=>{
+        if(pendingdeleteentryid){
+          deleteTimeEntry(pendingdeleteentryid);
+
+        }
+        setpendingdeleteentryid(null);
+      }}
+      title="Delete Time log"
+      message="Are you sure you want to delete this time entry?"
       />
 
     </div>

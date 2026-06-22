@@ -10,7 +10,7 @@ import TransferModal from '../../components/forms/tasks/TransferModal';
 import DataTable from '../../components/ui/DataTable';
 import SearchableSelect from '../../components/ui/SearchableSelect';
 import UserAvatar from '../../components/ui/UserAvatar';
-
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 export default function Tasks({ setCurrentPage, initialScope }) {
   const { currentUser, projects, users, timerState, clockIn, clockOut, cancelTimer, teams, etaExtensions, taskTransfers, addManualEntry, claimBacklogTask, requestClaimBacklogTask } = useApp();
 
@@ -41,7 +41,8 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   
   const [scope, setScope] = useState(initialScope || (isLeader ? 'all' : 'my'));
   React.useEffect(() => { if (initialScope) setScope(initialScope); }, [initialScope]);
-
+  const [pendingdeletetask,setpendingdeletetask]=useState(null);
+  const [pendingclaimtask,setpendingclaimtask]=useState(null)
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -446,7 +447,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
             {isLeader && (
               <button
-                onClick={() => { setEditingTask(task); setShowEditTaskModal(true); }}
+                onClick={(e) => {e.stopPropagation(); setEditingTask(task); setShowEditTaskModal(true); }}
                 title="Edit"
                 style={{ background: 'color-mix(in oklch, var(--chart-1) 8%, transparent)', border: 'none', color: 'var(--chart-1)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--chart-1) 15%, transparent)'}
@@ -456,7 +457,9 @@ export default function Tasks({ setCurrentPage, initialScope }) {
 
             {(isAdmin || isLeader) && (
               <button
-                onClick={() => { if (window.confirm(`Delete task "${task.name}"?`)) removeTask.mutate({ id: task.id }); }}
+                onClick={(e) =>{ 
+                  e.stopPropagation();
+                  setpendingdeletetask(task)}}
                 title="Delete"
                 style={{ background: 'color-mix(in oklch, var(--destructive) 8%, transparent)', border: 'none', color: 'var(--destructive)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 15%, transparent)'}
@@ -468,15 +471,10 @@ export default function Tasks({ setCurrentPage, initialScope }) {
 
             {scope === 'backlog' && !isAdmin && (
               <button
-                onClick={() => {
-                  if (window.confirm(`Claim "${task.name}"?`)) {
-                    if (isLeader) {
-                      claimBacklogTask(task.id);
-                    } else {
-                      requestClaimBacklogTask(task.id);
-                    }
-                  }
-                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+
+                  setpendingclaimtask(task)}}
                 title="Claim Task"
                 style={{ background: 'color-mix(in oklch, #22c55e 8%, transparent)', border: 'none', color: '#22c55e', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, #22c55e 15%, transparent)'}
@@ -692,6 +690,35 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           getDatetimeInputValue={getDatetimeInputValue}
         />
       </div>
+      <ConfirmDialog
+      isOpen={!!pendingdeletetask}
+      onClose={()=>setpendingdeletetask(null)}
+      onConfirm={()=>{
+        if(pendingdeletetask){
+          removeTask.mutate({id:pendingdeletetask.id});
+
+        }
+        setpendingdeletetask(null);
+      }}
+      title="Delete Task"
+      message={`Are you sure you want to delete task "${pendingdeletetask?.name}"?`}
+      />
+      <ConfirmDialog
+      isOpen={!!pendingclaimtask}
+      onClose={()=>setpendingclaimtask(null)}
+      onConfirm={()=>{
+        if(pendingclaimtask){
+          if(isLeader){
+            claimBacklogTask(pendingclaimtask.id)
+          }else{
+            requestClaimBacklogTask(pendingclaimtask.id);
+          }
+        }
+        setpendingclaimtask(null)
+      }}
+      title="Claim Task"
+      message={`Are you sure you want to claim task "${pendingclaimtask?.name}"?`}
+      />
     </div>
   );
 }

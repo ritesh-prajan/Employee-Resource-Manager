@@ -7,7 +7,7 @@ import CreateProjectModal from '../../components/forms/admin/projects/CreateProj
 import EditProjectModal from '../../components/forms/admin/projects/EditProjectModal';
 import ProjectDetailModal from '../../components/forms/admin/projects/ProjectDetailModal';
 import AvatarGroup from '../../components/ui/AvatarGroup';
-
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 export default function Projects() {
   const {
     currentUser,
@@ -17,7 +17,7 @@ export default function Projects() {
     teams,
     deleteProject,
   } = useApp();
-
+const [pendingdeleteproj,setpendingdeleteproj]=useState(null);
   const [filterTeamBy, setFilterTeamBy] = useState('');
   const [filterEmployeeBy, setFilterEmployeeBy] = useState('');
   const [showProjModal, setShowProjModal] = useState(false);
@@ -116,10 +116,9 @@ export default function Projects() {
           </button>
           <button
             className="rounded-lg border border-red-200 p-2 text-red-500 hover:bg-red-50"
-            onClick={() => {
-              if (window.confirm(`Delete project "${row.original.name}"?`)) {
-                deleteProject(row.original.id);
-              }
+            onClick={(e)=>{
+              e.stopPropagation();
+              setpendingdeleteproj(row.original)
             }}
             title="Delete Project"
           >
@@ -195,6 +194,19 @@ export default function Projects() {
         show={!!selectedProject}
         onClose={() => setSelectedProject(null)}
         project={selectedProject}
+      />
+
+      <ConfirmDialog
+      isOpen={!!pendingdeleteproj}
+      onClose={()=>setpendingdeleteproj(null)}
+      onConfirm={()=>{
+        if(pendingdeleteproj){
+          deleteProject(pendingdeleteproj.id);
+        }
+        setpendingdeleteproj(null);
+      }}
+      title="Delete Project"
+      message={`Are you sure you want to delete project "${pendingdeleteproj?.name}"?`}
       />
 
     </div>

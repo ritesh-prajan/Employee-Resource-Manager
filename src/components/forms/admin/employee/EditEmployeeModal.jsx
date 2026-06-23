@@ -125,10 +125,15 @@ export default function EditEmployeeModal({ show, onClose, user, users, teams, p
               <label className="form-label">ORGANIZATIONAL ROLE</label>
               <select className="input-control" value={editingUser.role} onChange={(e) => setEditingUser(prev => ({ ...prev, role: e.target.value }))}>
                 <option value="Employee">Employee</option>
-                <option value="Sub Lead">Sub Team Lead</option>
-                <option value="Team Lead">Team Lead</option>
+                
                 <option value="Admin">Administrator</option>
               </select>
+              {(editingUser.role==='Team Lead'|| editingUser.role==='Sub Lead')&&(
+                <p style={{fontSize:'0.75rem',color:'var(--text-muted,#888',marginTop:'4px'}}>
+                  This person is currently a {editingUser.role==="Team Lead"?'Team Lead':'Sub Lead'} based on team assingment,
+                  To change this, go to the Teams page and reassign the team's lead/sub-lead - it can't be set here directly.
+                </p>
+              )}
             </div>
             <div className="form-group">
               <label className="form-label">STATUS</label>

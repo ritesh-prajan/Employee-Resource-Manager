@@ -12,6 +12,8 @@ import { useTasks } from '../hooks/useTasks';
 import { useAuth } from '../hooks/useAuth';
 import { useTimer } from '../hooks/useTimer';
 import { useNotifications } from '../hooks/useNotifications';
+// useTimeEntries replaces the old useTimeEntries — it talks to the real backend
+// instead of keeping everything in local React state.
 import { useTimeEntries } from '../hooks/useTimeEntries';
 import { useMeetings } from '../hooks/useMeetings';
 import { useAnnouncements } from '../hooks/useAnnouncements';
@@ -191,23 +193,23 @@ export const AppProvider = ({ children }) => {
     const checkInTime = new Date(timerState.startTime);
     const todayStr = new Date().toISOString().split('T')[0];
     
+    // Build the shape timesheetService.create() expects and POST it to the backend.
+    // The old code built this with a fake id and pushed it into local state only.
+    // Now .mutate() sends it to the server; on success React Query re-fetches
+    // the timesheet list so the UI reflects the real database entry.
     const newEntry = {
-      id: `entry-${Date.now()}`,
-      userId: auth.currentUser?.id,
-      taskId: timerState.taskId,
-      projectId: timerState.projectId,
-      description: timerState.description,
-      date: todayStr,
-      startTime: checkInTime.toTimeString().slice(0, 5),
-      endTime: displayEndTime.toTimeString().slice(0, 5),
-      duration: durationHours.toString(),
-      status: 'Pending',
+      employeeId:   auth.currentUser?.id,
+      taskId:       timerState.taskId,
+      projectId:    timerState.projectId,
+      description:  timerState.description,
+      date:         todayStr,
+      startTime:    checkInTime.toTimeString().slice(0, 5),
+      endTime:      displayEndTime.toTimeString().slice(0, 5),
+      duration:     durationHours.toString(),
       workCategory: timerState.workCategory,
       justification
     };
-
-    // Save locally
-    timeEntriesHook.setTimeEntries(prev => [newEntry, ...prev]);
+    timeEntriesHook.addManualEntry.mutate(newEntry);
 
     // Update task status on backend if status is Open
     const activeTaskObj = tasks.find(t => t.id === timerState.taskId);
@@ -261,15 +263,10 @@ export const AppProvider = ({ children }) => {
     }
   }, [tasks, mutateUpdateTask]);
 
-  const timeEntriesHook = useTimeEntries({
-    currentUser: auth.currentUser,
-    tasks,
-    users,
-    teams,
-    onUpdateTaskStatus: handleUpdateTaskStatus,
-    onAddNotification: handleAddNotification,
-    enabled: auth.isAuthenticated
-  });
+  // useTimeEntries fetches from the real backend.
+  // We no longer pass currentUser/tasks/teams into the hook — the backend
+  // handles filtering. Pass { employeeId } if you want only one person's entries.
+  const timeEntriesHook = useTimeEntries();
 
   const meetingsHook = useMeetings({
     currentUser: auth.currentUser,
@@ -913,8 +910,8 @@ export const AppProvider = ({ children }) => {
         toggleBreak: timerHook.toggleBreak,
         clockOut: timerHook.clockOut,
         cancelTimer: timerHook.cancelTimer,
-        addManualEntry: timeEntriesHook.addManualEntry,
-        deleteTimeEntry: timeEntriesHook.deleteTimeEntry,
+        addManualEntry: (data) => timeEntriesHook.addManualEntry.mutate(data),
+        deleteTimeEntry: (id) => timeEntriesHook.deleteTimeEntry.mutate(id),
         createProject,
         deleteProject,
         createTask,
@@ -923,12 +920,18 @@ export const AppProvider = ({ children }) => {
         deleteEmployee,
         createTeam,
         deleteTeam,
-        submitTimesheetReport: timeEntriesHook.submitTimesheetReport,
-        unsubmitTimesheetReport: timeEntriesHook.unsubmitTimesheetReport,
+        // updateEntryStatus handles approve, reject, AND revert — all via
+        // PATCH /timesheets/:id/status with different status values.
+        // Call: updateEntryStatus.mutate({ id, status: 'Approved', managerComment: '' })
         updateEntryStatus: timeEntriesHook.updateEntryStatus,
-        approveTimesheetReport: timeEntriesHook.approveTimesheetReport,
-        revertEntryStatus: timeEntriesHook.revertEntryStatus,
-        revertTimesheetReport: timeEntriesHook.revertTimesheetReport,
+
+        // Reports (weekly submission workflow) have no backend endpoint yet.
+        // These remain as stubs so components don't crash. Connect them in Sprint 2.
+        submitTimesheetReport:   () => console.warn('submitTimesheetReport: no backend yet'),
+        unsubmitTimesheetReport: () => console.warn('unsubmitTimesheetReport: no backend yet'),
+        approveTimesheetReport:  () => console.warn('approveTimesheetReport: no backend yet'),
+        revertEntryStatus:       timeEntriesHook.updateEntryStatus, // revert = PATCH status→PENDING
+        revertTimesheetReport:   () => console.warn('revertTimesheetReport: no backend yet'),
         revertTaskCompletion,
         revertETAExtension: etaExtensionsHook.revertETAExtension,
         revertTaskTransfer: taskTransfersHook.revertTaskTransfer,
@@ -954,7 +957,10 @@ export const AppProvider = ({ children }) => {
         editProject,
         editTask,
         editEmployee,
-        editTimeEntry: timeEntriesHook.editTimeEntry,
+        // editTimeEntry had no backend equivalent in the old hook (local state only).
+        // For now, wire it to a no-op so components don't crash.
+        // Implement via a PUT /timesheets/:id endpoint when the backend is ready.
+        editTimeEntry: () => console.warn('editTimeEntry: no backend endpoint yet'),
         getAdjustedProjectColor,
         pageZoom,
         setPageZoom

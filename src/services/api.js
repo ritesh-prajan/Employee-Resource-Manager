@@ -1,4 +1,6 @@
-const BASE_URL =import.meta.env.VITE_API_URL||'/api/v1';
+const PROD_URL = 'https://api.elitecorp.in/api/v1';
+const LOCAL_URL = 'http://localhost:8080/api/v1';
+let activeBaseUrl = import.meta.env.VITE_API_URL || LOCAL_URL;
 
 const defaultHeaders = {
   'Content-Type': 'application/json',
@@ -15,22 +17,37 @@ async function request(method, path, body = null) {
     options.body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, options);
+  try {
+    const response = await fetch(`${activeBaseUrl}${path}`, options);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    const error = new Error(errorText || `Request failed: ${response.status}`);
-    error.status = response.status;
-    throw error;
+    if (!response.ok) {
+      const errorText = await response.text();
+      const error = new Error(errorText || `Request failed: ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
+    }
+
+    return response.text();
+  } catch (err) {
+    // If the local backend is not running/unreachable, switch to production API and retry
+    if (
+      activeBaseUrl === LOCAL_URL &&
+      (err.name === 'TypeError' ||
+        err.message?.includes('Failed to fetch') ||
+        err.status === 502 ||
+        err.status === 504)
+    ) {
+      console.warn('Local API on 8080 is unreachable. Falling back to Production API...');
+      activeBaseUrl = PROD_URL;
+      return request(method, path, body);
+    }
+    throw err;
   }
-
-  // Some responses (like delete) return plain text, not JSON
-  const contentType = response.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
-    return response.json();
-  }
-
-  return response.text();
 }
 
 export const api = {

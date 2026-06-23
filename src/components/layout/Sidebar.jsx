@@ -32,6 +32,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileSidebarOp
     (u.email && currentUser?.email && u.email.toLowerCase() === currentUser.email.toLowerCase()) ||
     (u.workEmail && currentUser?.email && u.workEmail.toLowerCase() === currentUser.email.toLowerCase())
   ) || currentUser;
+  console.log(displayUser.role)
 
   const userNotifications = notifications.filter(n => n.recipientId === currentUser.id);
   const unreadCount = userNotifications.filter(n => !n.isRead).length;

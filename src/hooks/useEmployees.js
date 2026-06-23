@@ -45,6 +45,10 @@ export function useEmployees(options = {}) {
         prev.map((e) => (e.id === updated.id ? updated : e))
       );
     },
+
+    onSuccess:()=>{
+      queryClient.invalidateQueries({queryKey:EMPLOYEES_KEY})
+    },
     onError: (err) => {
       console.error('Failed to update employee:', err);
     },

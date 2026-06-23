@@ -16,15 +16,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://api.elitecorp.in',
+        target: 'http://localhost:8080',
         changeOrigin: true,
-        secure: true,
-        configure: (proxy) => {
-          proxy.on('proxyReq', (proxyReq) => {
-            proxyReq.removeHeader('origin');
-            proxyReq.removeHeader('referer');
-          });
-        },
+        
       },
     },
   },

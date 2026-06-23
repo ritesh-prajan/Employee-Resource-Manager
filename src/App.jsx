@@ -130,7 +130,7 @@ function MainAppContent() {
       const isadmin=currentUser.role==='Admin';
       const islead=currentUser.role==='Team Lead'||currentUser.role==='Sub Lead'
       if(isadmin) navigate('/admin/dashboard',{replace:true})
-      if(islead) navigate('/lead/dashboard',{replace:true})
+      else if(islead) navigate('/lead/dashboard',{replace:true})
       else navigate('/dashboard',{replace:true})
     }
 

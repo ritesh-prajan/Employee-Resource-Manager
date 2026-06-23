@@ -1,102 +1,114 @@
-import { api } from './api';
+import { api } from "./api";
 
-// Backend → Frontend shape
-function mapEntry(entry) {
+function mapentry(entry){
+  const formatTime = (isoStr) => {
+    if (!isoStr) return '';
+    if (isoStr.includes('T')) {
+      return isoStr.split('T')[1].slice(0, 5);
+    }
+    return isoStr;
+  };
+
   return {
-    id:            entry.id,
-    employeeId:    entry.employee?.id || null,
-    taskId:        entry.task?.id || null,
-    projectId:     entry.project?.id || null,
-    date:          entry.date || '',
-    startTime:     entry.startTime || '',
-    endTime:       entry.endTime || '',
-    duration:      entry.durationHours ? entry.durationHours.toString() : '0',
+    id: entry.id,
+    employeeId: entry.employee?.id || null,
+    taskId: entry.task?.id || null,
+    projectId: entry.project?.id || null,
+    date: entry.date || '',
+    startTime: formatTime(entry.startTime),
+    endTime: formatTime(entry.endTime),
+    duration: entry.durationHours ? entry.durationHours.toString() : "0",
     durationHours: entry.durationHours || 0,
-    workCategory:  mapCategory(entry.workCategory),
-    description:   entry.description || '',
+    workCategory: mapcategory(entry.workCategory),
+    bugNumber: entry.bugNumber || '',
+    description: entry.description || '',
     justification: entry.justification || '',
-    status:        mapStatus(entry.status),
+    status: mapstatus(entry.status),
     managerComment: entry.managerComment || '',
   };
 }
 
-function mapStatus(status) {
-  const map = {
-    'PENDING':  'Pending',
-    'APPROVED': 'Approved',
-    'REJECTED': 'Rejected',
+function mapexit(exit){
+  const dateStr = exit.date || new Date().toISOString().split('T')[0];
+  const formatDateTime = (timeStr) => {
+    if (!timeStr) return null;
+    if (timeStr.includes('T')) return timeStr;
+    return `${dateStr}T${timeStr}:00`;
   };
-  return map[status] || status;
+
+  return {
+    employee: { id: exit.employeeId || exit.userId },
+    task: exit.taskId && exit.taskId !== 'Break' ? { id: Number(exit.taskId) } : null,
+    project: exit.projectId && exit.projectId !== 'Break' ? { id: Number(exit.projectId) } : null,
+    date: dateStr,
+    startTime: formatDateTime(exit.startTime),
+    endTime: formatDateTime(exit.endTime),
+    durationHours: parseFloat(exit.duration || exit.durationHours || 0),
+    workCategory: tobackendcategory(exit.workCategory),
+    description: exit.description || '',
+    justification: exit.justification || '',
+  };
 }
 
-function mapCategory(cat) {
-  const map = {
-    'STORY':   'Story',
-    'BUG':     'Bug',
-    'FEATURE': 'Feature',
-    'SUPPORT': 'Support',
-    'MEETING': 'Meeting',
-    'ADMIN':   'Admin',
+function mapstatus (status){
+  const map={
+    PENDING:"Pending",
+    APPROVED:'Approved',
+    REJECTED :'Rejected',
   };
-  return map[cat] || (cat || 'Story');
+  return map[status]||status;
 }
 
-function toBackendCategory(cat) {
-  const map = {
-    'Story':   'STORY',
-    'Bug':     'BUG',
-    'Feature': 'FEATURE',
-    'Support': 'SUPPORT',
-    'Meeting': 'MEETING',
-    'Admin':   'ADMIN',
+function mapcategory(category){
+  const map={
+    STORY:"Story",
+    BUG:'Bug',
+    FEATURE:'Feature',
+    SUPPORT:'Support',
+    MEETING:'Meeting',
+    ADMIN:'Admin',
+
   };
-  return map[cat] || (cat ? cat.toUpperCase() : 'STORY');
+  return map[category]||(category||'Story');
 }
 
-export const timesheetService = {
+function tobackendcategory(cat){
+  const map={
+    Story:'STORY',
+    Bug:'BUG',
+    Feature:'FEATURE',
+    Support:'SUPPORT',
+    Meeting:'MEETING',
+    Admin:'ADMIN',
 
-  // GET all entries (optionally filtered)
-  getAll: async (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    const data = await api.get(`/timesheets${qs ? '?' + qs : ''}`);
-    return data.map(mapEntry);
+  }
+  return map[cat] || (cat?cat.toUpperCase():'STORY')
+}
+
+export const timesheetService={
+  getAll:async(params={})=>{
+    const qs=new URLSearchParams(params).toString();
+    const data =await api.get(`/timesheets${qs?'?'+qs:''}`)
+    return data.map(mapentry)
   },
-
-  // GET by employee
-  getByEmployee: async (employeeId) => {
-    const data = await api.get(`/timesheets?employeeId=${employeeId}`);
-    return data.map(mapEntry);
+  getByEmployee:async(employeeid)=>{
+    const data=await api.get(`/timesheets?employeeId=${employeeid}`);
+    return data.map(mapentry)
   },
-
-  // POST create entry
-  create: async (entryData) => {
-    const body = {
-      employee:     { id: entryData.employeeId || entryData.userId },
-      task:         entryData.taskId    ? { id: entryData.taskId }    : null,
-      project:      entryData.projectId ? { id: entryData.projectId } : null,
-      date:         entryData.date,
-      startTime:    entryData.startTime,
-      endTime:      entryData.endTime,
-      durationHours: parseFloat(entryData.duration || entryData.durationHours || 0),
-      workCategory:  toBackendCategory(entryData.workCategory),
-      description:   entryData.description || '',
-      justification: entryData.justification || '',
-    };
-    const data = await api.post('/timesheets', body);
-    return mapEntry(data);
+  create:async(entrydata)=>{
+    const body=mapexit(entrydata);
+    const data=await api.post('/timesheets',body);
+    return mapentry(data);
   },
-
-  // PATCH update status (approve / reject)
-  updateStatus: async (id, status, managerComment = '') => {
-    const data = await api.patch(`/timesheets/${id}/status`, {
-      status: status.toUpperCase(),
+  updateStatus:async(id,status,managerComment='')=>{
+    const data=await api.patch(`/timesheets/${id}/status`,{
+      status:status.toUpperCase(),
       managerComment,
-    });
-    return mapEntry(data);
+    }
+    )
+    return mapentry(data);
   },
-
-  // DELETE entry
-  delete: async (id) => {
+  delete: async(id)=>{
     return api.delete(`/timesheets/${id}`);
-  },
-};
+  }
+}

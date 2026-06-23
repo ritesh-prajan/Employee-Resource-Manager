@@ -190,6 +190,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
 
     if (duration > 0) {
       addManualEntry({
+        employeeId:currentUser?.id,
         taskId: task.id,
         projectId: task.projectId,
         description: description || `Worked on task: ${task.name}`,

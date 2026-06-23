@@ -2,17 +2,73 @@ import React, { useState, useRef, useEffect } from "react";
 import moment from "moment";
 import { X, Clock, Tag, FileText } from "lucide-react";
 
-const getDayColor = (hours) => {
-  if (hours === 0) return null;
-  if (hours < 4) return { background: "#febbbbbe", borderWidth: "1px", borderStyle: "solid", borderColor: "#bfdbfe" };
-  if (hours < 8) return { background: "#006cf948", borderWidth: "1px", borderStyle: "solid", borderColor: "#93c5fd" };
-  return { background: "#dcfce7", borderWidth: "1px", borderStyle: "solid", borderColor: "#86efac" };
+const getDayColor = (hours, entries) => {
+  if (hours === 0 || !entries || entries.length === 0) return null;
+
+  const completedHrs = entries.filter(e => e.type === "completed").reduce((s, e) => s + e.hours, 0);
+  const pendingHrs = entries.filter(e => e.type === "pending").reduce((s, e) => s + e.hours, 0);
+  const breakHrs = entries.filter(e => e.type === "break").reduce((s, e) => s + e.hours, 0);
+
+  const parts = [];
+  if (completedHrs > 0) {
+    parts.push({ color: "#dcfce7", border: "#86efac", text: "#15803d", hrs: completedHrs });
+  }
+  if (pendingHrs > 0) {
+    parts.push({ color: "#dbeafe", border: "#93c5fd", text: "#1d4ed8", hrs: pendingHrs });
+  }
+  if (breakHrs > 0) {
+    parts.push({ color: "#fef9c3", border: "#fde047", text: "#854d0e", hrs: breakHrs });
+  }
+
+  if (parts.length === 0) {
+    return null;
+  }
+
+  if (parts.length === 1) {
+    const single = parts[0];
+    return {
+      background: single.color,
+      borderWidth: "1px",
+      borderStyle: "solid",
+      borderColor: single.border,
+      color: single.text,
+    };
+  }
+
+  // Generate linear-gradient
+  const activeTotal = parts.reduce((sum, p) => sum + p.hrs, 0);
+  let currentPct = 0;
+  const stops = [];
+  parts.forEach((p) => {
+    const pct = (p.hrs / activeTotal) * 100;
+    const start = currentPct;
+    const end = currentPct + pct;
+    stops.push(`${p.color} ${start.toFixed(1)}%`);
+    stops.push(`${p.color} ${end.toFixed(1)}%`);
+    currentPct = end;
+  });
+
+  // Find dominant part to determine border and text colors
+  let dominantPart = parts[0];
+  parts.forEach((p) => {
+    if (p.hrs > dominantPart.hrs) {
+      dominantPart = p;
+    }
+  });
+
+  return {
+    background: `linear-gradient(90deg, ${stops.join(", ")})`,
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: dominantPart.border,
+    color: dominantPart.text,
+  };
 };
 
 const LEGEND = [
-  { label: "1–4h (Partial)",        style: { background: "#febbbbbe", borderWidth: "1px", borderStyle: "solid", borderColor: "#bfdbfe" } },
-  { label: "4–8h (Standard)",       style: { background: "#006cf948", borderWidth: "1px", borderStyle: "solid", borderColor: "#93c5fd" } },
-  { label: "≥ 8h (Full / Overrun)", style: { background: "#dcfce7",   borderWidth: "1px", borderStyle: "solid", borderColor: "#86efac" } },
+  { label: "Approved",    style: { background: "#dcfce7", borderWidth: "1px", borderStyle: "solid", borderColor: "#86efac" } },
+  { label: "In Progress", style: { background: "#dbeafe", borderWidth: "1px", borderStyle: "solid", borderColor: "#93c5fd" } },
+  { label: "Break",       style: { background: "#fef9c3", borderWidth: "1px", borderStyle: "solid", borderColor: "#fde047" } },
 ];
 
 // ✅ Bug 3 fixed — defined here
@@ -153,7 +209,7 @@ export default function ModernMonthlyTimesheets({ groups, items, currentDate }) 
                   {days.map((day) => {
                     const dayItems = getDayItems(group.id, day);
                     const hours = dayItems.reduce((s, e) => s + e.hours, 0);
-                    const cellStyle = getDayColor(hours);
+                    const cellStyle = getDayColor(hours, dayItems);
                     const isActive = popup?.group?.id === group.id && popup?.day?.valueOf() === day.valueOf();
 
                     return (

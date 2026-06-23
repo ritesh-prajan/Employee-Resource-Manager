@@ -209,7 +209,7 @@ function MainAppContent() {
                         <Route path="attendance" element={<TeamAttendance />} />
                         <Route path="teams" element={<Teams />} />
                         <Route path="projects" element={<Projects />} />
-                        <Route path="approvals" element={<LeadRequests />} />
+                        <Route path="approvals" element={<Approvals />} />
                         <Route path="requests" element={<LeadRequests />} />
                         <Route path="announcements" element={<AdminAnnouncements />} />
                         <Route path="meetings" element={<Meetings />} />

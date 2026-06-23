@@ -74,13 +74,31 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
   const currentLogged = selectedTask ? (selectedTask.logged || 0) : 0;
   const eta = selectedTask ? parseFloat(selectedTask.eta || 0) : 0;
   const newDuration = parseFloat(duration) || 0;
-  const isEtaExceeded = selectedTask && (currentLogged + newDuration > eta);
+
+  // Hours overrun — logged time (including this new entry) exceeds the ETA hours estimate
+  const isHoursExceeded = selectedTask && eta > 0 && (currentLogged + newDuration > eta);
+
+  // Date overrun — the task's etaDate deadline has already passed (same check used in Tasks.jsx)
+  const completedStatuses = ['Completed', 'Pending Review'];
+  const isDateExceeded = !!(
+    selectedTask &&
+    selectedTask.etaDate &&
+    new Date(selectedTask.etaDate) < new Date() &&
+    !completedStatuses.includes(selectedTask.status)
+  );
+
+  const isEtaExceeded = isHoursExceeded || isDateExceeded;
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
     if (entryType === 'work' && !taskId) {
       alert('Please select a task.');
+      return;
+    }
+
+    if (entryType === 'work' && isEtaExceeded && !justification.trim()) {
+      alert('This task has exceeded its ETA. Please provide a justification before saving.');
       return;
     }
 
@@ -295,7 +313,13 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
                       <AlertTriangle size={16} style={{ shrink: 0, marginTop: '2px' }} />
                       <div>
                         <span style={{ fontWeight: 'bold' }}>ETA Limit Alert: </span>
-                        Adding {newDuration}h will bring the total logged time to {(currentLogged + newDuration).toFixed(2)}h, which exceeds the task's ETA of {eta}h. The task will be highlighted in red.
+                        {isDateExceeded && (
+                          <>This task's ETA date ({new Date(selectedTask.etaDate).toLocaleDateString()}) has already passed. </>
+                        )}
+                        {isHoursExceeded && (
+                          <>Adding {newDuration}h will bring the total logged time to {(currentLogged + newDuration).toFixed(2)}h, which exceeds the task's ETA of {eta}h. </>
+                        )}
+                        The task will be highlighted in red. Please provide a justification below.
                       </div>
                     </div>
                   )}

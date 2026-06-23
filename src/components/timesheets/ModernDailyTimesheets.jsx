@@ -366,7 +366,11 @@ export default function Timesheets() {
             <option value="All Categories">All Categories</option>
             <option value="Story">Story</option>
             <option value="Bug">Bug</option>
-            <option value="General">General</option>
+            <option value="Feature">Feature</option>
+            <option value="Support">Support</option>
+            <option value="Meeting">Meeting</option>
+            <option value="Admin">Admin</option>
+            <option value="Break">Break</option>
           </select>
         </div>
 
@@ -376,7 +380,8 @@ export default function Timesheets() {
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="All Statuses">All Statuses</option>
             <option value="Approved">Approved</option>
-            <option value="Pending">Pending Review</option>
+            <option value="Pending">Pending</option>
+            <option value="Rejected">Rejected</option>
           </select>
         </div>
 
@@ -464,10 +469,8 @@ export default function Timesheets() {
               stackItems
               itemHeightRatio={0.6}
               showCursorLine={false}
-              canMove={true}
-              canResize="both"
-              onItemMove={onItemMove}
-              onItemResize={onItemResize}
+              canMove={false}
+              canResize={false}
               groupRenderer={({ group }) => (
                 <div className="flex items-center h-full px-3">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"

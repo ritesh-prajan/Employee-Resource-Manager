@@ -582,9 +582,10 @@ export default function ClassicTimesheet() {
               <option value="Story">Story</option>
               <option value="Bug">Bug</option>
               <option value="Feature">Feature</option>
-              <option value="Review">Review</option>
-              <option value="R&D">R&D</option>
-              <option value="General">General</option>
+              <option value="Support">Support</option>
+              <option value="Meeting">Meeting</option>
+              <option value="Admin">Admin</option>
+              <option value="Break">Break</option>
             </select>
           </div>
 

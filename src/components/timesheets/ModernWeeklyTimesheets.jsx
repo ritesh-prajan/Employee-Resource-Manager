@@ -10,37 +10,63 @@ const getDaySummaryStyle = (entries) => {
   const pendingHours = entries.filter(e => e.type === "pending").reduce((s, e) => s + e.hours, 0);
   const breakHours = entries.filter(e => e.type === "break").reduce((s, e) => s + e.hours, 0);
 
-  const hasCompleted = completedHours > 0;
-  const hasPending = pendingHours > 0;
-  const hasBreak = breakHours > 0;
+  const parts = [];
+  if (completedHours > 0) {
+    parts.push({ color: "#dcfce7", border: "#86efac", text: "#15803d", hrs: completedHours });
+  }
+  if (pendingHours > 0) {
+    parts.push({ color: "#dbeafe", border: "#93c5fd", text: "#1d4ed8", hrs: pendingHours });
+  }
+  if (breakHours > 0) {
+    parts.push({ color: "#fef9c3", border: "#fde047", text: "#854d0e", hrs: breakHours });
+  }
 
-  if (hasCompleted && !hasPending && !hasBreak)
-    return { background: "#dcfce7", borderWidth: "1px", borderStyle: "solid", borderColor: "#86efac", color: "#15803d", label: totalHours.toFixed(1) };
+  if (parts.length === 0) {
+    return null;
+  }
 
-  if (hasPending && !hasCompleted && !hasBreak)
-    return { background: "#dbeafe", borderWidth: "1px", borderStyle: "solid", borderColor: "#93c5fd", color: "#1d4ed8", label: totalHours.toFixed(1) };
-
-  if (hasBreak && !hasCompleted && !hasPending)
-    return { background: "#fef9c3", borderWidth: "1px", borderStyle: "solid", borderColor: "#fde047", color: "#854d0e", label: null };
-
-  if (hasCompleted && hasPending) {
-    const completedPct = Math.round((completedHours / (completedHours + pendingHours)) * 100);
+  if (parts.length === 1) {
+    const single = parts[0];
+    const isOnlyBreak = completedHours === 0 && pendingHours === 0 && breakHours > 0;
     return {
-      background: `linear-gradient(90deg, #dcfce7 0%, #dcfce7 ${completedPct}%, #dbeafe ${completedPct}%, #dbeafe 100%)`,
-      borderWidth: "1px", borderStyle: "solid",
-      borderColor: completedPct > 50 ? "#86efac" : "#93c5fd",
-      color: completedPct > 50 ? "#15803d" : "#1d4ed8",
-      label: totalHours.toFixed(1),
+      background: single.color,
+      borderWidth: "1px",
+      borderStyle: "solid",
+      borderColor: single.border,
+      color: single.text,
+      label: isOnlyBreak ? null : totalHours.toFixed(1)
     };
   }
 
-  if (hasCompleted && hasBreak && !hasPending)
-    return { background: "#dcfce7", borderWidth: "1px", borderStyle: "solid", borderColor: "#86efac", color: "#15803d", label: totalHours.toFixed(1) };
+  // Generate linear-gradient
+  const activeTotal = parts.reduce((sum, p) => sum + p.hrs, 0);
+  let currentPct = 0;
+  const stops = [];
+  parts.forEach((p) => {
+    const pct = (p.hrs / activeTotal) * 100;
+    const start = currentPct;
+    const end = currentPct + pct;
+    stops.push(`${p.color} ${start.toFixed(1)}%`);
+    stops.push(`${p.color} ${end.toFixed(1)}%`);
+    currentPct = end;
+  });
 
-  if (hasPending && hasBreak && !hasCompleted)
-    return { background: "#dbeafe", borderWidth: "1px", borderStyle: "solid", borderColor: "#93c5fd", color: "#1d4ed8", label: totalHours.toFixed(1) };
+  // Find dominant part to determine border and text colors
+  let dominantPart = parts[0];
+  parts.forEach((p) => {
+    if (p.hrs > dominantPart.hrs) {
+      dominantPart = p;
+    }
+  });
 
-  return { background: "#f1f5f9", borderWidth: "1px", borderStyle: "solid", borderColor: "#cbd5e1", color: "#475569", label: totalHours.toFixed(1) };
+  return {
+    background: `linear-gradient(90deg, ${stops.join(", ")})`,
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: dominantPart.border,
+    color: dominantPart.text,
+    label: totalHours.toFixed(1)
+  };
 };
 
 const STATUS_META = {

@@ -920,17 +920,18 @@ export const AppProvider = ({ children }) => {
         deleteEmployee,
         createTeam,
         deleteTeam,
-        // updateEntryStatus handles approve, reject, AND revert — all via
-        // PATCH /timesheets/:id/status with different status values.
-        // Call: updateEntryStatus.mutate({ id, status: 'Approved', managerComment: '' })
-        updateEntryStatus: timeEntriesHook.updateEntryStatus,
+        // Plain-function wrappers so components can call these directly:
+        //   updateEntryStatus(id, 'Approved', comment)
+        //   revertEntryStatus(id)  → sets status back to Pending
+        updateEntryStatus: (id, status, managerComment = '') =>
+          timeEntriesHook.updateEntryStatus.mutate({ id, status, managerComment }),
+        revertEntryStatus: (id) =>
+          timeEntriesHook.updateEntryStatus.mutate({ id, status: 'Pending', managerComment: '' }),
 
-        // Reports (weekly submission workflow) have no backend endpoint yet.
-        // These remain as stubs so components don't crash. Connect them in Sprint 2.
+        // Reports — no backend endpoint yet
         submitTimesheetReport:   () => console.warn('submitTimesheetReport: no backend yet'),
         unsubmitTimesheetReport: () => console.warn('unsubmitTimesheetReport: no backend yet'),
         approveTimesheetReport:  () => console.warn('approveTimesheetReport: no backend yet'),
-        revertEntryStatus:       timeEntriesHook.updateEntryStatus, // revert = PATCH status→PENDING
         revertTimesheetReport:   () => console.warn('revertTimesheetReport: no backend yet'),
         revertTaskCompletion,
         revertETAExtension: etaExtensionsHook.revertETAExtension,

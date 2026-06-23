@@ -12,6 +12,7 @@ function mapentry(entry){
   return {
     id: entry.id,
     employeeId: entry.employee?.id || null,
+    userId:entry.employee?.id||null,
     taskId: entry.task?.id || null,
     projectId: entry.project?.id || null,
     date: entry.date || '',
@@ -38,12 +39,12 @@ function mapexit(exit){
 
   return {
     employee: { id: exit.employeeId || exit.userId },
-    task: exit.taskId && exit.taskId !== 'Break' ? { id: Number(exit.taskId) } : null,
+    task: (exit.taskId && exit.taskId !== 'Break' && exit.taskId !== '') ? { id: Number(exit.taskId) } : null,
     project: exit.projectId && exit.projectId !== 'Break' ? { id: Number(exit.projectId) } : null,
     date: dateStr,
     startTime: formatDateTime(exit.startTime),
     endTime: formatDateTime(exit.endTime),
-    durationHours: parseFloat(exit.duration || exit.durationHours || 0),
+    durationHours: exit.duration ? Number(exit.duration) : (exit.durationHours || 0),
     workCategory: tobackendcategory(exit.workCategory),
     description: exit.description || '',
     justification: exit.justification || '',
@@ -55,7 +56,7 @@ function mapstatus (status){
     PENDING:"Pending",
     APPROVED:'Approved',
     REJECTED :'Rejected',
-  };
+  };a
   return map[status]||status;
 }
 
@@ -67,7 +68,7 @@ function mapcategory(category){
     SUPPORT:'Support',
     MEETING:'Meeting',
     ADMIN:'Admin',
-
+    BREAK:'Break',
   };
   return map[category]||(category||'Story');
 }
@@ -80,9 +81,9 @@ function tobackendcategory(cat){
     Support:'SUPPORT',
     Meeting:'MEETING',
     Admin:'ADMIN',
-
+    Break:'BREAK',
   }
-  return map[cat] || (cat?cat.toUpperCase():'STORY')
+  return map[cat] ||'STORY';
 }
 
 export const timesheetService={

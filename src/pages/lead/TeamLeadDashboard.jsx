@@ -11,6 +11,7 @@ import MemberLoadChart from '../../components/teamlead/MemberLoadChart';
 import WeeklyTeamHoursChart from '../../components/teamlead/WeeklyTeamHoursChart';
 import MemberPerformanceTable from '../../components/teamlead/MemberPerformanceTable';
 import ProjectProgressPanel from '../../components/teamlead/ProjectProgressPanel';
+import WorkCategoryChart from '../../components/dashboard/WorkCategoryChart';
 import { getLast7Days, TODAY } from '../../utils/dateHelpers';
 import { useNavigate } from 'react-router-dom';
 
@@ -38,6 +39,11 @@ export default function TeamLeadDashboard() {
   const teamTasks = useMemo(() =>
     tasks.filter(t => memberIds.some(mid => String(mid) === String(t.assignedTo))),
     [tasks, memberIds]
+  );
+
+  const teamTimeEntries = useMemo(() =>
+    timeEntries.filter(e => memberIds.some(mid => String(mid) === String(e.userId))),
+    [timeEntries, memberIds]
   );
 
   const teamProjectIds = useMemo(() => {
@@ -115,7 +121,7 @@ export default function TeamLeadDashboard() {
         })}
       </div>
 
-      <div className="lead-dashboard-grid-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: '0.875rem', height: '260px', flexShrink: 0 }}>
+      <div className="lead-dashboard-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.875rem', height: '260px', flexShrink: 0 }}>
         <ChartCard title="Task Status Breakdown" icon={CheckSquare} accent="#3b82f6">
           <TaskStatusDonut tasks={teamTasks} />
         </ChartCard>
@@ -127,6 +133,7 @@ export default function TeamLeadDashboard() {
         <ChartCard title="Team Hours (Last 7 Days)" icon={TrendingUp} accent="#10b981">
           <WeeklyTeamHoursChart timeEntries={timeEntries} memberIds={memberIds} />
         </ChartCard>
+        <WorkCategoryChart timeEntries={teamTimeEntries} />
       </div>
 
       <div className="lead-dashboard-grid-2" style={{ display: 'grid', gridTemplateColumns: '3fr 1.4fr', gap: '0.875rem', height: '300px', flexShrink: 0 }}>

@@ -10,6 +10,7 @@ import EmployeeKpiCards from '../../components/dashboard/EmployeeKpiCards';
 import ChartCard from '../../components/teamlead/ChartCard';
 import TaskStatusDonut from '../../components/teamlead/TaskStatusDonut';
 import ProjectProgressPanel from '../../components/teamlead/ProjectProgressPanel';
+import WorkCategoryChart from '../../components/dashboard/WorkCategoryChart';
 import { getLast7Days, fmtDay, TODAY } from '../../utils/dateHelpers';
 
 export default function EmployeeDashboard() {
@@ -35,6 +36,11 @@ export default function EmployeeDashboard() {
   const myProjects = useMemo(() =>
     projects.filter(p => (p.members || []).some(mId => String(mId) === String(currentUser.id))),
     [projects, currentUser.id]
+  );
+
+  const myTimeEntries = useMemo(() =>
+    timeEntries.filter(e => String(e.userId) === String(currentUser.id)),
+    [timeEntries, currentUser.id]
   );
 
   const weekStart = getLast7Days()[0];
@@ -106,7 +112,7 @@ export default function EmployeeDashboard() {
       <EmployeeKpiCards kpis={kpiValues} onNavigate={navigate} />
 
       {/* Row 2: Task Status & Hours Chart */}
-      <div className="employee-dashboard-grid-1" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.875rem', height: '280px', flexShrink: 0 }}>
+      <div className="employee-dashboard-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.875rem', height: '280px', flexShrink: 0 }}>
         
         {/* Task Status Breakdown */}
         <ChartCard title="My Task Breakdown" icon={CheckSquare} accent="#3b82f6">
@@ -140,6 +146,8 @@ export default function EmployeeDashboard() {
             </ResponsiveContainer>
           </div>
         </ChartCard>
+
+        <WorkCategoryChart timeEntries={myTimeEntries} />
       </div>
 
       {/* Row 3: Active Tasks & Project Progress */}

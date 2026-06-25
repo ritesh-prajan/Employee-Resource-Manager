@@ -16,6 +16,8 @@ export default function Schedulemeeting({ onSchedule }) {
   const [selectedTask, setSelectedTask] = useState("");
   const [selectedAttendees, setSelectedAttendees] = useState([]);
   const [participantSearch, setParticipantSearch] = useState("");
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceDays, setRecurrenceDays] = useState([]);
 
   const checkboxRef = useRef(null);
 
@@ -47,7 +49,9 @@ export default function Schedulemeeting({ onSchedule }) {
         linkedTask: taskObj ? taskObj.taskNumber || "TASK-0000" : null,
         attendees: attendeeInitials,
         scheduledAt: dateTime,
-        joinUrl: meetingLink.trim() || "#"
+        joinUrl: meetingLink.trim() || "#",
+        isRecurring,
+        recurrenceDays: isRecurring ? recurrenceDays : []
       });
     }
 
@@ -61,6 +65,8 @@ export default function Schedulemeeting({ onSchedule }) {
     setSelectedTask("");
     setSelectedAttendees([]);
     setParticipantSearch("");
+    setIsRecurring(false);
+    setRecurrenceDays([]);
     setOpen(false);
   };
 
@@ -74,6 +80,8 @@ export default function Schedulemeeting({ onSchedule }) {
     setSelectedTask("");
     setSelectedAttendees([]);
     setParticipantSearch("");
+    setIsRecurring(false);
+    setRecurrenceDays([]);
     setOpen(false);
   };
 
@@ -273,6 +281,52 @@ export default function Schedulemeeting({ onSchedule }) {
                     }}
                   />
                 </div>
+              </div>
+
+              <div className="form-group border border-slate-100 rounded-xl p-3 bg-slate-50/50">
+                <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700 select-none">
+                  <input
+                    type="checkbox"
+                    checked={isRecurring}
+                    onChange={(e) => setIsRecurring(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-[#0010AE] focus:ring-[#0010AE] cursor-pointer"
+                  />
+                  <span>Recurring Meeting</span>
+                </label>
+                
+                {isRecurring && (
+                  <div className="mt-3">
+                    <label className="mb-2 block font-semibold text-xs text-slate-600 uppercase tracking-wider">
+                      Repeat on (Days of the week)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => {
+                        const isSelected = recurrenceDays.includes(day);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setRecurrenceDays(prev => prev.filter(d => d !== day));
+                              } else {
+                                setRecurrenceDays(prev => [...prev, day]);
+                              }
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer select-none"
+                            style={{
+                              backgroundColor: isSelected ? '#0010AE' : 'white',
+                              color: isSelected ? 'white' : '#475569',
+                              borderColor: isSelected ? '#0010AE' : '#CBD5E1',
+                            }}
+                          >
+                            {day.slice(0, 3)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">

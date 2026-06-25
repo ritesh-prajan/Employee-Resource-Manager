@@ -184,7 +184,7 @@ export default function Meetings() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setpendingcancelmeeting(row.original.id);
+              setpendingcancelmeeting(row.original);
             }}
             className="text-red-500 hover:text-red-700 transition"
             title="Cancel/Delete Meeting"
@@ -262,7 +262,7 @@ export default function Meetings() {
         setpendingcancelmeeting(null);
       }}
       title="Cancel Meeting"
-      message={`Are you sure you want to cancel/delete meeting "${pendingcancelmeeting?.name}"?`}
+      message={`Are you sure you want to cancel/delete meeting "${pendingcancelmeeting?.title || ''}"?`}
       />
 
     </div>

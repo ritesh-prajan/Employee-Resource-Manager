@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
+import { dispatchMorningBriefing, dispatchEodReport } from '../services/webhookService';
 // ─── tiny helpers ──────────────────────────────────────────────────────────
 const NOTIF_OPTIONS = ['ALL', 'IN_APP', 'EMAIL', 'NONE'];
 
@@ -153,7 +154,10 @@ function ChangePasswordBlock({ currentUser, editEmployee, verifyPassword }) {
 
 // ─── Main page ──────────────────────────────────────────────────────────────
 export default function ProfileSettings() {
-    const { currentUser, editEmployee, verifyPassword, users, pageZoom, setPageZoom } = useApp();
+    const { 
+      currentUser, editEmployee, verifyPassword, users, pageZoom, setPageZoom,
+      adminSettings = {}, setAdminSettings, tasks = [], timeEntries = [], meetings = [], attendanceHistory = [], timerState = {}, reports = []
+    } = useApp();
     const { theme, toggleTheme } = useTheme();
 
     // Resolve full profile from the employees list — currentUser right after login
@@ -167,6 +171,101 @@ export default function ProfileSettings() {
   const [editing, setEditing]   = useState(false);
   const [form, setForm]         = useState({});
   const [saved, setSaved]       = useState(false);
+
+  const [dispatchingMorning, setDispatchingMorning] = useState(false);
+  const [dispatchingEod, setDispatchingEod] = useState(false);
+  const [webhookStatus, setWebhookStatus] = useState(null);
+
+  const handleDispatchMorning = async () => {
+    if (!adminSettings.morningWebhookUrl) {
+      setWebhookStatus({ type: 'error', message: 'Please specify a Morning Webhook URL first.' });
+      return;
+    }
+    setDispatchingMorning(true);
+    setWebhookStatus(null);
+
+    try {
+      const TODAY_STR = new Date().toISOString().split('T')[0];
+      const staffCount = users.filter(u => u.role !== 'Admin').length;
+      
+      // Calculate online status
+      let onlineCount = 0;
+      users.filter(u => u.role !== 'Admin').forEach(u => {
+        const att = (attendanceHistory || []).find(a => a.employeeId === u.id && a.date === TODAY_STR);
+        if (att && att.clockStatus !== 'Offline') {
+          onlineCount++;
+        }
+      });
+      if (currentUser?.role !== 'Admin' && timerState?.isClockedIn) {
+        onlineCount++;
+      }
+
+      const activeTasksCount = tasks.filter(t => t.status?.toUpperCase() === 'IN_PROGRESS').length;
+      
+      // Filter upcoming meetings scheduled for today
+      const upcomingMeetings = (meetings || []).filter(m => {
+        if (!m.scheduledAt) return false;
+        const meetDate = new Date(m.scheduledAt).toISOString().split('T')[0];
+        return meetDate === TODAY_STR;
+      });
+
+      await dispatchMorningBriefing(adminSettings.morningWebhookUrl, {
+        staffCount,
+        onlineCount,
+        activeTasksCount,
+        upcomingMeetings
+      });
+
+      setWebhookStatus({ type: 'success', message: 'Morning Briefing webhook dispatched successfully.' });
+    } catch (error) {
+      setWebhookStatus({ type: 'error', message: error.message || 'Dispatch failed.' });
+    } finally {
+      setDispatchingMorning(false);
+    }
+  };
+
+  const handleDispatchEod = async () => {
+    if (!adminSettings.eodWebhookUrl) {
+      setWebhookStatus({ type: 'error', message: 'Please specify an EOD Webhook URL first.' });
+      return;
+    }
+    setDispatchingEod(true);
+    setWebhookStatus(null);
+
+    try {
+      const TODAY_STR = new Date().toISOString().split('T')[0];
+      
+      // Total hours logged today
+      const todayEntries = (timeEntries || []).filter(e => e.date === TODAY_STR);
+      const totalHours = todayEntries.reduce((sum, e) => sum + parseFloat(e.duration || 0), 0);
+
+      // Tasks completed today
+      const completedTasksCount = tasks.filter(t => {
+        if (t.status?.toUpperCase() !== 'COMPLETED') return false;
+        if (t.updatedAt) {
+          return t.updatedAt.split('T')[0] === TODAY_STR;
+        }
+        return false;
+      }).length;
+
+      // Pending approvals
+      const pendingApprovalsCount = (reports || []).filter(r =>
+        r.status === 'Submitted' || r.status?.includes('Pending')
+      ).length;
+
+      await dispatchEodReport(adminSettings.eodWebhookUrl, {
+        totalHours,
+        completedTasksCount,
+        pendingApprovalsCount
+      });
+
+      setWebhookStatus({ type: 'success', message: 'End-of-Day Report webhook dispatched successfully.' });
+    } catch (error) {
+      setWebhookStatus({ type: 'error', message: error.message || 'Dispatch failed.' });
+    } finally {
+      setDispatchingEod(false);
+    }
+  };
 
   // Seed form from profile whenever it changes (e.g. after save syncs back)
   useEffect(() => {
@@ -499,6 +598,142 @@ export default function ProfileSettings() {
 
         </div>
       </div>
+
+      {/* ── Admin Settings Section ── */}
+      {currentUser?.role === 'Admin' && (
+        <div style={{ marginTop: '0.5rem' }}>
+          <Section title="Administration Controls & Integrations" icon={Shield}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              {/* Policy & Time settings */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>Policies &amp; Thresholds</h4>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Missing Timesheet Policy
+                  </label>
+                  <select
+                    value={adminSettings.missingTimesheetPolicy || 'LOP'}
+                    onChange={(e) => setAdminSettings(prev => ({ ...prev, missingTimesheetPolicy: e.target.value }))}
+                    className="input-control"
+                    style={{ fontSize: '0.85rem', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--secondary)', color: 'var(--foreground)' }}
+                  >
+                    <option value="LOP">LOP (Loss of Pay)</option>
+                    <option value="Leave">Leave Deduction</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Late Clock-In Time Limit
+                  </label>
+                  <input
+                    type="time"
+                    value={adminSettings.lateClockInTime || '10:00'}
+                    onChange={(e) => setAdminSettings(prev => ({ ...prev, lateClockInTime: e.target.value }))}
+                    className="input-control"
+                    style={{ fontSize: '0.85rem', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--secondary)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              </div>
+
+              {/* Webhooks configuration */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>Microsoft Teams Integration Webhooks</h4>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Morning Briefing Webhook URL
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://outlook.office.com/webhook/..."
+                    value={adminSettings.morningWebhookUrl || ''}
+                    onChange={(e) => setAdminSettings(prev => ({ ...prev, morningWebhookUrl: e.target.value }))}
+                    className="input-control"
+                    style={{ fontSize: '0.85rem', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--secondary)', color: 'var(--foreground)' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    End-of-Day Report Webhook URL
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://outlook.office.com/webhook/..."
+                    value={adminSettings.eodWebhookUrl || ''}
+                    onChange={(e) => setAdminSettings(prev => ({ ...prev, eodWebhookUrl: e.target.value }))}
+                    className="input-control"
+                    style={{ fontSize: '0.85rem', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--secondary)', color: 'var(--foreground)' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Warning and Action Buttons */}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.25rem', marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{
+                fontSize: '0.78rem',
+                color: 'var(--muted-foreground)',
+                padding: '0.75rem 1rem',
+                background: 'color-mix(in oklch, var(--primary) 6%, transparent)',
+                border: '1px solid color-mix(in oklch, var(--primary) 15%, transparent)',
+                borderRadius: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px'
+              }}>
+                <span style={{ fontWeight: 700, color: 'var(--primary)' }}>⚠️ Webhook Orchestration Note</span>
+                <span>Production report schedules should run on the Spring Boot backend server. Client-side dispatch is provided for verification and on-demand testing. Webhook endpoints must support CORS or be tested from a browser environment with relaxed security.</span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleDispatchMorning}
+                  disabled={dispatchingMorning}
+                  style={{
+                    padding: '0.5rem 1.25rem', borderRadius: '8px', cursor: 'pointer',
+                    fontSize: '0.8rem', fontWeight: 650,
+                    background: '#0010AE', color: '#ffffff', border: 'none',
+                    opacity: dispatchingMorning ? 0.7 : 1
+                  }}
+                >
+                  {dispatchingMorning ? 'Dispatching...' : 'Dispatch Morning Briefing (Test)'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDispatchEod}
+                  disabled={dispatchingEod}
+                  style={{
+                    padding: '0.5rem 1.25rem', borderRadius: '8px', cursor: 'pointer',
+                    fontSize: '0.8rem', fontWeight: 650,
+                    background: '#0010AE', color: '#ffffff', border: 'none',
+                    opacity: dispatchingEod ? 0.7 : 1
+                  }}
+                >
+                  {dispatchingEod ? 'Dispatching...' : 'Dispatch End-of-Day Report (Test)'}
+                </button>
+              </div>
+
+              {webhookStatus && (
+                <div style={{
+                  fontSize: '0.8rem',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '6px',
+                  backgroundColor: webhookStatus.type === 'success' ? '#22c55e10' : '#ef444410',
+                  color: webhookStatus.type === 'success' ? '#22c55e' : '#ef4444',
+                  border: `1px solid ${webhookStatus.type === 'success' ? '#22c55e30' : '#ef444430'}`
+                }}>
+                  {webhookStatus.message}
+                </div>
+              )}
+            </div>
+          </Section>
+        </div>
+      )}
     </div>
   );
 }

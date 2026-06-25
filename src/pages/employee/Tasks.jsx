@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, AlertTriangle, Filter, Pencil, Trash2, CheckCircle } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Filter, Pencil, Trash2, CheckCircle, ChevronUp, RotateCcw } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTasks } from '../../hooks/useTasks';
@@ -600,6 +600,36 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                 onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--primary) 8%, transparent)'}
               >
                 <CheckCircle size={14} /> Submit
+              </button>
+            )}
+
+            {scope !== 'backlog' && task.assignedTo === currentUser.id && task.status === 'Pending Review' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUnsubmitReview(task.id);
+                }}
+                title="Unsubmit Review"
+                style={{ background: 'color-mix(in oklch, var(--destructive) 8%, transparent)', border: 'none', color: 'var(--destructive)', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700 }}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 15%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 8%, transparent)'}
+              >
+                <ChevronUp size={14} /> Unsubmit
+              </button>
+            )}
+
+            {scope !== 'backlog' && (isAdmin || ledMemberIds.has(String(task.assignedTo))) && (task.completionReviewStatus === 'APPROVED' || task.completionReviewStatus === 'REJECTED') && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUndoReview(task.id);
+                }}
+                title="Undo Decision"
+                style={{ background: 'color-mix(in oklch, var(--secondary) 15%, transparent)', border: 'none', color: 'var(--foreground)', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700 }}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--secondary) 25%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--secondary) 15%, transparent)'}
+              >
+                <RotateCcw size={14} /> Undo
               </button>
             )}
 

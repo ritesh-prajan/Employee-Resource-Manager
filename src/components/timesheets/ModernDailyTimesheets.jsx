@@ -25,6 +25,14 @@ const keys = {
 
 const VIEW_MODES = { DAY: "day", WEEK: "week", MONTH: "month" };
 const PER_PAGE_OPTIONS = [5, 10, 15, 20];
+const HOUR_OPTIONS = [
+  { value: '', label: 'All Hours' },
+  ...Array.from({ length: 24 }, (_, i) => {
+    const ampm = i >= 12 ? 'PM' : 'AM';
+    const displayHour = i % 12 === 0 ? 12 : i % 12;
+    return { value: String(i), label: `${displayHour} ${ampm}` };
+  })
+];
 
 const ITEM_STYLES = {
   completed: { background: "#dcfce7", border: "1px solid #86efac", color: "#15803d" },
@@ -57,6 +65,8 @@ export default function Timesheets() {
   const [projectFilter, setProjectFilter] = useState("All Projects");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const [statusFilter, setStatusFilter] = useState("All Statuses");
+  const [startHourFilter, setStartHourFilter] = useState("");
+  const [endHourFilter, setEndHourFilter] = useState("");
 
   const isEmployee = currentUser?.role === 'Employee';
 
@@ -94,6 +104,14 @@ export default function Timesheets() {
     if (statusFilter !== "All Statuses" && e.status !== statusFilter) return false;
     if (categoryFilter !== "All Categories" && e.workCategory !== categoryFilter) return false;
     if (projectFilter !== "All Projects" && e.projectId !== projectFilter) return false;
+    if (startHourFilter !== '') {
+      const entryHour = parseInt(e.startTime.split(':')[0]);
+      if (isNaN(entryHour) || entryHour < parseInt(startHourFilter)) return false;
+    }
+    if (endHourFilter !== '') {
+      const entryHour = parseInt(e.endTime.split(':')[0]);
+      if (isNaN(entryHour) || entryHour > parseInt(endHourFilter)) return false;
+    }
     return true;
   });
 
@@ -385,6 +403,19 @@ export default function Timesheets() {
             <option value="Approved">Approved</option>
             <option value="Pending">Pending</option>
             <option value="Rejected">Rejected</option>
+          </select>
+        </div>
+
+        {/* Hour range filters */}
+        <div className="flex items-center gap-1.5">
+          <Clock size={14} style={{ color: "var(--muted-foreground)" }} />
+          <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Hours:</span>
+          <select value={startHourFilter} onChange={e => setStartHourFilter(e.target.value)}>
+            {HOUR_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+          </select>
+          <span className="text-xs text-slate-400">—</span>
+          <select value={endHourFilter} onChange={e => setEndHourFilter(e.target.value)}>
+            {HOUR_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
           </select>
         </div>
 

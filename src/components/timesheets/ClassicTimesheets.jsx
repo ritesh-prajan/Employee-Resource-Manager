@@ -22,6 +22,14 @@ const TYPE_STYLES = {
 };
 
 const AVATAR_COLORS = ["#6366F1","#10B981","#F59E0B","#EF4444","#8B5CF6","#06B6D4","#EC4899"];
+const HOUR_OPTIONS = [
+  { value: '', label: 'All Hours' },
+  ...Array.from({ length: 24 }, (_, i) => {
+    const ampm = i >= 12 ? 'PM' : 'AM';
+    const displayHour = i % 12 === 0 ? 12 : i % 12;
+    return { value: String(i), label: `${displayHour} ${ampm}` };
+  })
+];
 function avatarColor(name) {
   if (!name) return AVATAR_COLORS[0];
   let h = 0;
@@ -226,6 +234,8 @@ export default function ClassicTimesheet() {
   const [projectFilter,   setProjectFilter]   = useState("all");
   const [categoryFilter,  setCategoryFilter]  = useState("all");
   const [statusFilter,    setStatusFilter]    = useState("all");
+  const [startHourFilter, setStartHourFilter] = useState("");
+  const [endHourFilter,   setEndHourFilter]   = useState("");
 
   const [selectedSubjectId, setSelectedSubjectId] = useState(null);
   const [fromWeekId, setFromWeekId] = useState(null);
@@ -381,9 +391,17 @@ export default function ClassicTimesheet() {
         const taskMatch = e.task.toLowerCase().includes(searchQuery.toLowerCase());
         if (!nameMatch && !taskMatch) return false;
       }
+      if (startHourFilter !== '') {
+        const entryHour = parseInt(e.start.split(':')[0]);
+        if (isNaN(entryHour) || entryHour < parseInt(startHourFilter)) return false;
+      }
+      if (endHourFilter !== '') {
+        const entryHour = parseInt(e.end.split(':')[0]);
+        if (isNaN(entryHour) || entryHour > parseInt(endHourFilter)) return false;
+      }
       return true;
     });
-  }, [targetUserIds, allEntries, visibleWeeks, categoryFilter, statusFilter, projectFilter, teamFilter, roleFilter, searchQuery, teams, users]);
+  }, [targetUserIds, allEntries, visibleWeeks, categoryFilter, statusFilter, projectFilter, teamFilter, roleFilter, searchQuery, startHourFilter, endHourFilter, teams, users]);
 
   const totalHours   = filteredEntries.reduce((s,e) => s + e.totalHours, 0);
   const regularHours = totalHours;
@@ -398,12 +416,13 @@ export default function ClassicTimesheet() {
     return pills;
   }, [filteredEntries, classifyBy, users]);
 
-  const activeFilters = [teamFilter,roleFilter,projectFilter,categoryFilter,statusFilter,searchQuery]
+  const activeFilters = [teamFilter,roleFilter,projectFilter,categoryFilter,statusFilter,searchQuery,startHourFilter,endHourFilter]
     .filter(f => f && f !== "all" && f !== "").length;
 
   const clearAllFilters = () => {
     setSearchQuery(""); setTeamFilter("all"); setRoleFilter("all");
     setProjectFilter("all"); setCategoryFilter("all"); setStatusFilter("all");
+    setStartHourFilter(""); setEndHourFilter("");
   };
 
   const toggleWeek  = id => setOpenWeeks(prev => ({ ...prev, [id]: !prev[id] }));
@@ -619,6 +638,19 @@ export default function ClassicTimesheet() {
               <option value="Approved">Approved</option>
               <option value="Pending">Pending</option>
               <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+
+          {/* Hour range filters */}
+          <div className="flex items-center gap-1.5">
+            <Clock size={13} style={{ color: "var(--muted-foreground)" }} />
+            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>Hours:</span>
+            <select value={startHourFilter} onChange={e => setStartHourFilter(e.target.value)}>
+              {HOUR_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            </select>
+            <span className="text-xs text-slate-400">—</span>
+            <select value={endHourFilter} onChange={e => setEndHourFilter(e.target.value)}>
+              {HOUR_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
           </div>
 

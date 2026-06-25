@@ -54,6 +54,8 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedPriority, setSelectedPriority] = useState('');
   const [showExceededETA, setShowExceededETA] = useState(false);
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showEditTaskModal, setShowEditTaskModal] = useState(false);
@@ -373,6 +375,8 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     if (selectedStatus && t.status !== selectedStatus) return false;
     if (selectedPriority && t.priority !== selectedPriority) return false;
     if (showExceededETA && !checkTaskExceedsETA(t)) return false;
+    if (startDateFilter && (!t.etaDate || new Date(t.etaDate) < new Date(startDateFilter + 'T00:00:00'))) return false;
+    if (endDateFilter && (!t.etaDate || new Date(t.etaDate) > new Date(endDateFilter + 'T23:59:59'))) return false;
     return true;
   });
 
@@ -627,6 +631,37 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                   <AlertTriangle size={13} className={showExceededETA ? 'text-red-500' : 'text-slate-400'} />
                   Exceeded ETA
                 </button>
+
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Start:</span>
+                  <input
+                    type="date"
+                    value={startDateFilter}
+                    onChange={(e) => setStartDateFilter(e.target.value)}
+                    style={{
+                      padding: '0.4rem 0.5rem',
+                      fontSize: '0.75rem',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      backgroundColor: 'var(--card)',
+                      color: 'var(--foreground)'
+                    }}
+                  />
+                  <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider ml-1">End:</span>
+                  <input
+                    type="date"
+                    value={endDateFilter}
+                    onChange={(e) => setEndDateFilter(e.target.value)}
+                    style={{
+                      padding: '0.4rem 0.5rem',
+                      fontSize: '0.75rem',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      backgroundColor: 'var(--card)',
+                      color: 'var(--foreground)'
+                    }}
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-2.5 flex-shrink-0" style={{ marginLeft: 'auto', flexWrap: 'nowrap' }}>
@@ -658,9 +693,9 @@ export default function Tasks({ setCurrentPage, initialScope }) {
               </div>
             </div>
 
-            {(searchQuery || selectedProject || selectedStatus || selectedPriority) && (
+            {(searchQuery || selectedProject || selectedStatus || selectedPriority || startDateFilter || endDateFilter) && (
               <button
-                onClick={() => { setSearchQuery(''); setSelectedProject(''); setSelectedStatus(''); setSelectedPriority(''); }}
+                onClick={() => { setSearchQuery(''); setSelectedProject(''); setSelectedStatus(''); setSelectedPriority(''); setStartDateFilter(''); setEndDateFilter(''); }}
                 style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
               >
                 Clear Filters

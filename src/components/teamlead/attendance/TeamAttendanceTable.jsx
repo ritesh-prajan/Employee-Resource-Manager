@@ -97,6 +97,24 @@ export default function TeamAttendanceTable({ rows, onViewMember }) {
       ),
     },
     {
+      accessorKey: 'timesheetHoursToday',
+      header: 'Timesheet Hrs',
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary)', fontFamily: 'var(--font-mono)' }}>
+          {getValue().toFixed(1)}h
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'uniqueLoggedDays',
+      header: 'Logged Days',
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
+          {getValue()} days
+        </span>
+      ),
+    },
+    {
       accessorKey: 'attendancePct',
       header: '30-Day Rate',
       cell: ({ getValue }) => <AttendanceBar pct={getValue()} />,

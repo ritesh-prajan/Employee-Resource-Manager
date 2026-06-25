@@ -10,7 +10,8 @@ export function useAdminSettings() {
     lateClockInTime: "10:00",
     etaOverdueDays: 2,
     timesheetReviewDays: 7,
-    highEtaRateThreshold: 3
+    highEtaRateThreshold: 3,
+    missingTimesheetPolicy: "LOP"
   });
 
   return {

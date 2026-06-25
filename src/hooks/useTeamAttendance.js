@@ -12,7 +12,7 @@ function getLast30Days() {
 }
 
 export default function useTeamAttendance() {
-  const { currentUser, users, teams, attendanceHistory } = useApp();
+  const { currentUser, users, teams, attendanceHistory, timeEntries = [] } = useApp();
 
   // Find the team this lead owns/co-leads
   const myTeam = useMemo(
@@ -58,7 +58,13 @@ export default function useTeamAttendance() {
 
       const attendancePct = workdays30 > 0 ? Math.round((presentDays / workdays30) * 100) : 0;
 
-      return { ...member, status, clockIn, clockOut, hours, clockStatus, attendancePct };
+      const memberLogsToday = timeEntries.filter(e => String(e.userId) === String(member.id) && e.date === TODAY);
+      const timesheetHoursToday = memberLogsToday.reduce((sum, e) => sum + parseFloat(e.duration || 0), 0);
+
+      const memberMonthLogs = timeEntries.filter(e => String(e.userId) === String(member.id) && parseFloat(e.duration || 0) > 0);
+      const uniqueLoggedDays = new Set(memberMonthLogs.map(e => e.date)).size;
+
+      return { ...member, status, clockIn, clockOut, hours, clockStatus, attendancePct, timesheetHoursToday, uniqueLoggedDays };
     });
   }, [teamMembers, todayAttMap, attendanceHistory]);
 

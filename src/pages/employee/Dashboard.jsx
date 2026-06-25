@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import {
   CheckSquare, AlertTriangle, Clock, UserCheck, Calendar, Archive, TrendingUp, ArrowRight, ExternalLink
 } from 'lucide-react';
+import { getMissingLogDays } from '../../utils/leaveDetection';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 import EmployeeKpiCards from '../../components/dashboard/EmployeeKpiCards';
@@ -20,6 +21,7 @@ export default function EmployeeDashboard() {
     projects,
     tasks,
     timeEntries,
+    adminSettings,
     etaExtensions = [],
     taskTransfers = [],
   } = useApp();
@@ -45,6 +47,21 @@ export default function EmployeeDashboard() {
 
   const weekStart = getLast7Days()[0];
 
+  const missingDays = useMemo(() => {
+    if (!currentUser || !timeEntries) return [];
+    const today = new Date();
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(today.getDate() - 14);
+    
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    
+    const startStr = fourteenDaysAgo.toISOString().split('T')[0];
+    const endStr = yesterday.toISOString().split('T')[0];
+    
+    return getMissingLogDays(timeEntries, currentUser.id, startStr, endStr);
+  }, [timeEntries, currentUser?.id]);
+
   // 3. Compute KPI metrics
   const kpiValues = {
     activeTasks: myTasks.filter(t => ['IN_PROGRESS', 'OPEN', 'PENDING_REVIEW'].includes(t.status?.toUpperCase())).length,
@@ -62,6 +79,7 @@ export default function EmployeeDashboard() {
       (String(e.fromEmployeeId) === String(currentUser.id) || String(e.toEmployeeId) === String(currentUser.id)) &&
       e.status === 'PENDING'
     ).length,
+    workingDays: new Set(timeEntries.filter(e => String(e.userId) === String(currentUser.id) && parseFloat(e.duration || 0) > 0).map(e => e.date)).size,
   };
 
   // 4. Compute Daily Hours Data for the Last 7 Days (Area Chart)
@@ -107,6 +125,55 @@ export default function EmployeeDashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', overflowY: 'auto', height: '100%', boxSizing: 'border-box', padding: '0.25rem 0 1.5rem 0' }}>
+
+      {missingDays.length > 0 && (
+        <div 
+          style={{
+            padding: '0.875rem 1.25rem',
+            backgroundColor: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            boxShadow: 'var(--shadow-sm)',
+            flexShrink: 0
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <AlertTriangle size={18} style={{ color: '#ef4444' }} />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b91c1c' }}>
+                Missing Timesheet Logs Detected
+              </span>
+              <span style={{ fontSize: '0.72rem', color: '#b91c1c99', fontWeight: 500 }}>
+                You have {missingDays.length} working day{missingDays.length > 1 ? 's' : ''} without any timesheet logs in the last 2 weeks: {missingDays.join(', ')}. These will be auto-flagged as {adminSettings?.missingTimesheetPolicy || 'LOP'}.
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/timesheet')}
+            style={{
+              padding: '0.35rem 0.85rem',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              backgroundColor: '#ef4444',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 4px rgba(239, 68, 68, 0.25)',
+              transition: 'opacity 0.15s'
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+          >
+            Log Time Now
+          </button>
+        </div>
+      )}
 
       {/* KPI Cards Grid */}
       <EmployeeKpiCards kpis={kpiValues} onNavigate={navigate} />

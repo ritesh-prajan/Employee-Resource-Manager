@@ -48,13 +48,21 @@ const cards = [
     accent: '#6b7280',
     danger: false,
   },
+  {
+    key: 'workingDays',
+    label: 'LOGGED DAYS',
+    icon: Calendar,
+    accent: '#06b6d4',
+    danger: false,
+    page: '/timesheet',
+  },
 ];
 
 export default function EmployeeKpiCards({ kpis, onNavigate }) {
   return (
     <div className="kpi-cards-grid" style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(6, 1fr)',
+      gridTemplateColumns: 'repeat(7, 1fr)',
       gap: '0.75rem',
       flexShrink: 0,
     }}>

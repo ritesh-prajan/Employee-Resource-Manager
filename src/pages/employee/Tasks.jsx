@@ -3,6 +3,7 @@ import { Plus, Search, AlertTriangle, Filter, Pencil, Trash2 } from 'lucide-reac
 import { useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTasks } from '../../hooks/useTasks';
+import { useToast } from '../../components/ui/Toast';
 import ETAExtensionModal from '../../components/forms/tasks/ETAExtensionModal';
 import CreateTaskModal from '../../components/forms/tasks/CreateTaskModal';
 import EditTaskModal from '../../components/forms/tasks/EditTaskModal';
@@ -14,6 +15,7 @@ import UserAvatar from '../../components/ui/UserAvatar';
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 export default function Tasks({ setCurrentPage, initialScope }) {
   const { currentUser, projects, users, timerState, clockIn, clockOut, cancelTimer, teams, etaExtensions, taskTransfers, addManualEntry, claimBacklogTask, requestClaimBacklogTask } = useApp();
+  const toast = useToast();
 
   const {
     tasks,
@@ -223,7 +225,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [pendingSessionProgress, setPendingSessionProgress] = useState(0);
 
   const handleStartTask = (task) => {
-    if (timerState.isClockedIn) { alert("You are currently tracking another task. Please pause or finish it first."); return; }
+    if (timerState.isClockedIn) { toast.warning("You are currently tracking another task. Please pause or finish it first."); return; }
     updateTask.mutate({ id: task.id, data: { ...task, status: 'In Progress' } });
     clockIn(task.id, task.projectId, task.name, task.type);
     addTaskComment.mutate({
@@ -284,13 +286,13 @@ export default function Tasks({ setCurrentPage, initialScope }) {
 
   const triggerPauseTask = (task, entryData) => {
     const { duration, justification } = entryData;
-    if (duration < 0 || isNaN(duration)) { alert("Please enter valid hours worked."); return; }
+    if (duration < 0 || isNaN(duration)) { toast.warning("Please enter valid hours worked."); return; }
 
     const remainingEta = Math.max(0, task.eta - task.logged);
     const isOverrun = duration > remainingEta;
 
     if (isOverrun && !justification.trim()) {
-      alert("Please provide comments/justification for exceeding the estimated task time.");
+      toast.warning("Please provide comments/justification for exceeding the estimated task time.");
       return;
     }
 
@@ -299,12 +301,12 @@ export default function Tasks({ setCurrentPage, initialScope }) {
 
   const triggerFinishTask = (task, entryData) => {
     const { duration, justification } = entryData;
-    if (duration < 0 || isNaN(duration)) { alert("Please enter valid hours worked."); return; }
+    if (duration < 0 || isNaN(duration)) { toast.warning("Please enter valid hours worked."); return; }
 
     const isOverrun=checkTaskExceedsETA({...task,logged:(task.logged||0)});
     const wouldexceedwiththissession=duration>Math.max(0,task.eta-task.logged);
     if ((isOverrun||wouldexceedwiththissession) && !justification.trim()) {
-      alert("This task has exceeded its ETA (Date or Hours).Please provide a justification for exceeding theestimated task time.");
+      toast.warning("This task has exceeded its ETA (Date or Hours). Please provide a justification for exceeding the estimated task time.");
       return;
     }
 
@@ -332,15 +334,15 @@ export default function Tasks({ setCurrentPage, initialScope }) {
 
   const handleEditTaskSubmit = (e) => {
     e.preventDefault();
-    if (!editingTask.name || !editingTask.projectId) { alert("Please fill in task name and select a project."); return; }
+    if (!editingTask.name || !editingTask.projectId) { toast.warning("Please fill in task name and select a project."); return; }
     updateTask.mutate({ id: editingTask.id, data: { name: editingTask.name, projectId: editingTask.projectId, assignedTo: editingTask.assignedTo || '', eta: parseFloat(editingTask.eta) || 0, type: editingTask.type, epic: editingTask.epic || 'Backlog', priority: editingTask.priority, status: editingTask.status } });
     setShowEditTaskModal(false); setEditingTask(null);
   };
 
   const handlePublishTasks = (e) => {
     if (e) e.preventDefault();
-    if (!taskData.projectId) { alert("Please select a project."); return; }
-    if (stagedTasks.length === 0) { alert("Please stage at least one task."); return; }
+    if (!taskData.projectId) { toast.warning("Please select a project."); return; }
+    if (stagedTasks.length === 0) { toast.warning("Please stage at least one task."); return; }
     stagedTasks.forEach(staged => {
       if (staged.isNew) {
         createTask.mutate({ name: staged.name, projectId: taskData.projectId, assignedTo: staged.assignedTo, eta: parseFloat(staged.eta) || 8, type: staged.type || 'Story', priority: staged.priority || 'Medium', epic: 'Backlog', taskNumber: staged.taskNumber, etaDate: staged.etaDate, bugNumber: staged.bugNumber });

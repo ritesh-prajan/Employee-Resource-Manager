@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Clock, AlertTriangle, Coffee, Briefcase, Calendar } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
+import { useToast } from '../../ui/Toast';
 import SearchableSelect from '../../ui/SearchableSelect';
 import dayjs from 'dayjs';
 
 export default function ManualTimeEntryModal({ show, onClose, defaultDate, editingEntry }) {
   const { currentUser, tasks, projects, addManualEntry, editTimeEntry, timeEntries } = useApp();
+  const toast = useToast();
 
   const [entryType, setEntryType] = useState('work'); // 'work' or 'break'
   const [date, setDate] = useState('');
@@ -93,18 +95,18 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
     e.preventDefault();
 
     if (entryType === 'work' && !taskId) {
-      alert('Please select a task.');
+      toast.warning('Please select a task.');
       return;
     }
 
     if (entryType === 'work' && isEtaExceeded && !justification.trim()) {
-      alert('This task has exceeded its ETA. Please provide a justification before saving.');
+      toast.warning('This task has exceeded its ETA. Please provide a justification before saving.');
       return;
     }
 
     const durationVal = parseFloat(duration);
     if (isNaN(durationVal) || durationVal <= 0) {
-      alert('Please enter a valid duration greater than 0.');
+      toast.warning('Please enter a valid duration greater than 0.');
       return;
     }
 
@@ -123,7 +125,7 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
     });
 
     if (hasOverlap) {
-      alert('This time slot overlaps with an existing time entry on this date. Please enter a non-overlapping time range.');
+      toast.warning('This time slot overlaps with an existing time entry on this date. Please enter a non-overlapping time range.');
       return;
     }
 

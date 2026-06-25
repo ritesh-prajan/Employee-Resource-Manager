@@ -8,6 +8,7 @@ import ModernWeeklyTimesheets from "./ModernWeeklyTimesheets";
 import { Coffee, X, Clock, Tag, FileText, CheckCircle, Search, Layers, Filter, Briefcase, Activity, Calendar, AlertTriangle, Plus } from "lucide-react";
 import ModernMonthlyTimesheets from "./ModernMonthlyTimesheets";
 import ManualTimeEntryModal from "../forms/timesheets/ManualTimeEntryModal";
+import { useToast } from "../ui/Toast";
 
 import ConfirmDialog from "../ui/ConfirmDialog";
 const keys = {
@@ -50,6 +51,7 @@ const STATUS_META = {
 
 export default function Timesheets() {
   const { users, timeEntries, tasks, teams, projects, currentUser, editTimeEntry, deleteTimeEntry } = useApp();
+  const toast = useToast();
   const [pendingdeleteentryid,setpendingdeleteentryid]=useState(null);
   const [popup, setPopup] = useState(null);
   const [showManualModal, setShowManualModal] = useState(false);
@@ -198,7 +200,7 @@ export default function Timesheets() {
     );
 
     if (hasOverlap) {
-      alert("This slot overlaps with an existing time entry!");
+      toast.warning("This slot overlaps with an existing time entry!");
       return;
     }
 
@@ -237,7 +239,7 @@ export default function Timesheets() {
     );
 
     if (hasOverlap) {
-      alert("Resized slot overlaps with an existing time entry!");
+      toast.warning("Resized slot overlaps with an existing time entry!");
       return;
     }
 

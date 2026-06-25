@@ -1,10 +1,13 @@
 import { useQuery,useMutation,useQueryClient } from "@tanstack/react-query";
 import { taskService } from "../services/taskService.js";
+import { useToast } from "../components/ui/Toast";
 
 export const TASK_KEY=["tasks"];
 export const TASK_TAGS_KEY=['task-tags'];
 export const TASK_TRANSFERES_KEY=["task-transfers"];
 export const ETA_EXTENSIONS_KEY=["eta-extensions"];
+
+let globalToast = null;
 
 function describemutationerror(err,fallback){
   let detail=err?.message||'';
@@ -17,15 +20,17 @@ function describemutationerror(err,fallback){
   return detail?`${fallback}: ${detail}` : fallback;
 }
 
-function alertonerror(fallback){
-  return (err)=>{
-    console.error(fallback,err);
-    alert(describemutationerror(err,fallback));
+function alertonerror(fallback, err){
+  console.error(fallback, err);
+  if (globalToast) {
+    globalToast.error(describemutationerror(err, fallback));
   }
 }
 
 export function useTasks(options={}){
   const queryclient=useQueryClient();
+  const toast = useToast();
+  globalToast = toast;
   const query=useQuery({
     queryKey:TASK_KEY,
     queryFn:async()=>{

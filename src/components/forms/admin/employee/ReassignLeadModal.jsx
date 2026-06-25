@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import Modal from '../../../ui/Modal';
 import SearchableSelect from '../../../ui/SearchableSelect';
+import { useToast } from '../../../ui/Toast';
 
 export default function ReassignLeadModal({ show, onClose, employee, teams, users, onSave }) {
+  const toast = useToast();
   // Find all teams where this employee is lead or sublead
   const affectedTeams = teams.filter(
     t => String(t.leadId) === String(employee?.id) || String(t.subLeadId) === String(employee?.id)
@@ -25,7 +27,7 @@ export default function ReassignLeadModal({ show, onClose, employee, teams, user
     // Validate — every team must still have a lead
     for (const team of affectedTeams) {
       if (!assignments[team.id]?.leadId) {
-        alert(`Please assign a new lead for "${team.name}" before continuing.`);
+        toast.warning(`Please assign a new lead for "${team.name}" before continuing.`);
         return;
       }
     }

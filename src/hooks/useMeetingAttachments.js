@@ -1,10 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { attachmentService } from '../services/attachmentService';
+import { useToast } from '../components/ui/Toast';
 
 export const meetingAttachmentsKey = (meetingId) => ['meetings', meetingId, 'attachments'];
 
 export function useMeetingAttachments(meetingId) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   
   const isRealId = typeof meetingId === 'number' || (typeof meetingId === 'string' && /^\d+$/.test(meetingId));
 
@@ -26,7 +28,7 @@ export function useMeetingAttachments(meetingId) {
     },
     onError: (err) => {
       console.error('Upload failed:', err);
-      alert('Upload failed: ' + (err.message || err));
+      toast.error('Upload failed: ' + (err.message || err));
     }
   });
 
@@ -38,7 +40,7 @@ export function useMeetingAttachments(meetingId) {
     },
     onError: (err) => {
       console.error('Delete failed:', err);
-      alert('Delete failed: ' + (err.message || err));
+      toast.error('Delete failed: ' + (err.message || err));
     }
   });
 

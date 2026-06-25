@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { UserCheck } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useToast } from '../../components/ui/Toast';
 
 import ApprovalKpiBar      from '../../components/approvals/ApprovalKpiBar';
 import ApprovalTabToggle   from '../../components/approvals/ApprovalTabToggle';
@@ -19,6 +20,8 @@ export default function Approvals() {
     updateEntryStatus,
     revertEntryStatus,
   } = useApp();
+
+  const toast = useToast();
 
   const isAdmin = currentUser?.role === 'Admin';
 
@@ -127,7 +130,7 @@ export default function Approvals() {
 
   const handleReject = (entryId) => {
     if (!comments[entryId]?.trim()) {
-      alert('Please add feedback before rejecting.');
+      toast.warning('Please add feedback before rejecting.');
       return;
     }
     updateEntryStatus(entryId, 'Rejected', comments[entryId]);

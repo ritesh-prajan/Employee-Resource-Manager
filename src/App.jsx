@@ -14,6 +14,8 @@ import Resetpassword from './pages/Resetpassword.jsx';
 import ErrorBoundary from './components/ErrorBoundary';
 import GlobalLoader from './components/GlobalLoader';
 
+import { ToastProvider } from './components/ui/Toast';
+
 // Employee Pages (Lazy Loaded)
 const Tasks = React.lazy(() => import('./pages/employee/Tasks'));
 const Attendance = React.lazy(() => import('./pages/employee/Attendance'));
@@ -250,15 +252,17 @@ function MainAppContent() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <AppProvider>
-          <ThemeProvider>
-            <TimerProvider>
-              <MainAppContent />
-            </TimerProvider>
-          </ThemeProvider>
-        </AppProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppProvider>
+            <ThemeProvider>
+              <TimerProvider>
+                <MainAppContent />
+              </TimerProvider>
+            </ThemeProvider>
+          </AppProvider>
+        </AuthProvider>
+      </ToastProvider>
     </ErrorBoundary>
   );
 }

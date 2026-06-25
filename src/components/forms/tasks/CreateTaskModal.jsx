@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Trash2, Link2, ChevronUp } from 'lucide-react';
 import { projectService } from '#services/projectService';
 import SearchableSelect from '../../ui/SearchableSelect';
+import { useToast } from '../../ui/Toast';
 
 export default function CreateTaskModal({
   show, onClose, onSubmit,
@@ -14,6 +15,7 @@ export default function CreateTaskModal({
   showAssignForm, setShowAssignForm,
   showBacklogDropdown, setShowBacklogDropdown,
 }) {
+  const toast = useToast();
   const [projectMembers, setProjectMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [isSummaryFocused, setIsSummaryFocused] = useState(false);
@@ -91,13 +93,13 @@ export default function CreateTaskModal({
 
   const handleStage = (e) => {
     e?.preventDefault();
-    if (!assignForm.name.trim()) { alert("Please enter a task summary."); return; }
+    if (!assignForm.name.trim()) { toast.warning("Please enter a task summary."); return; }
 
     if (assignForm.backlogTaskId) {
       const backlogTask = tasks.find(t => t.id === assignForm.backlogTaskId);
       if (!backlogTask) return;
       if (stagedTasks.some(t => !t.isNew && t.backlogTaskId === backlogTask.id)) {
-        alert("This backlog task is already staged."); return;
+        toast.warning("This backlog task is already staged."); return;
       }
       setStagedTasks(prev => [...prev, {
         id: `staged-backlog-${Date.now()}`,
@@ -107,9 +109,9 @@ export default function CreateTaskModal({
         assignedTo: assignForm.assignedTo
       }]);
     } else {
-      if (!assignForm.taskNumber?.trim()) { alert("Please enter a Task Number."); return; }
-      if (!assignForm.etaDate) { alert("Please enter an ETA Date."); return; }
-      if (assignForm.type === 'Bug' && !assignForm.bugNumber?.trim()) { alert("Please enter a Bug Number."); return; }
+      if (!assignForm.taskNumber?.trim()) { toast.warning("Please enter a Task Number."); return; }
+      if (!assignForm.etaDate) { toast.warning("Please enter an ETA Date."); return; }
+      if (assignForm.type === 'Bug' && !assignForm.bugNumber?.trim()) { toast.warning("Please enter a Bug Number."); return; }
       setStagedTasks(prev => [...prev, {
         id: `staged-new-${Date.now()}`,
         isNew: true,

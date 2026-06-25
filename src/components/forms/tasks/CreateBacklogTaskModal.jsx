@@ -1,14 +1,16 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useToast } from '../../ui/Toast';
 
 export default function CreateBacklogTaskModal({ show, onClose, onSubmit, projects, isAdmin, ledProjectIds, backlogCreateData, setBacklogCreateData }) {
+  const toast = useToast();
 
   const availableProjects = projects.filter(p => isAdmin || ledProjectIds.includes(p.id));
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!backlogCreateData.projectId) { alert("Please select a project."); return; }
-    if (!backlogCreateData.name.trim()) { alert("Please enter a task summary."); return; }
+    if (!backlogCreateData.projectId) { toast.warning("Please select a project."); return; }
+    if (!backlogCreateData.name.trim()) { toast.warning("Please enter a task summary."); return; }
     onSubmit(e);
   };
 

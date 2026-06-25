@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import Modal from "../../../../components/ui/Modal";
 import MultiSearchSelect from "../../../../components/ui/MultiSelectDropdown";
 import { useApp } from "../../../../context/AppContext";
+import { useToast } from "../../../../components/ui/Toast";
 
 export default function EditProjectModal({ show, onClose, project }) {
   const { users, teams, editProject, getAdjustedProjectColor, theme } = useApp();
+  const toast = useToast();
 
   const [projData, setProjData] = useState(null);
 
@@ -26,8 +28,8 @@ export default function EditProjectModal({ show, onClose, project }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!projData.name) { alert('Please fill in project name.'); return; }
-    if (!projData.members.length) { alert('Please assign at least one member.'); return; }
+    if (!projData.name) { toast.warning('Please fill in project name.'); return; }
+    if (!projData.members.length) { toast.warning('Please assign at least one member.'); return; }
 
     const autoTeams = new Set();
     projData.members.forEach(memberId => {

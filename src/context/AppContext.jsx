@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth as useAuthContext } from './AuthContext';
+import { useToast } from '../components/ui/Toast';
 
 import { teamService } from '../services/teamService';
 import { projectService } from '../services/projectService';
@@ -98,6 +99,7 @@ function getAdjustedProjectColor(hex, theme) {
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
+  const toast = useToast();
   // Theme State
   const [theme, setTheme] = useState('light');
 
@@ -393,7 +395,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to create project:', err);
-      alert('Failed to create project: ' + err.message);
+      toast.error('Failed to create project: ' + err.message);
     }
   }, [mutateCreateProject, mutateAddProjectMember]);
 
@@ -402,7 +404,7 @@ export const AppProvider = ({ children }) => {
       await mutateRemoveProject.mutateAsync(projectId);
     } catch (err) {
       console.error('Failed to delete project:', err);
-      alert('Failed to delete project: ' + err.message);
+      toast.error('Failed to delete project: ' + err.message);
     }
   }, [mutateRemoveProject]);
 
@@ -426,7 +428,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to create task:', err);
-      alert('Failed to create task: ' + err.message);
+      toast.error('Failed to create task: ' + err.message);
     }
   }, [mutateCreateTask, users, auth.currentUser?.name, handleAddNotification]);
 
@@ -435,7 +437,7 @@ export const AppProvider = ({ children }) => {
       await mutateRemoveTask.mutateAsync(taskId);
     } catch (err) {
       console.error('Failed to delete task:', err);
-      alert('Failed to delete task: ' + err.message);
+      toast.error('Failed to delete task: ' + err.message);
     }
   }, [mutateRemoveTask]);
 
@@ -487,7 +489,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to create team:', err);
-      alert('Failed to create team: ' + err.message);
+      toast.error('Failed to create team: ' + err.message);
     }
   }, [mutateCreateTeam, rawUsers, mutateUpdateEmployee, mutateAddTeamMember]);
 
@@ -496,7 +498,7 @@ export const AppProvider = ({ children }) => {
       await mutateRemoveTeam.mutateAsync(teamId);
     } catch (err) {
       console.error('Failed to delete team:', err);
-      alert('Failed to delete team: ' + err.message);
+      toast.error('Failed to delete team: ' + err.message);
     }
   }, [mutateRemoveTeam]);
 
@@ -532,7 +534,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to update team:', err);
-      alert('Failed to update team: ' + err.message);
+      toast.error('Failed to update team: ' + err.message);
     }
   }, [mutateUpdateTeam, rawUsers, mutateUpdateEmployee, mutateRemoveTeamMember, mutateAddTeamMember]);
 
@@ -562,7 +564,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to update project:', err);
-      alert('Failed to update project: ' + err.message);
+      toast.error('Failed to update project: ' + err.message);
     }
   }, [mutateUpdateProject, mutateRemoveProjectMember, mutateAddProjectMember]);
 
@@ -571,7 +573,7 @@ export const AppProvider = ({ children }) => {
       await mutateUpdateTask.mutateAsync({ id: taskId, data: updatedData });
     } catch (err) {
       console.error('Failed to update task:', err);
-      alert('Failed to update task: ' + err.message);
+      toast.error('Failed to update task: ' + err.message);
     }
   }, [mutateUpdateTask]);
 
@@ -635,7 +637,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to update task progress:', err);
-      alert('Failed to update task progress: ' + err.message);
+      toast.error('Failed to update task progress: ' + err.message);
     }
   }, [tasks, auth.currentUser?.id, mutateUpdateTaskProgress, mutateUpdateTask, addTaskComment]);
 
@@ -664,7 +666,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to submit task for review:', err);
-      alert('Failed to submit task for review: ' + err.message);
+      toast.error('Failed to submit task for review: ' + err.message);
     }
   }, [tasks, mutateUpdateTask, users, auth.currentUser?.name, handleAddNotification]);
 
@@ -701,7 +703,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to resolve task completion:', err);
-      alert('Failed to resolve task completion: ' + err.message);
+      toast.error('Failed to resolve task completion: ' + err.message);
     }
   }, [tasks, mutateUpdateTask, auth.currentUser?.name, handleAddNotification, addTaskComment]);
 
@@ -789,7 +791,7 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to claim backlog task:', err);
-      alert('Failed to claim backlog task: ' + err.message);
+      toast.error('Failed to claim backlog task: ' + err.message);
     }
   }, [tasks, auth.currentUser?.id, auth.currentUser?.name, users, projects, teams, handleAddNotification, mutateUpdateTask, mutateAddProjectMember]);
 
@@ -823,10 +825,10 @@ export const AppProvider = ({ children }) => {
         });
       });
 
-      alert("Claim request sent to your Team Lead/Admin successfully!");
+      toast.success("Claim request sent to your Team Lead/Admin successfully!");
     } catch (err) {
       console.error("Failed to request task claim:", err);
-      alert("Failed to send claim request: " + err.message);
+      toast.error("Failed to send claim request: " + err.message);
     }
   }, [tasks, projects, teams, users, auth.currentUser?.id, auth.currentUser?.name, handleAddNotification]);
 
@@ -835,7 +837,7 @@ export const AppProvider = ({ children }) => {
       const taskId = notif.entityId;
       const taskObj = tasks.find(t => t.id === taskId);
       if (!taskObj) {
-        alert("Task not found.");
+        toast.error("Task not found.");
         return;
       }
 
@@ -876,10 +878,10 @@ export const AppProvider = ({ children }) => {
         createdAt: new Date().toISOString()
       });
 
-      alert(`Claim request approved! Task has been assigned.`);
+      toast.success(`Claim request approved! Task has been assigned.`);
     } catch (err) {
       console.error("Failed to approve claim request:", err);
-      alert("Failed to approve request: " + err.message);
+      toast.error("Failed to approve request: " + err.message);
     }
   }, [tasks, mutateUpdateTask, handleAddNotification, notificationsHook, projects, mutateAddProjectMember]);
 
@@ -902,10 +904,10 @@ export const AppProvider = ({ children }) => {
         createdAt: new Date().toISOString()
       });
 
-      alert(`Claim request rejected.`);
+      toast.success(`Claim request rejected.`);
     } catch (err) {
       console.error("Failed to reject claim request:", err);
-      alert("Failed to reject request: " + err.message);
+      toast.error("Failed to reject request: " + err.message);
     }
   }, [tasks, handleAddNotification, notificationsHook]);
 

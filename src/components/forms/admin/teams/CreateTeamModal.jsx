@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Modal from '../../../ui/Modal';
 import SearchableSelect from "../../../ui/SearchableSelect";
 import MultiSearchSelect from "../../../ui/MultiSelectDropdown";
+import { useToast } from '../../../ui/Toast';
 /**
  * CreateTeamModal
  * Props:
@@ -16,6 +17,7 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
   const [subLeadId, setSubLeadId] = useState('');
   const [members, setMembers] = useState([]);
   const [description, setDescription] = useState('');
+  const toast = useToast();
 
   if (!isOpen) return null;
 
@@ -24,7 +26,7 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim() || !leadId) {
-      alert('Please fill in team name, team lead, and sub lead.');
+      toast.warning('Please fill in team name, team lead, and sub lead.');
       return;
     }
     // Auto-include the lead in members if not already there

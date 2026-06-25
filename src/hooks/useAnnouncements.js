@@ -1,11 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { announcementService } from '../services/announcementService';
+import { useToast } from '../components/ui/Toast';
 export const ANNOUNCEMENTS_KEY = ['announcements'];
 
 import React from 'react'
 
 export function useAnnouncements({currentUser,users=[],onAddNotification}={}) {
   const queryclient=useQueryClient();
+  const toast = useToast();
 
   const { data: announcements = [], isLoading, error } = useQuery({
     queryKey: ANNOUNCEMENTS_KEY,
@@ -38,7 +40,7 @@ export function useAnnouncements({currentUser,users=[],onAddNotification}={}) {
     },
     onError:(err)=>{
       console.error('Failed to create announcement',err);
-      alert('Failed to create announcement'+(err.message||err))
+      toast.error('Failed to create announcement: ' + (err.message || err));
     }
     
   });
@@ -50,7 +52,7 @@ export function useAnnouncements({currentUser,users=[],onAddNotification}={}) {
     },
     onError:(err)=>{
       console.error("Failed to delete announcement",err);
-      alert('Failed to delete announcement'+(err.message||err))
+      toast.error('Failed to delete announcement: ' + (err.message || err));
     }
   })
   

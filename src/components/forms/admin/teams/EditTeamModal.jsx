@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../../../ui/Modal';
 import SearchableSelect from "../../../ui/SearchableSelect";
 import MultiSearchSelect from "../../../ui/MultiSelectDropdown";
+import { useToast } from '../../../ui/Toast';
 
 /**
  * EditTeamModal
@@ -18,6 +19,7 @@ export default function EditTeamModal({ isOpen, onClose, team, users = [], onSav
     const [subLeadId, setSubLeadId] = useState('');
     const [members, setMembers] = useState([]);
     const [description, setDescription] = useState('');
+    const toast = useToast();
 
   // Sync form fields whenever the team prop changes (different row clicked)
   useEffect(() => {
@@ -42,7 +44,7 @@ if (team) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim() || !leadId) {
-      alert('Please fill in team name and select a lead.');
+      toast.warning('Please fill in team name and select a lead.');
       return;
     }
     let finalMembers = members.includes(leadId) ? members : [leadId, ...members];

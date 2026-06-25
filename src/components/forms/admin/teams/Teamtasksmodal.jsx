@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../../../ui/Modal';
 import StatusBadge from '../../../ui/StatusBadge';
 import PriorityBadge from '../../../ui/PriorityBadge';
+import { useToast } from '../../../ui/Toast';
 
 /**
  * TeamTasksModal
@@ -23,6 +24,7 @@ export default function TeamTasksModal({ isOpen, onClose, team, users = [], task
     etaDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     taskType: 'TASK'
     });
+  const toast = useToast();
   // When team changes, reset form defaults to first available project/member
   useEffect(() => {
     if (!team) return;
@@ -49,7 +51,7 @@ export default function TeamTasksModal({ isOpen, onClose, team, users = [], task
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.assignedTo || !form.projectId) {
-      alert('Please fill in all task fields.');
+      toast.warning('Please fill in all task fields.');
       return;
     }
     onCreateTask({

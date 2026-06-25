@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { CirclePlus, ChevronUp, Search } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import SearchableSelect from "../ui/SearchableSelect";
+import { useToast } from "../ui/Toast";
 
 export default function Schedulemeeting({ onSchedule }) {
   const [open, setOpen] = useState(false);
   const { users = [], currentUser = null, projects = [], tasks = [] } = useApp() || {};
+  const toast = useToast();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -24,7 +26,7 @@ export default function Schedulemeeting({ onSchedule }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim() || !dateTime) {
-      alert("Please fill in meeting title and date/time.");
+      toast.warning("Please fill in meeting title and date/time.");
       return;
     }
 

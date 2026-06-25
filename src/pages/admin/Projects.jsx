@@ -17,7 +17,7 @@ export default function Projects() {
     teams,
     deleteProject,
   } = useApp();
-const [pendingdeleteproj,setpendingdeleteproj]=useState(null);
+  const [pendingdeleteproj,setpendingdeleteproj]=useState(null);
   const [filterTeamBy, setFilterTeamBy] = useState('');
   const [filterEmployeeBy, setFilterEmployeeBy] = useState('');
   const [showProjModal, setShowProjModal] = useState(false);
@@ -25,6 +25,7 @@ const [pendingdeleteproj,setpendingdeleteproj]=useState(null);
   const [editingProj, setEditingProj] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [projectTab, setProjectTab] = useState('current');
 
   const isAllowedToManage = currentUser?.role === 'Admin' || currentUser?.role === 'Team Lead' || currentUser?.role === 'Sub Lead';
 
@@ -42,11 +43,16 @@ const [pendingdeleteproj,setpendingdeleteproj]=useState(null);
   });
 
   const filteredProjects = baseProjects.filter(p => {
-  if (filterTeamBy && !(p.teams || []).includes(filterTeamBy)) return false;
-  if (filterEmployeeBy && !p.members.includes(filterEmployeeBy)) return false;
-  if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-  return true;
-});
+    if (filterTeamBy && !(p.teams || []).includes(filterTeamBy)) return false;
+    if (filterEmployeeBy && !p.members.includes(filterEmployeeBy)) return false;
+    if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    
+    const isArchived = p.status === 'Completed' || p.status === 'Cancelled';
+    if (projectTab === 'current' && isArchived) return false;
+    if (projectTab === 'archived' && !isArchived) return false;
+    
+    return true;
+  });
 
   const columns = useMemo(() => [
     {
@@ -161,6 +167,27 @@ const [pendingdeleteproj,setpendingdeleteproj]=useState(null);
               placeholder="All Members"
               style={{ width: '180px' }}
             />
+
+            <div style={{ display: 'inline-flex', backgroundColor: 'var(--secondary)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              {[
+                { value: 'current', label: 'Current' },
+                { value: 'archived', label: 'Archived' }
+              ].map(t => (
+                <button
+                  key={t.value}
+                  onClick={() => setProjectTab(t.value)}
+                  style={{
+                    padding: '0.3rem 0.85rem', fontSize: '0.72rem', fontWeight: 600,
+                    borderRadius: '6px', border: 'none', cursor: 'pointer',
+                    backgroundColor: projectTab === t.value ? 'var(--primary)' : 'transparent',
+                    color: projectTab === t.value ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {isAllowedToManage && (

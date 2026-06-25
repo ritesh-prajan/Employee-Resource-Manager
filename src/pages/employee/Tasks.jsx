@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, AlertTriangle, Filter, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Filter, Pencil, Trash2, CheckCircle } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTasks } from '../../hooks/useTasks';
@@ -51,6 +51,8 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   React.useEffect(() => { if (initialScope) setScope(initialScope); }, [initialScope]);
   const [pendingdeletetask,setpendingdeletetask]=useState(null);
   const [pendingclaimtask,setpendingclaimtask]=useState(null)
+  const [submittingTask, setSubmittingTask] = useState(null);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -325,6 +327,17 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     undoTaskReview.mutate(taskid);
   }
 
+  const handleDirectSubmitReview = (taskId, justification) => {
+    submitTaskReview.mutate({ taskId, justification });
+    addTaskComment.mutate({
+      taskId,
+      authorEmployeeId: currentUser.id,
+      commentText: justification
+        ? `[Submitted for Review - Comment]: ${justification}`
+        : `[Submitted for Review]`
+    });
+  };
+
   const handleAddCommentSubmit = (taskId) => {
     const commentText = newComment[taskId];
     if (!commentText || !commentText.trim()) return;
@@ -571,6 +584,22 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                 onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--destructive) 8%, transparent)'}
               >
                 <Trash2 size={14} />
+              </button>
+            )}
+
+            {scope !== 'backlog' && task.assignedTo === currentUser.id && !['Completed', 'Pending Review'].includes(task.status) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSubmittingTask(task);
+                  setShowSubmitModal(true);
+                }}
+                title="Submit for Review"
+                style={{ background: 'color-mix(in oklch, var(--primary) 8%, transparent)', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700 }}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--primary) 15%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--primary) 8%, transparent)'}
+              >
+                <CheckCircle size={14} /> Submit
               </button>
             )}
 
@@ -907,6 +936,13 @@ export default function Tasks({ setCurrentPage, initialScope }) {
       title="Claim Task"
       message={`Are you sure you want to claim task "${pendingclaimtask?.name}"?`}
       />
+      <SubmitReviewModal
+        show={showSubmitModal}
+        onClose={() => { setShowSubmitModal(false); setSubmittingTask(null); }}
+        task={submittingTask}
+        onSubmit={handleDirectSubmitReview}
+        checkTaskExceedsETA={checkTaskExceedsETA}
+      />
     </div>
   );
 }
@@ -948,6 +984,75 @@ function DelegateTaskModal({ show, onClose, task, teamMembers, onSubmit }) {
           <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose} style={{ padding: '0.45rem 1rem', borderRadius: '8px', border: '1px solid var(--border)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>Cancel</button>
             <button type="submit" className="btn btn-primary" style={{ backgroundColor: '#0010AE', color: '#ffffff', border: 'none', padding: '0.45rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>Delegate Task</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function SubmitReviewModal({ show, onClose, task, onSubmit, checkTaskExceedsETA }) {
+  const [justification, setJustification] = useState('');
+  
+  if (!show || !task) return null;
+
+  const isEtaExceeded = checkTaskExceedsETA(task);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (isEtaExceeded && !justification.trim()) {
+      return;
+    }
+    onSubmit(task.id, justification);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+      <div 
+        className="modal-content liquid-glass-card" 
+        style={{ maxWidth: '450px', width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1.5rem', boxShadow: 'var(--shadow-lg)' }} 
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+          <h3 className="modal-title" style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--foreground)' }}>Submit Task for Review</h3>
+          <button className="modal-close" onClick={onClose} style={{ border: 'none', background: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--muted-foreground)' }}>&times;</button>
+        </div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>
+              Are you sure you want to submit the task <strong style={{ color: 'var(--foreground)' }}>"{task.name}"</strong> for review?
+            </p>
+          </div>
+
+          {isEtaExceeded && (
+            <div style={{ display: 'flex', gap: '8px', padding: '10px 12px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.75rem' }}>
+              <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <span style={{ fontWeight: 'bold' }}>ETA Exceeded Alert: </span>
+                This task has exceeded its estimated hours or due date. Please provide a justification below to proceed with submission.
+              </div>
+            </div>
+          )}
+
+          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--foreground)' }}>
+              {isEtaExceeded ? 'Over-ETA Justification (Required)' : 'Comments / Notes (Optional)'}
+            </label>
+            <textarea
+              className="form-input text-xs"
+              placeholder={isEtaExceeded ? "Explain why the task exceeded the estimate..." : "Any notes for the reviewer..."}
+              value={justification}
+              onChange={e => setJustification(e.target.value)}
+              required={isEtaExceeded}
+              rows="3"
+              style={{ width: '100%', resize: 'none', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--secondary)', color: 'var(--foreground)' }}
+            />
+          </div>
+
+          <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose} style={{ padding: '0.45rem 1rem', borderRadius: '8px', border: '1px solid var(--border)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, background: 'transparent', color: 'var(--text-secondary)' }}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ backgroundColor: 'var(--primary)', color: '#ffffff', border: 'none', padding: '0.45rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>Submit for Review</button>
           </div>
         </form>
       </div>

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Search, AlertTriangle, Filter, Pencil, Trash2 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTasks } from '../../hooks/useTasks';
 import ETAExtensionModal from '../../components/forms/tasks/ETAExtensionModal';
@@ -30,6 +31,11 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     createEtaExtension,
     approveEtaExtension,
     rejectEtaExtension,
+    submitTaskReview,
+    approveTaskReview,
+    rejectTaskReview,
+    unsubmitTaskReview,
+    undoTaskReview,
   } = useTasks();
 
   const isLeader = currentUser.role === 'Admin' || currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead';
@@ -71,6 +77,34 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [showBacklogDropdown, setShowBacklogDropdown] = useState(false);
   const [assignForm, setAssignForm] = useState({ name: '', backlogTaskId: '', eta: '8', type: 'Story', priority: 'Medium', assignedTo: '', taskNumber: '', etaDate: '', bugNumber: '' });
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+
+  const location = useLocation();
+  const [highlightTaskId, setHighlightTaskId] = useState(null);
+
+  React.useEffect(() => {
+    if (location.state?.highlightTaskId) {
+      const taskId = location.state.highlightTaskId;
+      setHighlightTaskId(taskId);
+      
+      window.history.replaceState({}, document.title);
+      
+      const scrollTimer = setTimeout(() => {
+        const rowEl = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (rowEl) {
+          rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+
+      const timer = setTimeout(() => {
+        setHighlightTaskId(null);
+      }, 2500);
+
+      return () => {
+        clearTimeout(scrollTimer);
+        clearTimeout(timer);
+      };
+    }
+  }, [location.state]);
 
   const getProjectInfo = (projectId) => projects.find(p => p.id === projectId);
   const getUserInfo = (userId) => users.find(u => u.id === userId);
@@ -202,16 +236,20 @@ export default function Tasks({ setCurrentPage, initialScope }) {
       });
     }
 
-    const updatedStatus = actionType === 'pause' ? 'Paused' : 'Pending Review';
+    if(actionType==='pause'){
+      updateTask.mutate({
+        id:task.id,
+        data:{
+          ...task,
+          status:'Paused',
+          etaExceededComment:justification||task.etaExceededComment
+        }
+      })
+    }else{
+      submitTaskReview.mutate({taskId:task.id,justification});
+    }
 
-    updateTask.mutate({
-      id: task.id,
-      data: {
-        ...task,
-        status: updatedStatus,
-        etaExceededComment: justification || task.etaExceededComment
-      }
-    });
+    
 
     const commentMsg = justification
       ? `[${actionType === 'pause' ? 'Paused' : 'Submitted for Review'} - Comment]: ${justification}. Session hours: ${duration}h.`
@@ -245,16 +283,27 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     const { duration, justification } = entryData;
     if (duration < 0 || isNaN(duration)) { alert("Please enter valid hours worked."); return; }
 
-    const remainingEta = Math.max(0, task.eta - task.logged);
-    const isOverrun = duration > remainingEta;
-
-    if (isOverrun && !justification.trim()) {
-      alert("Please provide comments/justification for exceeding the estimated task time.");
+    const isOverrun=checkTaskExceedsETA({...task,logged:(task.logged||0)});
+    const wouldexceedwiththissession=duration>Math.max(0,task.eta-task.logged);
+    if ((isOverrun||wouldexceedwiththissession) && !justification.trim()) {
+      alert("This task has exceeded its ETA (Date or Hours).Please provide a justification for exceeding theestimated task time.");
       return;
     }
 
     executePauseOrFinish(task, 'finish', entryData);
   };
+
+  const resolveTaskReview=(taskid,approve,comment='')=>{
+    approve? approveTaskReview.mutate({taskid,comment}):rejectTaskReview.mutate({taskid,comment})
+  }
+
+  const handleUnsubmitReview=(taskid)=>{
+    unsubmitTaskReview.mutate(taskid);
+  };
+
+  const handleUndoReview=(taskid)=>{
+    undoTaskReview.mutate(taskid);
+  }
 
   const handleAddCommentSubmit = (taskId) => {
     const commentText = newComment[taskId];
@@ -602,6 +651,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
             Data={filteredTasks}
             columns={columns}
             onRowClick={(task) => setExpandedTaskId(task.id)}
+            getRowClassName={(task) => task.id === highlightTaskId ? 'glow-highlight' : ''}
           />
         </div>
 
@@ -680,6 +730,9 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           onOpenTransfer={(id) => { setActiveTaskId(id); setShowTransferModal(true); }}
           onResolveETA={resolveETARequest}
           onResolveTransfer={resolveTransferRequest}
+          onResolveReview={resolveTaskReview}
+          onUnsubmitReview={handleUnsubmitReview}
+          onUndoReview={handleUndoReview}
           onDirectReassign={handleDirectReassign}
           onDirectUpdateETA={handleDirectUpdateETA}
           onEditTask={(task) => { setEditingTask(task); setShowEditTaskModal(true); }}

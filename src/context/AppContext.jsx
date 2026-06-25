@@ -280,6 +280,39 @@ export const AppProvider = ({ children }) => {
     onAddNotification: handleAddNotification
   });
 
+  // Sync announcements to notifications list on load
+  useEffect(() => {
+    if (!auth.currentUser || !announcementsHook.announcements.length) return;
+
+    notificationsHook.setNotifications(prev => {
+      const newNotifs = [];
+      announcementsHook.announcements.forEach(ann => {
+        const notifId = `announcement-notif-${ann.id}`;
+        const exists = prev.some(n => n.id === notifId);
+        const isCreator = auth.currentUser.name && ann.createdBy && String(ann.createdBy).toLowerCase() === String(auth.currentUser.name).toLowerCase();
+        
+        if (!exists && !isCreator) {
+          newNotifs.push({
+            id: notifId,
+            recipientId: auth.currentUser.id,
+            type: 'ANNOUNCEMENT',
+            title: 'Company Announcement',
+            message: `Announcement: '${ann.title}' by ${ann.createdBy}`,
+            entityType: 'ANNOUNCEMENT',
+            entityId: ann.id,
+            channel: 'INTERNAL',
+            isRead: false,
+            createdAt: ann.createdAt
+          });
+        }
+      });
+      if (newNotifs.length > 0) {
+        return [...newNotifs, ...prev];
+      }
+      return prev;
+    });
+  }, [announcementsHook.announcements, auth.currentUser, notificationsHook.setNotifications]);
+
   // Task updater for extensions
   const handleUpdateTaskETA = useCallback(async (taskId, updatedData) => {
     await mutateUpdateTask.mutateAsync({ id: taskId, data: updatedData });

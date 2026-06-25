@@ -3,25 +3,6 @@ import { Clock, CheckSquare, AlertTriangle, FileText, Archive, Users } from 'luc
 
 const cards = [
   {
-    key: 'staffOnline',
-    label: 'STAFF ONLINE NOW',
-    icon: Users,
-    accent: '#22c55e',
-    pulse: true,
-    format: (v) => `${v.count} / ${v.total}`,
-    danger: false,
-    page: '/admin/employees',
-  },
-  {
-    key: 'hoursToday',
-    label: 'HOURS LOGGED TODAY',
-    icon: Clock,
-    accent: 'var(--primary)',
-    format: (v) => `${v.toFixed(1)}h`,
-    danger: false,
-    page: '/admin/timesheets',
-  },
-  {
     key: 'openTasks',
     label: 'OPEN TASKS',
     icon: CheckSquare,
@@ -63,7 +44,7 @@ export default function KpiCards({ kpis, onNavigate }) {
   return (
     <div className="kpi-cards-grid" style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(6, 1fr)',
+      gridTemplateColumns: 'repeat(4, 1fr)',
       gap: '0.75rem',
       flexShrink: 0,
     }}>

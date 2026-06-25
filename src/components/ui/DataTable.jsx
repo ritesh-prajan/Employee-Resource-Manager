@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-table";
 import Pagination from "./Pagination";
 
-export default function DataTable({ Data = [], columns = [], onRowClick }) {
+export default function DataTable({ Data = [], columns = [], onRowClick, getRowClassName }) {
   const [pagination, setPagination] = useState({
     pageSize: 8,
     pageIndex: 0,
@@ -54,7 +54,10 @@ export default function DataTable({ Data = [], columns = [], onRowClick }) {
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
+                  data-task-id={row.original.id}
+                  className={`border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer ${
+                    getRowClassName ? getRowClassName(row.original) : ''
+                  }`}
                   onClick={() => onRowClick && onRowClick(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (

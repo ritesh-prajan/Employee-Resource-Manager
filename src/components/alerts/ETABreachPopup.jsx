@@ -2,8 +2,56 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { CalendarX, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import DataTable from '../ui/DataTable';
 
 export default function ETABreachPopup({ isOpen, breaches, onClose }) {
+  const navigate = useNavigate();
+
+  const columns = React.useMemo(() => [
+    {
+      accessorKey: 'taskNumber',
+      header: 'TASK ID',
+      cell: ({ getValue }) => (
+        <span className="font-mono text-xs px-2 py-1 rounded border border-slate-200 bg-slate-50 text-slate-500 whitespace-nowrap">
+          {getValue()}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'name',
+      header: 'TASK NAME',
+      cell: ({ getValue }) => (
+        <span className="font-semibold text-xs text-slate-700">{getValue()}</span>
+      ),
+    },
+    {
+      accessorKey: 'etaDate',
+      header: 'DUE DATE',
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: '0.78rem', color: '#ef4444', fontWeight: 600 }}>
+          {getValue() ? new Date(getValue()).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'status',
+      header: 'STATUS',
+      cell: ({ getValue }) => (
+        <span style={{
+          fontSize: '0.65rem', fontWeight: 700,
+          color: 'var(--muted-foreground)',
+          backgroundColor: 'var(--secondary)',
+          border: '1px solid var(--border)',
+          borderRadius: 4, padding: '2px 7px',
+          textTransform: 'uppercase'
+        }}>
+          {getValue()}
+        </span>
+      ),
+    },
+  ], []);
+
   if (!breaches || breaches.length === 0) return null;
 
   return createPortal(
@@ -39,7 +87,9 @@ export default function ETABreachPopup({ isOpen, breaches, onClose }) {
               width: '100%',
               maxWidth: '850px',
               maxHeight: '80vh',
-              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
             }}
           >
             {/* Header */}
@@ -74,40 +124,16 @@ export default function ETABreachPopup({ isOpen, breaches, onClose }) {
               </button>
             </div>
 
-            {/* Breach list */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {breaches.map(task => (
-                <div key={task.id} style={{
-                  padding: '0.75rem 0.875rem',
-                  background: 'var(--secondary)',
-                  border: '1px solid var(--border)',
-                  borderLeft: '3px solid #ef4444',
-                  borderRadius: '0.625rem',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                      {task.taskNumber} — {task.name}
-                    </p>
-                    <span style={{
-                      fontSize: '0.68rem', fontWeight: 600,
-                      color: '#ef4444',
-                      backgroundColor: 'color-mix(in srgb, #ef4444 10%, transparent)',
-                      border: '1px solid color-mix(in srgb, #ef4444 25%, transparent)',
-                      borderRadius: 4, padding: '2px 7px',
-                    }}>
-                      Overdue
-                    </span>
-                  </div>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.7rem', color: '#ef4444' }}>
-                    ETA: {new Date(task.etaDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
-                  {task.assignedTo && (
-                    <p style={{ margin: '2px 0 0', fontSize: '0.68rem', color: 'var(--muted-foreground)' }}>
-                      Status: {task.status}
-                    </p>
-                  )}
-                </div>
-              ))}
+            {/* Breach list table */}
+            <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+              <DataTable
+                Data={breaches}
+                columns={columns}
+                onRowClick={(task) => {
+                  navigate('/admin/tasks', { state: { highlightTaskId: task.id } });
+                  onClose();
+                }}
+              />
             </div>
 
             {/* Footer */}

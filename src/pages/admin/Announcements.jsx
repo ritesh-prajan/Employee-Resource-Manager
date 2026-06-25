@@ -2,24 +2,40 @@
 import React, { useState, useMemo } from "react";
 import { Plus, Search } from "lucide-react";
 import { motion, AnimatePresence } from 'motion/react';
+import { useApp } from "../../context/AppContext";
 
 import DataTable from "../../components/ui/DataTable";
 import CreatePage from "../../components/Announcements/CreatePage";
 import AnnouncementDetailsModal from "../../components/Announcements/AnnouncementDetailsModal";
 import { SEVERITY_CONFIG, ALL_SEVERITIES, timeago, getteambyid, getchannelbyid } from "../../components/Announcements/healpers";
 
+
 export default function Announcements() {
   // TODO: replace with API call
-  const [announcements, setAnnouncements] = useState([]);
+  const { announcements, createAnnouncement, deleteAnnouncement, isLoading } = useApp();
+
   const [activeTab, setActiveTab] = useState("Feed"); // "Feed" or "Create"
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [detailAnnouncement, setDetailAnnouncement] = useState(null);
 
   const handlePublish = (newAnnouncement) => {
-    setAnnouncements((prev) => [newAnnouncement, ...prev]);
-    setActiveTab("Feed");
-  };
+  createAnnouncement.mutate({
+    title: newAnnouncement.title,
+    content: newAnnouncement.content,
+    severity: newAnnouncement.severity
+  }, {
+    onSuccess: () => {
+      setActiveTab("Feed");
+    }
+  });
+};
+
+const handleDelete=(id)=>{
+  if(window.confirm('Are you sure you want to delete this announcement?')){
+    deleteAnnouncement.mutate(id);
+  }
+}
 
   const filteredAnnouncements = useMemo(() => {
     return announcements.filter(a => {

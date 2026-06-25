@@ -25,6 +25,8 @@ function maptask(task){
         comments:[],
         progress:0,
         tags:[],
+        completionReviewStatus:task.completionReviewStatus||task.completetionReviewStatus||null,
+        reviewComment:task.reviewComment||"",
     };
 
 }
@@ -339,4 +341,30 @@ export const taskService={
         const data=await api.patch(`/eta-extensions/${extension}/undo`)
         return mapetaextension(data);
     },
+    submitReview:async(id,justification='')=>{
+        const data=await api.post(`/tasks/${id}/submit-review`,{justification})
+        return maptask(data);
+    },
+    approveTaskReview:async(taskid,comment='')=>{
+        const data=await api.post(`/tasks/${taskid}/review`,{
+            status:'APPROVED',
+            comment,
+        })
+        return maptask(data);
+    },
+    rejectTaskReview:async(taskid,comment='')=>{
+        const data=await api.post(`/tasks/${taskid}/review`,{
+            status:'REJECTED',
+            comment,
+        })
+        return maptask(data);
+    },
+    unsubmitReview:async(id)=>{
+        const data=await api.post(`/tasks/${id}/unsubmit-review`)
+        return maptask(data);
+    },
+    undoReview:async(id)=>{
+        const data=await api.post(`/tasks/${id}/undo-review`)
+        return maptask(data);
+    }
 }

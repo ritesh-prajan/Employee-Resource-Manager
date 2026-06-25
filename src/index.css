@@ -1273,4 +1273,43 @@ select option {
   }
 }
 
+/* Remove default browser focus outline/border on Recharts active shapes/sectors/wrapper */
+.recharts-wrapper *:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+.recharts-pie-sector:focus,
+.recharts-sector:focus,
+.recharts-cell:focus,
+path.recharts-sector:focus,
+path.recharts-pie-sector:focus {
+  outline: none !important;
+}
 
+@keyframes row-glow {
+  0% {
+    outline: 1.5px solid color-mix(in srgb, var(--primary) 40%, transparent);
+    outline-offset: -1.5px;
+    box-shadow: 0 0 8px rgba(0, 16, 174, 0.2);
+    background-color: color-mix(in oklch, var(--primary) 6%, transparent) !important;
+  }
+  50% {
+    outline: 1.5px solid color-mix(in srgb, var(--primary) 60%, transparent);
+    outline-offset: -1.5px;
+    box-shadow: 0 0 12px rgba(0, 16, 174, 0.35);
+    background-color: color-mix(in oklch, var(--primary) 10%, transparent) !important;
+  }
+  100% {
+    outline: 0px solid transparent;
+    outline-offset: -1.5px;
+    box-shadow: none;
+    background-color: transparent;
+  }
+}
+
+.glow-highlight {
+  position: relative;
+  z-index: 10;
+  animation: row-glow 2.5s cubic-bezier(0.4, 0, 0.2, 1);
+}

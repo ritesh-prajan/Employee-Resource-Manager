@@ -1,6 +1,5 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Bell, Inbox, CheckCheck, Trash2, ChevronDown, X, CalendarX,
   Eye, EyeOff, ExternalLink, CheckSquare, Clock, Check, ShieldAlert,
@@ -12,6 +11,29 @@ import ETABreachPopup from '../components/alerts/ETABreachPopup';
 import DailyTaskPrompt, { shouldShowDailyPrompt } from '../components/alerts/DailyTaskPrompt';
 import TaskAssignedToast from '../components/alerts/TaskAssignedToast';
 import { useNavigate } from 'react-router-dom';
+
+const TYPE_META = {
+  TASK_ASSIGNED:      { icon: CheckSquare, color: 'var(--primary)', label: 'Task Assigned' },
+  TASK_UPDATED:       { icon: Clock,        color: '#2dd4bf',        label: 'Task Updated' },
+  TASK_REJECTED:      { icon: ShieldAlert,  color: '#ef4444',        label: 'Task Rejected' },
+  TIMESHEET_APPROVED: { icon: Check,        color: '#4ade80',        label: 'Approved' },
+  TIMESHEET_REJECTED: { icon: ShieldAlert,  color: '#ef4444',        label: 'Rejected' },
+  APPROVAL_REVERTED:  { icon: Clock,        color: '#fbbf24',        label: 'Reverted' },
+  BACKLOG_CLAIMED:    { icon: CheckSquare,  color: '#2dd4bf',        label: 'Backlog Claimed' },
+  BACKLOG_CLAIM_REQUEST: { icon: CheckSquare, color: '#3b82f6',        label: 'Claim Request' },
+  ETA_REQUEST:        { icon: Calendar,     color: '#fbbf24',        label: 'ETA Request' },
+  ETA_DECISION:       { icon: Calendar,     color: '#fbbf24',        label: 'ETA Decision' },
+  TRANSFER_REQUEST:   { icon: ShieldAlert,  color: '#c084fc',        label: 'Transfer Request' },
+  TRANSFER_DECISION:  { icon: ShieldAlert,  color: '#c084fc',        label: 'Transfer Decision' },
+  MEETING_REMINDER:   { icon: Video,        color: '#06b6d4',        label: 'Meeting' },
+  ANNOUNCEMENT:       { icon: Megaphone,    color: '#ec4899',        label: 'Announcement' },
+  WATCHDOG_LATE:      { icon: Clock,        color: '#fbbf24',        label: 'Late Check-in' },
+  WATCHDOG_ABSENT:    { icon: UserX,        color: '#ef4444',        label: 'Absent' },
+  overdue:            { icon: CalendarX,    color: '#ef4444',        label: 'Overdue' },
+  overtime:           { icon: TrendingUp,   color: '#fbbf24',        label: 'Overtime' },
+};
+
+const DEFAULT_META = { icon: MessageSquare, color: '#8b939c', label: 'Notification' };
 
 
 // ─── Navigation helper ────────────────────────────────────────────────────────
@@ -99,44 +121,7 @@ function FilterSelect({ label, value, onChange, options }) {
   );
 }
 
-const TYPE_META = {
-  TASK_ASSIGNED:      { icon: CheckSquare, color: 'var(--primary)', label: 'Task Assigned' },
-  TASK_UPDATED:       { icon: Clock,        color: '#2dd4bf',        label: 'Task Updated' },
-  TASK_REJECTED:      { icon: ShieldAlert,  color: '#ef4444',        label: 'Task Rejected' },
-  TIMESHEET_APPROVED: { icon: Check,        color: '#4ade80',        label: 'Approved' },
-  TIMESHEET_REJECTED: { icon: ShieldAlert,  color: '#ef4444',        label: 'Rejected' },
-  APPROVAL_REVERTED:  { icon: Clock,        color: '#fbbf24',        label: 'Reverted' },
-  BACKLOG_CLAIMED:    { icon: CheckSquare,  color: '#2dd4bf',        label: 'Backlog Claimed' },
-  BACKLOG_CLAIM_REQUEST: { icon: CheckSquare, color: '#3b82f6',        label: 'Claim Request' },
-  ETA_REQUEST:        { icon: Calendar,     color: '#fbbf24',        label: 'ETA Request' },
-  ETA_DECISION:       { icon: Calendar,     color: '#fbbf24',        label: 'ETA Decision' },
-  TRANSFER_REQUEST:   { icon: ShieldAlert,  color: '#c084fc',        label: 'Transfer Request' },
-  TRANSFER_DECISION:  { icon: ShieldAlert,  color: '#c084fc',        label: 'Transfer Decision' },
-  MEETING_REMINDER:   { icon: Video,        color: '#06b6d4',        label: 'Meeting' },
-  ANNOUNCEMENT:       { icon: Megaphone,    color: '#ec4899',        label: 'Announcement' },
-  WATCHDOG_LATE:      { icon: Clock,        color: '#fbbf24',        label: 'Late Check-in' },
-  WATCHDOG_ABSENT:    { icon: UserX,        color: '#ef4444',        label: 'Absent' },
-  overdue:            { icon: CalendarX,    color: '#ef4444',        label: 'Overdue' },
-  overtime:           { icon: TrendingUp,   color: '#fbbf24',        label: 'Overtime' },
-};
 
-const DEFAULT_META = { icon: MessageSquare, color: '#8b939c', label: 'Notification' };
-
-function actionBtn(accent) {
-  if (!accent) return {
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    width: 28, height: 28, borderRadius: 6,
-    border: '1px solid var(--border)', background: 'none',
-    color: 'var(--muted-foreground)', cursor: 'pointer',
-  };
-  return {
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    width: 28, height: 28, borderRadius: 6,
-    border: `1px solid color-mix(in srgb, ${accent} 30%, transparent)`,
-    backgroundColor: `color-mix(in srgb, ${accent} 10%, transparent)`,
-    color: accent, cursor: 'pointer',
-  };
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Alerts() {
@@ -155,7 +140,7 @@ export default function Alerts() {
   const [filterEmployee, setFilterEmployee]   = useState('');
   const [filterTeam, setFilterTeam]           = useState('');
   const [filterProject, setFilterProject]     = useState('');
-
+  
   const role = currentUser?.role;
 
   // ── All breached tasks — same source as the popup ──────────────────────────
@@ -267,8 +252,9 @@ export default function Alerts() {
     navigate(`/${resolveNavTarget(n?.type || 'overdue', role)}`);
   }, [markNotificationRead, navigate, role]);
 
-  const handleNavigateTask = useCallback(() => {
-    navigate(role === 'Admin' ? '/admin/tasks' : role === 'Team Lead' || role === 'Sub Lead' ? '/lead/tasks' : '/tasks');
+  const handleNavigateTask = useCallback((taskId) => {
+    const targetPath = role === 'Admin' ? '/admin/tasks' : role === 'Team Lead' || role === 'Sub Lead' ? '/lead/tasks' : '/tasks';
+    navigate(targetPath, { state: { highlightTaskId: taskId } });
   }, [role, navigate]);
 
   const handleToggleRead  = useCallback((n) => n.isRead ? markNotificationUnread(n.id) : markNotificationRead(n.id), [markNotificationRead, markNotificationUnread]);
@@ -291,84 +277,73 @@ export default function Alerts() {
     if (shouldNavigate) navigate('/tasks');
   };
 
-  // ── Column definitions for regular notifications ───────────────────────
-  const notificationColumns = useMemo(() => [
+
+  const notifColumns = useMemo(() => [
     {
-      id: 'status',
-      header: 'STATUS',
+      id: 'icon',
+      header: '',
       cell: ({ row }) => {
         const n = row.original;
-        const { icon: Icon, color } = TYPE_META[n.type] || DEFAULT_META;
+        const meta = TYPE_META[n.type] || DEFAULT_META;
+        const Icon = meta.icon;
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ width: 8, display: 'flex', justifyContent: 'center' }}>
-              {!n.isRead && (
-                <span style={{
-                  width: 6, height: 6, borderRadius: '50%',
-                  backgroundColor: 'var(--primary)', flexShrink: 0,
-                }} />
-              )}
-            </div>
-            <div style={{
-              width: 30, height: 30, borderRadius: '50%',
-              backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <Icon size={13} style={{ color }} />
-            </div>
+          <div style={{
+            width: 32, height: 32, borderRadius: '50%',
+            backgroundColor: `color-mix(in srgb, ${meta.color} 12%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${meta.color} 22%, transparent)`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon size={14} style={{ color: meta.color }} />
           </div>
         );
       }
     },
     {
-      id: 'details',
-      header: 'DETAILS',
+      accessorKey: 'title',
+      header: 'NOTIFICATION',
       cell: ({ row }) => {
         const n = row.original;
+        const meta = TYPE_META[n.type] || DEFAULT_META;
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <span style={{
-              fontSize: '0.83rem',
-              fontWeight: n.isRead ? 500 : 700,
-              color: 'var(--foreground)',
-            }}>
-              {n.title}
-            </span>
-            <p style={{
-              fontSize: '0.73rem', color: 'var(--muted-foreground)',
-              margin: 0, whiteSpace: 'normal', wordBreak: 'break-word',
-            }}>
-              {n.message}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: n.isRead ? 500 : 700, color: 'var(--foreground)' }}>
+                {n.title}
+              </span>
+              <span style={{
+                fontSize: '0.62rem', fontWeight: 600,
+                color: meta.color,
+                backgroundColor: `color-mix(in srgb, ${meta.color} 10%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${meta.color} 22%, transparent)`,
+                borderRadius: 4, padding: '1px 6px',
+              }}>
+                {meta.label}
+              </span>
+              {!n.isRead && (
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  backgroundColor: '#0010AE',
+                }} />
+              )}
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{n.message}</span>
             {n.type === 'BACKLOG_CLAIM_REQUEST' && !n.isRead && (
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }} onClick={(e) => e.stopPropagation()}>
                 <button
-                  onClick={(e) => { e.stopPropagation(); approveClaimRequest(n); }}
+                  onClick={() => approveClaimRequest(n)}
                   style={{
-                    padding: '0.3rem 0.75rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    backgroundColor: 'var(--primary)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
+                    padding: '0.2rem 0.6rem', fontSize: '0.7rem', fontWeight: 600,
+                    backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'
                   }}
                 >
                   Agree
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); rejectClaimRequest(n); }}
+                  onClick={() => rejectClaimRequest(n)}
                   style={{
-                    padding: '0.3rem 0.75rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    backgroundColor: 'color-mix(in srgb, var(--destructive) 10%, transparent)',
-                    color: 'var(--destructive)',
-                    border: '1px solid color-mix(in srgb, var(--destructive) 25%, transparent)',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
+                    padding: '0.2rem 0.6rem', fontSize: '0.7rem', fontWeight: 600,
+                    backgroundColor: 'color-mix(in srgb, var(--destructive) 10%, transparent)', color: 'var(--destructive)',
+                    border: '1px solid color-mix(in srgb, var(--destructive) 25%, transparent)', borderRadius: '4px', cursor: 'pointer'
                   }}
                 >
                   Reject
@@ -380,38 +355,16 @@ export default function Alerts() {
       }
     },
     {
-      id: 'type',
-      header: 'TYPE',
-      cell: ({ row }) => {
-        const n = row.original;
-        const { color, label } = TYPE_META[n.type] || DEFAULT_META;
+      accessorKey: 'createdAt',
+      header: 'DATE RECEIVED',
+      cell: ({ getValue }) => {
+        const val = getValue();
         return (
-          <span style={{
-            fontSize: '0.62rem', fontWeight: 600,
-            color,
-            backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
-            borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap',
-          }}>
-            {label}
+          <span style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>
+            {new Date(val).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+            {' '}
+            {new Date(val).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
-        );
-      }
-    },
-    {
-      id: 'created',
-      header: 'CREATED',
-      cell: ({ row }) => {
-        const n = row.original;
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.73rem', color: 'var(--muted-foreground)' }}>
-            <span style={{ whiteSpace: 'nowrap' }}>
-              {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-            </span>
-            <span style={{ whiteSpace: 'nowrap' }}>
-              {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
         );
       }
     },
@@ -420,125 +373,94 @@ export default function Alerts() {
       header: 'ACTIONS',
       cell: ({ row }) => {
         const n = row.original;
-        const sys = isSystemGenerated(n.id);
         return (
-          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-start' }} onClick={(e) => e.stopPropagation()}>
-            {!sys && (
-              <button
-                onClick={(e) => { e.stopPropagation(); handleToggleRead(n); }}
-                title={n.isRead ? 'Mark as unread' : 'Mark as read'}
-                style={actionBtn()}
-              >
-                {n.isRead ? <EyeOff size={13} /> : <Eye size={13} />}
-              </button>
-            )}
+          <div style={{ display: 'flex', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={(e) => { e.stopPropagation(); handleNavigate(n); }}
+              onClick={() => handleToggleRead(n)}
+              title={n.isRead ? 'Mark as unread' : 'Mark as read'}
+              className="p-1 rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 cursor-pointer"
+            >
+              {n.isRead ? <EyeOff size={13} /> : <Eye size={13} />}
+            </button>
+            <button
+              onClick={() => handleNavigate(n)}
               title="View details"
-              style={actionBtn('var(--primary)')}
+              className="p-1 rounded border border-slate-200 bg-white text-[#0010AE] hover:bg-slate-50 cursor-pointer"
             >
               <ExternalLink size={13} />
             </button>
-            {!sys && (
-              <button
-                onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
-                title="Dismiss"
-                style={actionBtn('var(--destructive)')}
-              >
-                <Trash2 size={13} />
-              </button>
-            )}
+            <button
+              onClick={() => deleteNotification(n.id)}
+              title="Dismiss"
+              className="p-1 rounded border border-slate-200 bg-white text-red-500 hover:bg-slate-50 cursor-pointer"
+            >
+              <Trash2 size={13} />
+            </button>
           </div>
         );
       }
     }
-  ], [handleToggleRead, handleNavigate, deleteNotification, approveClaimRequest, rejectClaimRequest]);
+  ], [approveClaimRequest, rejectClaimRequest, handleToggleRead, handleNavigate, deleteNotification]);
 
-  // ── Column definitions for Crossed ETA breaches ──────────────────────────
-  const etaBreachColumns = useMemo(() => [
+  const etaColumns = useMemo(() => [
     {
-      id: 'task',
-      header: 'TASK',
-      cell: ({ row }) => {
-        const task = row.original;
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-              backgroundColor: 'color-mix(in srgb, var(--destructive) 12%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--destructive) 22%, transparent)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <CalendarX size={13} style={{ color: 'var(--destructive)' }} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted-foreground)', letterSpacing: '0.04em' }}>
-                {task.taskNumber}
-              </span>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>
-                {task.name}
-              </span>
-            </div>
-          </div>
-        );
-      }
+      accessorKey: 'taskNumber',
+      header: 'TASK ID',
+      cell: ({ getValue }) => (
+        <span className="font-mono text-xs px-2 py-1 rounded border border-slate-200 bg-slate-50 text-slate-500 whitespace-nowrap">
+          {getValue()}
+        </span>
+      )
     },
     {
-      id: 'etaOverdue',
-      header: 'ETA & OVERDUE',
+      accessorKey: 'name',
+      header: 'TASK NAME',
       cell: ({ row }) => {
         const task = row.original;
-        const daysOverdue = task.etaDate
-          ? Math.max(0, Math.floor((new Date() - new Date(task.etaDate)) / (1000 * 60 * 60 * 24)))
-          : null;
+        const project = projects.find(p => p.id === task.projectId);
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-            {task.etaDate && (
-              <span style={{ fontSize: '0.78rem', color: 'var(--destructive)', fontWeight: 600 }}>
-                {new Date(task.etaDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>{task.name}</span>
+            {project && (
+              <span style={{ fontSize: '0.75rem', color: project.color || 'var(--muted-foreground)' }}>
+                {project.name.split(' (')[0]}
               </span>
             )}
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <span style={{
-                fontSize: '0.62rem', fontWeight: 700,
-                color: 'var(--destructive)',
-                backgroundColor: 'color-mix(in srgb, var(--destructive) 10%, transparent)',
-                border: '1px solid color-mix(in srgb, var(--destructive) 25%, transparent)',
-                borderRadius: 4, padding: '1px 5px', flexShrink: 0,
-              }}>
-                Overdue{daysOverdue !== null ? ` · ${daysOverdue}d` : ''}
-              </span>
-              <span style={{
-                fontSize: '0.62rem', fontWeight: 600,
-                color: 'var(--muted-foreground)',
-                backgroundColor: 'var(--secondary)',
-                border: '1px solid var(--border)',
-                borderRadius: 4, padding: '1px 5px', flexShrink: 0,
-              }}>
-                {task.status}
-              </span>
-            </div>
           </div>
         );
       }
     },
     {
-      id: 'assignedTo',
-      header: 'ASSIGNED TO',
+      id: 'assignee',
+      header: 'ASSIGNEE',
       cell: ({ row }) => {
         const task = row.original;
         const assignee = users.find(u => u.id === task.assignedTo);
         const team = teams.find(tm => tm.members.includes(task.assignedTo));
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            {assignee && (
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                {assignee.name}
-              </span>
-            )}
-            {team && (
-              <span style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)' }}>
-                {team.name}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--foreground)' }}>{assignee?.name || 'Unassigned'}</span>
+            {team && <span style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)' }}>{team.name}</span>}
+          </div>
+        );
+      }
+    },
+    {
+      accessorKey: 'etaDate',
+      header: 'DUE DATE',
+      cell: ({ getValue }) => {
+        const val = getValue();
+        const daysOverdue = val
+          ? Math.max(0, Math.floor((new Date() - new Date(val)) / (1000 * 60 * 60 * 24)))
+          : null;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--destructive)', fontWeight: 600 }}>
+              {val ? new Date(val).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+            </span>
+            {daysOverdue !== null && daysOverdue > 0 && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--destructive)' }}>
+                Overdue by {daysOverdue}d
               </span>
             )}
           </div>
@@ -546,28 +468,32 @@ export default function Alerts() {
       }
     },
     {
-      id: 'project',
-      header: 'PROJECT',
-      cell: ({ row }) => {
-        const task = row.original;
-        const project = projects.find(p => p.id === task.projectId);
-        return (
-          <span style={{ fontSize: '0.8rem', color: 'var(--foreground)' }}>
-            {project ? project.name : '—'}
-          </span>
-        );
-      }
+      accessorKey: 'status',
+      header: 'STATUS',
+      cell: ({ getValue }) => (
+        <span style={{
+          fontSize: '0.65rem', fontWeight: 700,
+          color: 'var(--muted-foreground)',
+          backgroundColor: 'var(--secondary)',
+          border: '1px solid var(--border)',
+          borderRadius: 4, padding: '2px 7px',
+          textTransform: 'uppercase'
+        }}>
+          {getValue()}
+        </span>
+      )
     },
     {
       id: 'actions',
       header: 'ACTIONS',
-      cell: () => {
+      cell: ({ row }) => {
+        const task = row.original;
         return (
           <div style={{ display: 'flex', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={(e) => { e.stopPropagation(); handleNavigateTask(); }}
-              title="View task"
-              style={actionBtn('var(--primary)')}
+              onClick={() => handleNavigateTask(task.id)}
+              title="Go to task"
+              className="p-1 rounded border border-slate-200 bg-white text-[#0010AE] hover:bg-slate-50 cursor-pointer"
             >
               <ExternalLink size={13} />
             </button>
@@ -575,7 +501,7 @@ export default function Alerts() {
         );
       }
     }
-  ], [users, teams, projects, handleNavigateTask]);
+  ], [projects, users, teams, handleNavigateTask]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
@@ -709,67 +635,57 @@ export default function Alerts() {
           )}
 
           {/* ETA breach table */}
-          <div>
-            {filteredBreaches.length === 0 ? (
-              <motion.div
-                key="empty-eta"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                style={{
-                  padding: '4rem 2rem', textAlign: 'center',
-                  border: '1px dashed var(--border)', borderRadius: '0.875rem',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
-                }}
-              >
-                <CalendarX size={32} style={{ opacity: 0.3, color: 'var(--destructive)' }} />
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-                    {hasActiveFilters ? 'No results match your filters' : 'No ETA breaches'}
-                  </h4>
-                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                    {hasActiveFilters ? 'Try adjusting or clearing the filters.' : 'All tasks are on track.'}
-                  </p>
-                </div>
-              </motion.div>
-            ) : (
-              <DataTable
-                Data={filteredBreaches}
-                columns={etaBreachColumns}
-                onRowClick={handleNavigateTask}
-              />
-            )}
-          </div>
+          {filteredBreaches.length === 0 ? (
+            <div style={{
+              padding: '4rem 2rem', textAlign: 'center',
+              border: '1px dashed var(--border)', borderRadius: '0.875rem',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
+              backgroundColor: 'var(--card)'
+            }}>
+              <CalendarX size={32} style={{ opacity: 0.3, color: 'var(--destructive)' }} />
+              <div>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
+                  {hasActiveFilters ? 'No results match your filters' : 'No ETA breaches'}
+                </h4>
+                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                  {hasActiveFilters ? 'Try adjusting or clearing the filters.' : 'All tasks are on track.'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <DataTable
+              Data={filteredBreaches}
+              columns={etaColumns}
+              onRowClick={(task) => handleNavigateTask(task.id)}
+            />
+          )}
         </>
       ) : (
         /* ── Regular notification feed ── */
-        <div>
-          {filteredNotifs.length === 0 ? (
-            <motion.div
-              key="empty-notifs"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              style={{
-                padding: '4rem 2rem', textAlign: 'center',
-                border: '1px dashed var(--border)', borderRadius: '0.875rem',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
-              }}
-            >
-              <Inbox size={32} style={{ opacity: 0.3 }} />
-              <div>
-                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-                  No alerts here
-                </h4>
-                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                  There are no alerts matching this category.
-                </p>
-              </div>
-            </motion.div>
-          ) : (
-            <DataTable
-              Data={filteredNotifs}
-              columns={notificationColumns}
-              onRowClick={handleNavigate}
-            />
-          )}
-        </div>
+        filteredNotifs.length === 0 ? (
+          <div style={{
+            padding: '4rem 2rem', textAlign: 'center',
+            border: '1px dashed var(--border)', borderRadius: '0.875rem',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
+            backgroundColor: 'var(--card)'
+          }}>
+            <Inbox size={32} style={{ opacity: 0.3 }} />
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
+                No alerts here
+              </h4>
+              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                There are no alerts matching this category.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <DataTable
+            Data={filteredNotifs}
+            columns={notifColumns}
+            onRowClick={(n) => handleNavigate(n)}
+          />
+        )
       )}
 
       {/* ── Modals & toasts ── */}

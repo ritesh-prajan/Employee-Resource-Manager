@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Play, CheckSquare, Clock, Calendar, AlertTriangle,
   CheckCircle2, MessageSquare, Send, ChevronDown, ChevronUp,
-  Trash2, Pencil, User
+  Trash2, Pencil, User,Check,X
 } from 'lucide-react';
 
 export default function TaskDetailPanel({
@@ -20,6 +20,7 @@ export default function TaskDetailPanel({
   onAddComment, onProgressUpdate,
   onOpenETA, onOpenTransfer,
   onResolveETA, onResolveTransfer,
+  onResolveReview,onUnsubmitReview,onUndoReview,
   onDirectReassign, onDirectUpdateETA,
   onEditTask, onDeleteTask,
   onClaimBacklog, claimBacklogTask, requestClaimBacklogTask,
@@ -32,6 +33,7 @@ export default function TaskDetailPanel({
   const [sessionCategory, setSessionCategory] = useState('Story');
   const [sessionDescription, setSessionDescription] = useState('');
   const [sessionJustification, setSessionJustification] = useState('');
+  const [reviewComment,setReviewComment]=useState('');
 
   useEffect(() => {
     if (task) {
@@ -41,6 +43,7 @@ export default function TaskDetailPanel({
       setSessionCategory(task.type || 'Story');
       setSessionDescription('');
       setSessionJustification('');
+      setReviewComment('');
     }
   }, [task?.id, task?.type]);
   if (!task) return null;
@@ -242,14 +245,20 @@ export default function TaskDetailPanel({
                       </div>
 
                       {/* Over-ETA breach warning and Justification */}
-                      {enteredHours > Math.max(0, task.eta - task.logged) && (
+                      {(isOverrun||enteredHours > Math.max(0, task.eta - task.logged)) && (
                         <div className="flex flex-col gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
                           <div className="flex items-center gap-1.5 font-bold">
                             <AlertTriangle size={14} className="text-red-500" />
                             ETA Limit Alert
                           </div>
                           <div>
-                            Adding {enteredHours}h will bring the total logged time to {(task.logged + enteredHours).toFixed(2)}h, which exceeds the task's ETA of {task.eta}h. Justification is required.
+                            {task.etaDate&&new Date(task.etaDate)<new Date()&&(
+                              <>This task's ETA date({new Date(task.etaDate).toLocaleDateString()}) has aldready passed.</>
+                            )}
+                            {enteredHours>Math.max(0,task.eta-task.logged)&&(
+                              <>Adding {enteredHours}h will bring the total logged time to {(task.logged+enteredHours).toFixed(2)}h, which exceeds the task's ETA of {task.eta}h</>
+                            )}
+                            Justification is required.
                           </div>
                           <div className="flex flex-col gap-1 mt-1 text-slate-700">
                             <label className="text-[10px] text-red-600 font-bold uppercase tracking-wider">Over-ETA Justification (Required)</label>
@@ -302,7 +311,20 @@ export default function TaskDetailPanel({
                         </button>
                       </div>
                     </div>
-                  ) : (
+                  ) : task.status==='Pending Review'?(
+                      <div className='flex flex-col gap-2 p-2 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700'>
+                        <div className='text-xs text-slate-500'>
+                          This task is awaiting review from your lead.
+                        </div>
+                        <button
+                        type='button'
+                        className='w-full py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer bg-white flex items-center justify-center gap-1.5'
+                        onClick={()=>onUnsubmitReview(task.id)}
+                        >
+                        <ChevronUp size={14}/> Unsubmit Review
+                        </button>
+                      </div>
+                  ):(
                     task.status !== 'Completed' && task.status !== 'Pending Review' && (
                       <div className="flex flex-col gap-2.5">
                         <button
@@ -399,6 +421,57 @@ export default function TaskDetailPanel({
                       onClick={() => onResolveTransfer(task.id, false)}
                     >
                       Decline
+                    </button>
+                  </div>
+                </div>
+              )}
+               {canLead && (task.completionReviewStatus === 'APPROVED' || task.completionReviewStatus === 'REJECTED') && (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col gap-2">
+                  <div className="text-xs font-bold text-slate-600 flex items-center gap-1">
+                    {task.completionReviewStatus === 'APPROVED' ? <Check size={14}/> : <X size={14}/>} Review {task.completionReviewStatus === 'APPROVED' ? 'Approved' : 'Rejected'}
+                  </div>
+                  {task.reviewComment && (
+                    <div className="text-xs text-slate-600">Comment: {task.reviewComment}</div>
+                  )}
+                  <button
+                    type="button"
+                    className="self-start px-3.5 py-1.5 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-lg text-xs font-semibold transition cursor-pointer bg-white"
+                    onClick={() => onUndoReview(task.id)}
+                  >
+                    Undo Decision
+                  </button>
+                </div>
+              )}
+              {canLead && task.status === 'Pending Review' && (
+                <div className="p-4 bg-pink-50/50 border border-pink-200 rounded-2xl flex flex-col gap-2">
+                  <div className="text-xs font-bold text-pink-600 flex items-center gap-1">📝 Pending Completion Review</div>
+                  <div className="text-xs text-slate-600">
+                    {assignee?.name || 'This employee'} has submitted this task for review.
+                  </div>
+                  <div className="flex flex-col gap-1 mt-1">
+                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Review Comment (optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Nice work! / Please add more tests..."
+                      className="w-full rounded-lg border border-slate-200 py-1.5 px-2.5 outline-none focus:border-pink-500 transition text-xs bg-white text-slate-800"
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 border border-emerald-500 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
+                      onClick={() => onResolveReview(task.id, true, reviewComment)}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3.5 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition cursor-pointer bg-white"
+                      onClick={() => onResolveReview(task.id, false, reviewComment)}
+                    >
+                      Reject
                     </button>
                   </div>
                 </div>

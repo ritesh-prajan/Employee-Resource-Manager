@@ -7,6 +7,10 @@ import WeeklyHoursChart from '../../components/dashboard/WeeklyHoursChart';
 import ProjectTaskHealth from '../../components/dashboard/ProjectTaskHealth';
 import WorkCategoryChart from '../../components/dashboard/WorkCategoryChart';
 import { useNavigate } from 'react-router-dom';
+import { CheckSquare } from 'lucide-react';
+import ChartCard from '../../components/teamlead/ChartCard';
+import TaskStatusDonut from '../../components/teamlead/TaskStatusDonut';
+import Projectprogresspannel from '../../components/dashboard/Projectprogresspannel';
 const TODAY = new Date().toISOString().split('T')[0];
 
 export default function AdminDashboard() {
@@ -110,14 +114,12 @@ export default function AdminDashboard() {
       </div>
 
       {/* Row 3 — Project Task Health | Hour Rankings */}
-      <div className="admin-dashboard-grid-2" style={{
-        display: 'grid',
-        gridTemplateColumns: '2fr 3fr',
-        gap: '0.875rem',
-        height: '420px',
-        flexShrink: 0,
-      }}>
-        <ProjectTaskHealth tasks={tasks} projects={projects} />
+            {/* Row 3 — Task Breakdown | Project Progress | Hour Rankings */}
+      <div className="admin-dashboard-grid-2 grid grid-cols-1 lg:grid-cols-[1.2fr_1.5fr_2.3fr] gap-3.5 h-auto lg:h-[420px] shrink-0">
+        <ChartCard title="Task Status Breakdown"  accent="#3b82f6">
+          <TaskStatusDonut tasks={tasks} />
+        </ChartCard>
+        <Projectprogresspannel projects={projects} tasks={tasks} />
         <HourRankings
           users={users}
           tasks={tasks}
@@ -125,7 +127,6 @@ export default function AdminDashboard() {
           timeEntries={timeEntries}
         />
       </div>
-
     </div>
   );
 }

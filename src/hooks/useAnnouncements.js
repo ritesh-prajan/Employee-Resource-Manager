@@ -1,52 +1,64 @@
-/**
- * @file useAnnouncements.js
- * @description Domain hook for company announcements, automatically publishing updates and sending push notifications.
- */
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { announcementService } from '../services/announcementService';
+export const ANNOUNCEMENTS_KEY = ['announcements'];
 
-import { useState, useCallback } from 'react';
+import React from 'react'
 
-export function useAnnouncements({ currentUser, users = [], onAddNotification } = {}) {
-  const [announcements, setAnnouncements] = useState([]);
+export function useAnnouncements({currentUser,users=[],onAddNotification}={}) {
+  const queryclient=useQueryClient();
 
-  const createAnnouncement = useCallback((annData) => {
-    const createdBy = currentUser?.name || 'Admin';
-    const newAnn = {
-      id: `ann-${Date.now()}`,
-      title: annData.title,
-      content: annData.content,
-      createdBy,
-      priority: annData.priority || 'info',
-      createdAt: new Date().toISOString(),
-      targetRole: annData.targetRole || "ALL",
-      teams: annData.teams || [],
-      projects: annData.projects || []
-    };
+  const { data: announcements = [], isLoading, error } = useQuery({
+    queryKey: ANNOUNCEMENTS_KEY,
+    queryFn: () => announcementService.getAll(),
+  });
 
-    setAnnouncements(prev => [newAnn, ...prev]);
 
-    // Send notifications to everyone except the creator
-    if (onAddNotification && users) {
-      users.forEach(u => {
-        if (currentUser && String(u.id) !== String(currentUser.id)) {
-          onAddNotification({
-            id: `notif-${Date.now()}-${u.id}`,
-            recipientId: u.id,
-            type: "ANNOUNCEMENT",
-            title: "New Company Announcement",
-            message: `Announcement: '${newAnn.title}' by ${newAnn.createdBy}`,
-            entityType: "ANNOUNCEMENT",
-            entityId: newAnn.id,
-            channel: "TEAMS",
-            isRead: false,
-            createdAt: new Date().toISOString()
-          });
-        }
-      });
+  const createAnnouncement=useMutation({
+    mutationFn:(annData)=>announcementService.create(annData),
+    onSuccess:(newAnn)=>{
+      queryclient.invalidateQueries({queryKey:ANNOUNCEMENTS_KEY})
+      if(onAddNotification&&users){
+        users.forEach(u=>{
+          if(currentUser&&String(u.id)!==String(currentUser.id)){
+            onAddNotification({
+              id:`notif-${Date.now()}-${u.id}`,
+              recipientId:u.id,
+              type:'ANNOUNCEMENT',
+              title:"New Company Announcement",
+              message:`Announcement: '${newAnn.title}' by ${newAnn.createdBy}`,
+              entityType:'ANNOUNCEMENT',
+              entityId:newAnn.id,
+              channel:'INTERNAL',
+              isRead:false,
+              createdAt:new Date().toISOString()
+            });
+          }
+        })
+      }
+    },
+    onError:(err)=>{
+      console.error('Failed to create announcement',err);
+      alert('Failed to create announcement'+(err.message||err))
     }
-  }, [currentUser, users, onAddNotification]);
+    
+  });
 
+  const deleteAnnouncement=useMutation({
+    mutationFn:(id)=> announcementService.delete(id),
+    onSuccess:()=>{
+      queryclient.invalidateQueries({queryKey:ANNOUNCEMENTS_KEY})
+    },
+    onError:(err)=>{
+      console.error("Failed to delete announcement",err);
+      alert('Failed to delete announcement'+(err.message||err))
+    }
+  })
+  
   return {
     announcements,
-    createAnnouncement
-  };
+    isLoading,
+    error,
+    createAnnouncement,
+    deleteAnnouncement,
+  }
 }

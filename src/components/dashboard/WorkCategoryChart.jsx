@@ -127,70 +127,68 @@
 
     return (
         <>
-        <div style={{
-            backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-            borderRadius: '12px', padding: '1.25rem', display: 'flex',
-            flexDirection: 'column', gap: '0.75rem', height: '100%',
-            overflow: 'hidden', boxShadow: 'var(--shadow-sm)',
-        }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-            <div>
-                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)' }}>Work Categories</h3>
-                <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>Hours by type · click to drill down</span>
-            </div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--foreground)' }}>
-                {total.toFixed(1)}h
-            </span>
+        <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3 h-full overflow-hidden shadow-sm">
+            <div className="flex justify-between items-center shrink-0">
+                <div>
+                    <h3 className="text-[0.875rem] font-semibold text-foreground">Work Categories</h3>
+                    <span className="text-[0.7rem] text-muted-foreground">Hours by type · click to drill down</span>
+                </div>
+                <span className="text-[0.75rem] font-bold font-mono text-foreground">
+                    {total.toFixed(1)}h
+                </span>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem', flex: 1, minHeight: 0, alignItems: 'center', overflow: 'hidden' }}>
-            {/* Donut */}
-            <div style={{ width: '110px', height: '110px', flexShrink: 0, cursor: 'pointer' }}>
-                <PieChart width={110} height={110}>
-                    <Pie
-                    data={data} cx="50%" cy="50%"
-                    innerRadius={32} outerRadius={50}
-                    dataKey="value" strokeWidth={0}
-                    onClick={(entry) => openModal(entry.name)}
-                    >
-                    {data.map((entry) => (
-                        <Cell key={entry.name} fill={COLORS[entry.name] || 'var(--chart-5)'} />
-                    ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} position={{ x: 115, y: 20 }} />
-                </PieChart>
-            </div>
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center flex-1 min-h-0 w-full overflow-y-auto sm:overflow-hidden">
+                {/* Donut */}
+                <div className="flex items-center justify-center shrink-0 cursor-pointer" style={{ width: 120, height: 120 }}>
+                    <PieChart width={120} height={120}>
+                        <Pie
+                            data={data} 
+                            cx="50%" 
+                            cy="50%"
+                            innerRadius={36} 
+                            outerRadius={55}
+                            dataKey="value" 
+                            strokeWidth={0}
+                            onClick={(entry) => openModal(entry.name)}
+                            style={{ outline: 'none' }}
+                        >
+                            {data.map((entry) => (
+                                <Cell key={entry.name} fill={COLORS[entry.name] || 'var(--chart-5)'} style={{ outline: 'none' }} />
+                            ))}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} position={{ x: 125, y: 20 }} />
+                    </PieChart>
+                </div>
 
-            {/* Legend list */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1, overflow: 'hidden' }}>
-                {data.map(d => {
-                const pct = ((d.value / total) * 100).toFixed(0);
-                const color = COLORS[d.name] || 'var(--chart-5)';
-                return (
-                    <div
-                    key={d.name}
-                    onClick={() => openModal(d.name)}
-                    onMouseEnter={() => setHoveredRow(d.name)}
-                    onMouseLeave={() => setHoveredRow(null)}
-                    style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        gap: '0.5rem', cursor: 'pointer', borderRadius: '6px', padding: '2px 4px',
-                        backgroundColor: hoveredRow === d.name ? 'var(--secondary)' : 'transparent',
-                        transition: 'background 0.15s',
-                    }}
-                    >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0 }}>
-                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--foreground)', whiteSpace: 'nowrap' }}>{d.name}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', fontFamily: 'var(--font-mono)' }}>{d.value.toFixed(1)}h</span>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--muted-foreground)' }}>({pct}%)</span>
-                    </div>
-                    </div>
-                );
-                })}
-            </div>
+                {/* Legend list */}
+                <div className="flex flex-col gap-1.5 flex-1 w-full overflow-y-auto pr-1 max-h-[140px] sm:max-h-full">
+                    {data.map(d => {
+                        const pct = total > 0 ? ((d.value / total) * 100).toFixed(0) : 0;
+                        const color = COLORS[d.name] || 'var(--chart-5)';
+                        return (
+                            <div
+                                key={d.name}
+                                onClick={() => openModal(d.name)}
+                                onMouseEnter={() => setHoveredRow(d.name)}
+                                onMouseLeave={() => setHoveredRow(null)}
+                                className="flex items-center justify-between gap-2 cursor-pointer rounded-md px-1 py-0.5 transition-colors duration-150"
+                                style={{
+                                    backgroundColor: hoveredRow === d.name ? 'var(--secondary)' : 'transparent',
+                                }}
+                            >
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                                    <span className="text-[0.72rem] font-medium text-foreground truncate">{d.name}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0 font-mono text-[0.68rem] text-muted-foreground">
+                                    <span>{d.value.toFixed(1)}h</span>
+                                    <span>({pct}%)</span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
 

@@ -56,7 +56,7 @@ function mapstatus (status){
     PENDING:"Pending",
     APPROVED:'Approved',
     REJECTED :'Rejected',
-  };a
+  };
   return map[status]||status;
 }
 

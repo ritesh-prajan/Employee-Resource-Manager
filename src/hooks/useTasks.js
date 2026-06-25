@@ -6,6 +6,24 @@ export const TASK_TAGS_KEY=['task-tags'];
 export const TASK_TRANSFERES_KEY=["task-transfers"];
 export const ETA_EXTENSIONS_KEY=["eta-extensions"];
 
+function describemutationerror(err,fallback){
+  let detail=err?.message||'';
+  try{
+    const parsed=JSON.parse(detail);
+
+  }catch{
+
+  }
+  return detail?`${fallback}: ${detail}` : fallback;
+}
+
+function alertonerror(fallback){
+  return (err)=>{
+    console.error(fallback,err);
+    alert(describemutationerror(err,fallback));
+  }
+}
+
 export function useTasks(options={}){
   const queryclient=useQueryClient();
   const query=useQuery({
@@ -53,7 +71,7 @@ export function useTasks(options={}){
       queryclient.invalidateQueries({queryKey:TASK_KEY});
 
     },
-    onError:(err)=>console.error('failed to create task',err),
+    onError:(err)=>alertonerror('failed to create task',err),
   })
 
   const updateTask=useMutation({
@@ -61,7 +79,7 @@ export function useTasks(options={}){
     onSuccess:()=>{
       queryclient.invalidateQueries({queryKey:TASK_KEY});
     },
-    onError:(err)=>console.error('Failed to update task',err),
+    onError:(err)=>alertonerror('Failed to update task',err),
   });
 
   const removeTask=useMutation({
@@ -69,7 +87,7 @@ export function useTasks(options={}){
     onSuccess:()=>{
       queryclient.invalidateQueries({queryKey:TASK_KEY});
     },
-    onError:(err)=>console.error("failed to delete task",err),
+    onError:(err)=>alertonerror("failed to delete task",err),
   });
   const assignTask=useMutation({
     mutationFn:({taskId, userId, taskid, userid})=>{
@@ -80,14 +98,14 @@ export function useTasks(options={}){
     onSuccess:()=>{
       queryclient.invalidateQueries({queryKey:TASK_KEY});
     },
-    onError:(err)=>console.error("failed to assign task",err),
+    onError:(err)=>alertonerror("failed to assign task",err),
   });
   const unassignTask=useMutation({
     mutationFn:(taskid)=>taskService.unassignTask(taskid),
     onSuccess:()=>{
       queryclient.invalidateQueries({queryKey:TASK_KEY});
     },
-    onError:(err)=>console.error("failed to unassign task",err),
+    onError:(err)=>alertonerror("failed to unassign task",err),
   });
   const addTaskComment = useMutation({
     mutationFn: ({ taskId, authorEmployeeId, commentText }) =>
@@ -96,7 +114,7 @@ export function useTasks(options={}){
     
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
     },
-    onError: (err) => console.error('Failed to add comment:', err),
+    onError: (err) => alertonerror('Failed to add comment:', err),
   });
 
 
@@ -105,7 +123,7 @@ export function useTasks(options={}){
     onSuccess: () => {
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
     },
-    onError: (err) => console.error('Failed to delete comment:', err),
+    onError: (err) => alertonerror('Failed to delete comment:', err),
   });
   const updateTaskProgress = useMutation({
     mutationFn: ({ taskId, employeeId, progressPercentage, remarks }) =>
@@ -114,7 +132,7 @@ export function useTasks(options={}){
     
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
     },
-    onError: (err) => console.error('Failed to update progress:', err),
+    onError: (err) => alertonerror('Failed to update progress:', err),
   });
 
   
@@ -123,7 +141,7 @@ export function useTasks(options={}){
     onSuccess: () => {
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
     },
-    onError: (err) => console.error('Failed to delete progress log:', err),
+    onError: (err) => alertonerror('Failed to delete progress log:', err),
   });
 
     const createTag = useMutation({
@@ -135,7 +153,7 @@ export function useTasks(options={}){
       
       queryclient.invalidateQueries({ queryKey: TASK_TAGS_KEY });
     },
-    onError: (err) => console.error('Failed to create tag:', err),
+    onError: (err) => alertonerror('Failed to create tag:', err),
   });
 
   
@@ -145,7 +163,7 @@ export function useTasks(options={}){
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
       queryclient.invalidateQueries({ queryKey: TASK_TAGS_KEY });
     },
-    onError: (err) => console.error('Failed to delete tag:', err),
+    onError: (err) => alertonerror('Failed to delete tag:', err),
   });
   const createTransfer = useMutation({
     mutationFn: ({ taskId, fromEmployeeId, toEmployeeId, reason }) =>
@@ -155,7 +173,7 @@ export function useTasks(options={}){
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
       queryclient.invalidateQueries({ queryKey: TASK_TRANSFERES_KEY });
     },
-    onError: (err) => console.error('Failed to create transfer:', err),
+    onError: (err) => alertonerror('Failed to create transfer:', err),
   });
 
   const approveTransfer = useMutation({
@@ -165,7 +183,7 @@ export function useTasks(options={}){
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
       queryclient.invalidateQueries({ queryKey: TASK_TRANSFERES_KEY });
     },
-    onError: (err) => console.error('Failed to approve transfer:', err),
+    onError: (err) => alertonerror('Failed to approve transfer:', err),
   });
 
   
@@ -175,7 +193,7 @@ export function useTasks(options={}){
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
       queryclient.invalidateQueries({ queryKey: TASK_TRANSFERES_KEY });
     },
-    onError: (err) => console.error('Failed to reject transfer:', err),
+    onError: (err) => alertonerror('Failed to reject transfer:', err),
   });
 
   
@@ -185,7 +203,7 @@ export function useTasks(options={}){
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
       queryclient.invalidateQueries({ queryKey: TASK_TRANSFERES_KEY });
     },
-    onError: (err) => console.error('Failed to undo transfer:', err),
+    onError: (err) => alertonerror('Failed to undo transfer:', err),
   });
   const createEtaExtension = useMutation({
     mutationFn: ({ taskId, requestedById, newEtaDate, reason }) =>
@@ -195,7 +213,7 @@ export function useTasks(options={}){
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
       queryclient.invalidateQueries({ queryKey: ETA_EXTENSIONS_KEY });
     },
-    onError: (err) => console.error('Failed to create ETA extension:', err),
+    onError: (err) => alertonerror('Failed to create ETA extension:', err),
   });
 
   
@@ -205,7 +223,7 @@ export function useTasks(options={}){
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
       queryclient.invalidateQueries({ queryKey: ETA_EXTENSIONS_KEY });
     },
-    onError: (err) => console.error('Failed to approve ETA extension:', err),
+    onError: (err) => alertonerror('Failed to approve ETA extension:', err),
   });
 
 
@@ -215,7 +233,7 @@ export function useTasks(options={}){
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
       queryclient.invalidateQueries({ queryKey: ETA_EXTENSIONS_KEY });
     },
-    onError: (err) => console.error('Failed to reject ETA extension:', err),
+    onError: (err) => alertonerror('Failed to reject ETA extension:', err),
   });
 
   
@@ -225,8 +243,50 @@ export function useTasks(options={}){
       queryclient.invalidateQueries({ queryKey: TASK_KEY });
       queryclient.invalidateQueries({ queryKey: ETA_EXTENSIONS_KEY });
     },
-    onError: (err) => console.error('Failed to undo ETA extension:', err),
+    onError: (err) => alertonerror('Failed to undo ETA extension:', err),
   });
+
+  const submitTaskReview=useMutation({
+    mutationKey: ['submitTaskReview'],
+    mutationFn:({taskId,justification})=> taskService.submitReview(taskId,justification),
+    onSuccess:()=>{
+      queryclient.invalidateQueries({queryKey:TASK_KEY});
+    },
+    onError:(err)=>alertonerror("failed to submit task for review",err),
+  });
+
+  const approveTaskReview=useMutation({
+     mutationKey: ['approveTaskReview'],
+    mutationFn:({taskid,comment})=> taskService.approveTaskReview(taskid,comment),
+    onSuccess:()=>{
+      queryclient.invalidateQueries({queryKey:TASK_KEY});
+    },
+    onError:(err)=>alertonerror("failed to approve task",err),
+  });
+  const rejectTaskReview=useMutation({
+     mutationKey: ['rejectTaskReview'],
+    mutationFn:({taskid,comment})=> taskService.rejectTaskReview(taskid,comment),
+    onSuccess:()=>{
+      queryclient.invalidateQueries({queryKey:TASK_KEY});
+    },
+    onError:(err)=>alertonerror("failed to reject task",err),
+  })
+  
+  const unsubmitTaskReview=useMutation({
+    mutationFn:(taskid)=>taskService.unsubmitReview(taskid),
+    onSuccess:()=>{
+      queryclient.invalidateQueries({queryKey:TASK_KEY});
+    },
+    onError:(err)=> alertonerror("Failed to unsubmit review",err),
+  })
+
+  const undoTaskReview=useMutation({
+    mutationFn:(taskid)=>taskService.undoReview(taskid),
+    onSuccess:()=>{
+      queryclient.invalidateQueries({queryKey:TASK_KEY})
+    },
+    onError:(err)=>alertonerror('Failed to undo task review',err),
+  })
   return{
     tasks:query.data??[],
     isLoading:query.isLoading,
@@ -251,6 +311,11 @@ export function useTasks(options={}){
     approveEtaExtension,
     rejectEtaExtension,
     undoEtaExtension,
+    submitTaskReview,
+    approveTaskReview,
+    rejectTaskReview,
+    unsubmitTaskReview,
+    undoTaskReview,
     invalidate:()=>queryclient.invalidateQueries({queryKey:TASK_KEY}),
   }
 }

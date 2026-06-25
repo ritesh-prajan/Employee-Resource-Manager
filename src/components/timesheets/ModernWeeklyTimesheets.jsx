@@ -8,6 +8,7 @@ const getDaySummaryStyle = (entries) => {
   const totalHours = entries.reduce((s, e) => s + e.hours, 0);
   const completedHours = entries.filter(e => e.type === "completed").reduce((s, e) => s + e.hours, 0);
   const pendingHours = entries.filter(e => e.type === "pending").reduce((s, e) => s + e.hours, 0);
+  const rejectedHours = entries.filter(e => e.type === "rejected").reduce((s, e) => s + e.hours, 0);
   const breakHours = entries.filter(e => e.type === "break").reduce((s, e) => s + e.hours, 0);
 
   const parts = [];
@@ -16,6 +17,9 @@ const getDaySummaryStyle = (entries) => {
   }
   if (pendingHours > 0) {
     parts.push({ color: "#dbeafe", border: "#93c5fd", text: "#1d4ed8", hrs: pendingHours });
+  }
+  if (rejectedHours > 0) {
+    parts.push({ color: "#fee2e2", border: "#fecaca", text: "#991b1b", hrs: rejectedHours });
   }
   if (breakHours > 0) {
     parts.push({ color: "#fef9c3", border: "#fde047", text: "#854d0e", hrs: breakHours });
@@ -71,7 +75,8 @@ const getDaySummaryStyle = (entries) => {
 
 const STATUS_META = {
   completed: { label: "Approved",    bg: "#dcfce7", color: "#15803d", border: "#86efac" },
-  pending:   { label: "In Progress", bg: "#dbeafe", color: "#1d4ed8", border: "#93c5fd" },
+  pending:   { label: "Pending",     bg: "#dbeafe", color: "#1d4ed8", border: "#93c5fd" },
+  rejected:  { label: "Rejected",    bg: "#fee2e2", color: "#991b1b", border: "#fecaca" },
   break:     { label: "Break",       bg: "#fef9c3", color: "#854d0e", border: "#fde047" },
 };
 

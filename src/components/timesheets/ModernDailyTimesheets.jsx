@@ -29,12 +29,14 @@ const PER_PAGE_OPTIONS = [5, 10, 15, 20];
 const ITEM_STYLES = {
   completed: { background: "#dcfce7", border: "1px solid #86efac", color: "#15803d" },
   pending:   { background: "#dbeafe", border: "1px solid #93c5fd", color: "#1d4ed8" },
+  rejected:  { background: "#fee2e2", border: "1px solid #fecaca", color: "#991b1b" },
   break:     { background: "#fef9c3", border: "1px solid #fde047", color: "#854d0e" },
 };
 
 const STATUS_META = {
   completed: { label: "Approved",    bg: "#dcfce7", color: "#15803d", border: "#86efac" },
-  pending:   { label: "In Progress", bg: "#dbeafe", color: "#1d4ed8", border: "#93c5fd" },
+  pending:   { label: "Pending",     bg: "#dbeafe", color: "#1d4ed8", border: "#93c5fd" },
+  rejected:  { label: "Rejected",    bg: "#fee2e2", color: "#991b1b", border: "#fecaca" },
   break:     { label: "Break",       bg: "#fef9c3", color: "#854d0e", border: "#fde047" },
 };
 
@@ -100,6 +102,7 @@ export default function Timesheets() {
     const endStr   = `${e.date}T${e.endTime}:00`;
     let type = "pending";
     if (e.status === "Approved") type = "completed";
+    if (e.status === "Rejected") type = "rejected";
     if (e.workCategory === "Break") type = "break";
     const taskObj = tasks.find((t) => t.id === e.taskId);
 

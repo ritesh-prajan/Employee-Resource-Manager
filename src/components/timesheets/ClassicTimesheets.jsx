@@ -87,6 +87,26 @@ function TypeBadge({ type }) {
   );
 }
 
+// ─── Status pill ──────────────────────────────────────────────────────────────
+function TimesheetStatusPill({ status }) {
+  const map = {
+    Approved: { color: '#22c55e', bg: '#22c55e1a', label: 'Approved' },
+    Pending:  { color: '#3b82f6', bg: '#3b82f61a', label: 'Pending'  },
+    Rejected: { color: '#ef4444', bg: '#ef44441a', label: 'Rejected' },
+  };
+  const cfg = map[status] || map.Pending;
+  return (
+    <span style={{
+      fontSize: '0.65rem', fontWeight: 700, padding: '1px 6px', borderRadius: 4,
+      backgroundColor: cfg.bg, color: cfg.color,
+      border: `1px solid ${cfg.color}30`, whiteSpace: 'nowrap', display: 'inline-flex',
+      alignItems: 'center'
+    }}>
+      {cfg.label}
+    </span>
+  );
+}
+
 // ─── Week row (collapsible) ───────────────────────────────────────────────────
 function WeekBlock({ week, entries, openWeeks, toggleWeek, projectColors }) {
   const isOpen = openWeeks[week.id] ?? false;
@@ -167,9 +187,10 @@ function WeekBlock({ week, entries, openWeeks, toggleWeek, projectColors }) {
                   <span className="text-[12px] truncate" style={{ color: "var(--foreground)" }}>{entry.job}</span>
                 </div>
                 <div className="px-2 py-2 min-w-0">
-                  <div className="text-[12px] font-semibold truncate flex items-center gap-1" style={{ color: entry.isOverEta ? "#ef4444" : "var(--primary)" }}>
+                  <div className="text-[12px] font-semibold truncate flex items-center gap-1.5" style={{ color: entry.isOverEta ? "#ef4444" : "var(--primary)" }}>
                     {entry.isOverEta && <AlertTriangle size={12} className="shrink-0 text-red-500 animate-pulse" />}
-                    {entry.task}
+                    <span className="truncate">{entry.task}</span>
+                    <TimesheetStatusPill status={entry.status} />
                   </div>
                   <div className="text-[11px] italic truncate" style={{ color: "var(--muted-foreground)" }}>{entry.desc}</div>
                 </div>

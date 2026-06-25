@@ -389,9 +389,32 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     {
       accessorKey: 'name',
       header: 'TASK NAME',
-      cell: ({ getValue }) => (
-        <span className="font-semibold text-sm text-slate-700">{getValue()}</span>
-      ),
+      cell: ({ row }) => {
+        const task = row.original;
+        const rejectComment = task.reviewComment || task.rejectionComment;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+            <span className="font-semibold text-sm text-slate-700">{task.name}</span>
+            {task.status === 'Pending Review' && (
+              <span 
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                style={{ display: 'inline-flex', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, backgroundColor: 'rgba(244,114,182,0.1)', color: '#f472b6', border: '1px solid rgba(244,114,182,0.2)' }}
+              >
+                Pending Review
+              </span>
+            )}
+            {task.status === 'Rejected' && (
+              <span 
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                style={{ display: 'inline-flex', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, backgroundColor: 'rgba(234,179,8,0.1)', color: '#ca8a04', border: '1px solid rgba(234,179,8,0.2)' }}
+                title={rejectComment || 'Needs revision'}
+              >
+                Rejected{rejectComment ? `: ${rejectComment}` : ' (Needs revision)'}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'projectId',

@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext';
 
 import DataTable from '../../components/ui/DataTable';
 import AvatarGroup from '../../components/ui/AvatarGroup';
+import UserAvatar from '../../components/ui/UserAvatar';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import SearchableSelect from '../../components/ui/SearchableSelect';
 
@@ -31,6 +32,12 @@ export default function Teams() {
   const [filterProjectBy, setFilterProjectBy] = useState('');
   const [filterEmployeeBy, setFilterEmployeeBy] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('table');
+  const [expandedTeams, setExpandedTeams] = useState({});
+
+  const toggleTeamExpand = (teamId) => {
+    setExpandedTeams(prev => ({ ...prev, [teamId]: !prev[teamId] }));
+  };
 
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -206,6 +213,27 @@ export default function Teams() {
                 ))}
               </div>
             )}
+
+            <div style={{ display: 'inline-flex', backgroundColor: 'var(--secondary)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              {[
+                { value: 'table', label: 'Table View' },
+                { value: 'tree', label: 'Tree View' }
+              ].map(v => (
+                <button
+                  key={v.value}
+                  onClick={() => setViewMode(v.value)}
+                  style={{
+                    padding: '0.3rem 0.85rem', fontSize: '0.72rem', fontWeight: 600,
+                    borderRadius: '6px', border: 'none', cursor: 'pointer',
+                    backgroundColor: viewMode === v.value ? 'var(--primary)' : 'transparent',
+                    color: viewMode === v.value ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {canManage && (
@@ -222,17 +250,137 @@ export default function Teams() {
 
       <AnimatePresence mode="wait">
         <motion.div
-          key="teams-table"
+          key={viewMode === 'table' ? "teams-table" : "teams-tree"}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
         >
-          <DataTable
-            Data={filteredTeams}
-            columns={columns}
-            onRowClick={(team) => setDetailTeam(team)}
-          />
+          {viewMode === 'table' ? (
+            <DataTable
+              Data={filteredTeams}
+              columns={columns}
+              onRowClick={(team) => setDetailTeam(team)}
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {filteredTeams.map(team => {
+                const isExpanded = !!expandedTeams[team.id];
+                const lead = users.find(u => u.id === team.leadId);
+                const subLead = users.find(u => u.id === team.subLeadId);
+                const memberUsers = users.filter(u => team.members.includes(u.id));
+
+                return (
+                  <div
+                    key={team.id}
+                    className="card"
+                    style={{
+                      backgroundColor: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '12px',
+                      padding: '1.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem',
+                      boxShadow: 'var(--shadow-sm)'
+                    }}
+                  >
+                    {/* Header */}
+                    <div
+                      onClick={() => toggleTeamExpand(team.id)}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>
+                          {team.name}
+                        </h3>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', margin: 0 }}>
+                          {team.description || 'No description provided'}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', backgroundColor: 'var(--secondary)', padding: '2px 8px', borderRadius: '12px' }}>
+                          {memberUsers.length} members
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: 700 }}>
+                          {isExpanded ? '▼' : '►'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Collapsible Details */}
+                    {isExpanded && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                        {/* Leadership Row */}
+                        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                          {lead && (
+                            <div>
+                              <h4 style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)', margin: '0 0 0.35rem 0', fontWeight: 750 }}>
+                                Team Lead
+                              </h4>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <UserAvatar name={lead.name} size={28} />
+                                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>{lead.name}</span>
+                              </div>
+                            </div>
+                          )}
+                          {subLead && (
+                            <div>
+                              <h4 style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)', margin: '0 0 0.35rem 0', fontWeight: 750 }}>
+                                Sub Lead
+                              </h4>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <UserAvatar name={subLead.name} size={28} />
+                                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>{subLead.name}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Members Tree Nodes */}
+                        <div>
+                          <h4 style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)', margin: '0 0 0.5rem 0', fontWeight: 750 }}>
+                            Members
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                            {memberUsers.map(member => (
+                              <div
+                                key={member.id}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                  padding: '0.5rem',
+                                  backgroundColor: 'var(--secondary)',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '8px'
+                                }}
+                              >
+                                <UserAvatar name={member.name} size={30} />
+                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                    {member.name}
+                                  </span>
+                                  <span style={{ fontSize: '0.68rem', color: 'var(--muted-foreground)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                    {member.designation || 'Employee'}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
 

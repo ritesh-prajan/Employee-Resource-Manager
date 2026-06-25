@@ -11,9 +11,7 @@ export function useAdminSettings() {
     etaOverdueDays: 2,
     timesheetReviewDays: 7,
     highEtaRateThreshold: 3,
-    missingTimesheetPolicy: "LOP",
-    morningWebhookUrl: "",
-    eodWebhookUrl: ""
+    missingTimesheetPolicy: "LOP"
   });
 
   return {

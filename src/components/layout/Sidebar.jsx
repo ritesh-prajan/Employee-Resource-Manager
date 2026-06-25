@@ -4,7 +4,7 @@ import {
   Calendar,
   CheckSquare,
   Users,
-  Fingerprint,
+
   Megaphone,
   GitPullRequest,
   User,
@@ -145,9 +145,7 @@ const renderNavLinks = () => {
         <NavLink to="/lead/timesheet" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Timesheet' : undefined}>
           <Calendar size={18} />{!isCollapsed && <span>Timesheet</span>}
         </NavLink>
-        <NavLink to="/lead/attendance" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Team Attendance' : undefined}>
-          <Fingerprint size={18} />{!isCollapsed && <span>Team Attendance</span>}
-        </NavLink>
+
 
         {renderSectionHeader('Management')}
         <NavLink to="/lead/approvals" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Approvals' : undefined}>
@@ -192,9 +190,7 @@ const renderNavLinks = () => {
       <NavLink to="/timesheet" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Timesheet' : undefined}>
         <Calendar size={18} />{!isCollapsed && <span>Timesheet</span>}
       </NavLink>
-      <NavLink to="/attendance" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Attendance' : undefined}>
-        <Fingerprint size={18} />{!isCollapsed && <span>Attendance</span>}
-      </NavLink>
+
       {renderSectionHeader('Communication')}
       <NavLink to="/meetings" className={({isActive}) => `sidebar-link ${isActive ? 'active' : ''}`} style={getLinkStyle()} title={isCollapsed ? 'Link Room' : undefined}>
         <Link2 size={18} />{!isCollapsed && <span>Link Room</span>}

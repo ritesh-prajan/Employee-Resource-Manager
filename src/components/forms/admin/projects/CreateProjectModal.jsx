@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Modal from "../../../../components/ui/Modal";
 import MultiSearchSelect from "../../../../components/ui/MultiSelectDropdown";
 import { useApp } from "../../../../context/AppContext";
-import { useToast } from "../../../../components/ui/Toast";
+import { useToast } from "../../../../context/ToastContext";
 
 export default function CreateProjectModal({ show, onClose }) {
   const { users, teams, createProject, getAdjustedProjectColor, theme } = useApp();

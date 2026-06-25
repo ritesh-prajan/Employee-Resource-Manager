@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { UserCheck } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { useToast } from '../../components/ui/Toast';
+import { useToast } from '../../context/ToastContext';
 
 import ApprovalKpiBar      from '../../components/approvals/ApprovalKpiBar';
 import ApprovalTabToggle   from '../../components/approvals/ApprovalTabToggle';

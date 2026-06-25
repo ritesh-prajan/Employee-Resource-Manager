@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { attachmentService } from '../services/attachmentService';
-import { useToast } from '../components/ui/Toast';
+import { useToast } from '../context/ToastContext';
 
 export const meetingAttachmentsKey = (meetingId) => ['meetings', meetingId, 'attachments'];
 

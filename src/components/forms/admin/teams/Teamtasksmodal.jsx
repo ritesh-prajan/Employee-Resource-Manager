@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../../../ui/Modal';
 import StatusBadge from '../../../ui/StatusBadge';
 import PriorityBadge from '../../../ui/PriorityBadge';
-import { useToast } from '../../../ui/Toast';
+import { useToast } from '../../../../context/ToastContext';
 
 /**
  * TeamTasksModal

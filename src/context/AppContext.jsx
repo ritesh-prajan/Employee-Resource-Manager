@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth as useAuthContext } from './AuthContext';
-import { useToast } from '../components/ui/Toast';
+import { useToast } from './ToastContext';
 
 import { teamService } from '../services/teamService';
 import { projectService } from '../services/projectService';

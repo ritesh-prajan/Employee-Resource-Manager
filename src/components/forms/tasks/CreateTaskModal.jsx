@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Trash2, Link2, ChevronUp } from 'lucide-react';
 import { projectService } from '#services/projectService';
 import SearchableSelect from '../../ui/SearchableSelect';
-import { useToast } from '../../ui/Toast';
+import { useToast } from '../../../context/ToastContext';
 
 export default function CreateTaskModal({
   show, onClose, onSubmit,

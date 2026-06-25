@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { CirclePlus, ChevronUp, Search } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import SearchableSelect from "../ui/SearchableSelect";
-import { useToast } from "../ui/Toast";
+import { useToast } from "../../context/ToastContext";
 
 export default function Schedulemeeting({ onSchedule }) {
   const [open, setOpen] = useState(false);

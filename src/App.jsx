@@ -14,7 +14,7 @@ import Resetpassword from './pages/Resetpassword.jsx';
 import ErrorBoundary from './components/ErrorBoundary';
 import GlobalLoader from './components/GlobalLoader';
 
-import { ToastProvider } from './components/ui/Toast';
+import { ToastProvider } from './context/ToastContext';
 
 // Employee Pages (Lazy Loaded)
 const Tasks = React.lazy(() => import('./pages/employee/Tasks'));

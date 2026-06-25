@@ -1,6 +1,6 @@
 import { useQuery,useMutation,useQueryClient } from "@tanstack/react-query";
 import { taskService } from "../services/taskService.js";
-import { useToast } from "../components/ui/Toast";
+import { useToast } from "../context/ToastContext";
 
 export const TASK_KEY=["tasks"];
 export const TASK_TAGS_KEY=['task-tags'];

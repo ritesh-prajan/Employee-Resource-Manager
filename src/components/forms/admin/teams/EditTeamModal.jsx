@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../../../ui/Modal';
 import SearchableSelect from "../../../ui/SearchableSelect";
 import MultiSearchSelect from "../../../ui/MultiSelectDropdown";
-import { useToast } from '../../../ui/Toast';
+import { useToast } from '../../../../context/ToastContext';
 
 /**
  * EditTeamModal

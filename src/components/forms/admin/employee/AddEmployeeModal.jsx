@@ -14,7 +14,7 @@ export default function AddEmployeeModal({ show, onClose, users, teams, projects
 
 const [empData, setEmpData] = useState({
   name: '', employee_code: generateNextCode(), email: '', personalEmail: '',
-  phone: '', password: '', designation: '', role: 'Employee', teams: [], projects: []
+  phone: '', secondaryContact: '', password: '', designation: '', role: 'Employee', teams: [], projects: []
 });
   const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState('');
@@ -53,8 +53,8 @@ const [empData, setEmpData] = useState({
     if (users.some(u => u.phone && u.phone.trim().replace(/\s+/g, '') === phoneTrimmed.replace(/\s+/g, ''))) {
       setValidationError('Phone number must be unique.'); return;
     }
-    onSubmit({ name: empData.name, employee_code: empCodeTrimmed, email: emailTrimmed, personalEmail: empData.personalEmail.trim(), phone: phoneTrimmed, password: empData.password, passwordLastUpdated: empData.password ? new Date().toISOString() : '', designation: empData.designation.trim() || 'General', role: empData.role, teams: empData.teams, projects: empData.projects });
-    setEmpData({ name: '', employee_code: '', email: '', personalEmail: '', phone: '', password: '', designation: '', role: 'Employee', teams: [], projects: [] });
+    onSubmit({ name: empData.name, employee_code: empCodeTrimmed, email: emailTrimmed, personalEmail: empData.personalEmail.trim(), phone: phoneTrimmed, secondaryContact: empData.secondaryContact.trim(), password: empData.password, passwordLastUpdated: empData.password ? new Date().toISOString() : '', designation: empData.designation.trim() || 'General', role: empData.role, teams: empData.teams, projects: empData.projects });
+    setEmpData({ name: '', employee_code: '', email: '', personalEmail: '', phone: '', secondaryContact: '', password: '', designation: '', role: 'Employee', teams: [], projects: [] });
     setShowPassword(false);
     setValidationError('');
     onClose();
@@ -89,7 +89,7 @@ const [empData, setEmpData] = useState({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">WORK EMAIL *</label>
               <input type="email" className="input-control" placeholder="Enter Work Email" value={empData.email} onChange={(e) => setEmpData(prev => ({ ...prev, email: e.target.value }))} required />
@@ -97,6 +97,10 @@ const [empData, setEmpData] = useState({
             <div className="form-group">
               <label className="form-label">PERSONAL EMAIL (OPTIONAL)</label>
               <input type="email" className="input-control" placeholder="Enter Personal Email" value={empData.personalEmail} onChange={(e) => setEmpData(prev => ({ ...prev, personalEmail: e.target.value }))} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">SECONDARY CONTACT (NAME & PHONE)</label>
+              <input type="text" className="input-control" placeholder="E.g. Jane Doe (+91 99999 77777)" value={empData.secondaryContact} onChange={(e) => setEmpData(prev => ({ ...prev, secondaryContact: e.target.value }))} />
             </div>
           </div>
 

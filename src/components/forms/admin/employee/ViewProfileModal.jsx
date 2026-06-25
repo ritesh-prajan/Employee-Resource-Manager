@@ -127,6 +127,7 @@ export default function ViewProfileModal({ show, onClose, user, users, teams, pr
                 { label: 'WORK EMAIL', value: user.email, isEmail: true, emailHref: `mailto:${user.email}`, emailStyle: { color: 'var(--pastel-blue, #0010AE)' } },
                 { label: 'PERSONAL EMAIL', value: user.personalEmail || null, isEmail: !!user.personalEmail, emailHref: user.personalEmail ? `mailto:${user.personalEmail}` : null },
                 { label: 'PHONE NUMBER', value: user.phone || '-' },
+                { label: 'SECONDARY CONTACT', value: user.secondaryContact || '-' },
                 { label: 'PASSWORD LAST UPDATED', value: user.passwordLastUpdated ? new Date(user.passwordLastUpdated).toLocaleString() : 'Never', small: true },
               ].map(({ label, value, mono, isEmail, emailHref, emailStyle, small }) => (
                 <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>

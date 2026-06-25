@@ -108,6 +108,7 @@ const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee
     const employeeCode = u.employee_code || '';
     const personalEmail = u.personalEmail || '';
     const phone = u.phone || '';
+    const secondaryContact = u.secondaryContact || '';
     return (
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -115,7 +116,8 @@ const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee
       u.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
       employeeCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
       personalEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      phone.toLowerCase().includes(searchQuery.toLowerCase())
+      phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      secondaryContact.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
 
@@ -188,6 +190,13 @@ const { users, projects, teams, tasks, addEmployee, editEmployee, deleteEmployee
       header: 'PHONE',
       cell: ({ getValue }) => (
         <span style={{ fontSize: '0.875rem', color: 'var(--foreground)', whiteSpace: 'nowrap' }}>{getValue() || '-'}</span>
+      ),
+    },
+    {
+      accessorKey: 'secondaryContact',
+      header: 'SECONDARY CONTACT',
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: '0.875rem', color: 'var(--foreground)' }}>{getValue() || '-'}</span>
       ),
     },
     {

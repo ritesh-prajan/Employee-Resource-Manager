@@ -17,6 +17,7 @@ export default function EditEmployeeModal({ show, onClose, user, users, teams, p
         designation: user.designation || '',
         personalEmail: user.personalEmail || '',
         phone: user.phone || '',
+        secondaryContact: user.secondaryContact || '',
         password: user.password || '',
         teams: teams.filter(t => t.members.includes(user.id)).map(t => t.id),
         projects: projects.filter(p => p.members.includes(user.id)).map(p => p.id),
@@ -56,6 +57,7 @@ export default function EditEmployeeModal({ show, onClose, user, users, teams, p
       email: emailTrimmed,
       personalEmail: editingUser.personalEmail.trim(),
       phone: phoneTrimmed,
+      secondaryContact: editingUser.secondaryContact?.trim() || '',
       password: editingUser.password,
       passwordLastUpdated: oldUser?.password !== editingUser.password ? new Date().toISOString() : (oldUser?.passwordLastUpdated || ''),
       designation: editingUser.designation.trim() || 'General',
@@ -98,7 +100,7 @@ export default function EditEmployeeModal({ show, onClose, user, users, teams, p
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">WORK EMAIL *</label>
               <input type="email" className="input-control" placeholder="E.g. david.m@office.com" value={editingUser.email} onChange={(e) => setEditingUser(prev => ({ ...prev, email: e.target.value }))} required />
@@ -106,6 +108,10 @@ export default function EditEmployeeModal({ show, onClose, user, users, teams, p
             <div className="form-group">
               <label className="form-label">PERSONAL EMAIL (OPTIONAL)</label>
               <input type="email" className="input-control" placeholder="E.g. david.m.personal@gmail.com" value={editingUser.personalEmail || ''} onChange={(e) => setEditingUser(prev => ({ ...prev, personalEmail: e.target.value }))} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">SECONDARY CONTACT (NAME & PHONE)</label>
+              <input type="text" className="input-control" placeholder="E.g. Jane Doe (+91 99999 77777)" value={editingUser.secondaryContact || ''} onChange={(e) => setEditingUser(prev => ({ ...prev, secondaryContact: e.target.value }))} />
             </div>
           </div>
 

@@ -57,6 +57,9 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
   const [expandedTaskId, setExpandedTaskId] = useState(null);
+  const [backlogSubScope, setBacklogSubScope] = useState('general');
+  const [showDelegateModal, setShowDelegateModal] = useState(false);
+  const [delegatingTask, setDelegatingTask] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showEditTaskModal, setShowEditTaskModal] = useState(false);
   const [showETAModal, setShowETAModal] = useState(false);
@@ -165,6 +168,19 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     if (!activeTaskId || !etaDate || !etaReason) return;
     createEtaExtension.mutate({ taskId: activeTaskId, requestedById: currentUser.id, newEtaDate: etaDate, reason: etaReason });
     setShowETAModal(false);
+  };
+
+  const handleDelegateSubmit = (taskId, memberId) => {
+    const taskObj = tasks.find(t => t.id === taskId);
+    if (!taskObj) return;
+    updateTask.mutate({
+      id: taskId,
+      data: {
+        ...taskObj,
+        assignedTo: memberId,
+        status: 'Open'
+      }
+    });
   };
 
   const handleTransferSubmit = (e) => {
@@ -361,9 +377,19 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     if (scope === 'my' && t.assignedTo !== currentUser.id) return false;
     if (scope === 'backlog') {
       if (t.assignedTo && t.assignedTo !== '') return false;
-      if (currentUser.role === 'Employee') {
-        const myProjIds = projects ? projects.filter(p => (p.members || []).some(mId => String(mId) === String(currentUser.id))).map(p => p.id) : [];
-        if (!myProjIds.map(id => String(id)).includes(String(t.projectId))) return false;
+      
+      const teamIds = isLeader 
+        ? ledTeams.map(team => team.id) 
+        : (teams ? teams.filter(team => team.members.includes(currentUser.id)).map(team => team.id) : []);
+
+      if (backlogSubScope === 'team') {
+        if (!t.assignedTeamId || !teamIds.map(id => String(id)).includes(String(t.assignedTeamId))) return false;
+      } else {
+        if (t.assignedTeamId) return false;
+        if (currentUser.role === 'Employee') {
+          const myProjIds = projects ? projects.filter(p => (p.members || []).some(mId => String(mId) === String(currentUser.id))).map(p => p.id) : [];
+          if (!myProjIds.map(id => String(id)).includes(String(t.projectId))) return false;
+        }
       }
     }
     if (searchQuery.trim()) {
@@ -546,7 +572,23 @@ export default function Tasks({ setCurrentPage, initialScope }) {
               </button>
             )}
 
-            {scope === 'backlog' && !isAdmin && (
+            {scope === 'backlog' && backlogSubScope === 'team' && isLeader && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDelegatingTask(task);
+                  setShowDelegateModal(true);
+                }}
+                title="Delegate Task"
+                style={{ background: 'color-mix(in oklch, var(--primary) 8%, transparent)', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700 }}
+                onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--primary) 15%, transparent)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in oklch, var(--primary) 8%, transparent)'}
+              >
+                Delegate
+              </button>
+            )}
+
+            {scope === 'backlog' && backlogSubScope === 'general' && !isAdmin && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -704,6 +746,25 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           </div>
         </div>
 
+        {scope === 'backlog' && (
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', padding: '0 0.5rem', flexShrink: 0 }}>
+            <button
+              onClick={() => setBacklogSubScope('general')}
+              className={`tasks-scope-btn ${backlogSubScope === 'general' ? 'active' : 'inactive'}`}
+              style={{ fontSize: '0.72rem', padding: '5px 12px', borderRadius: '6px', cursor: 'pointer' }}
+            >
+              General Backlog
+            </button>
+            <button
+              onClick={() => setBacklogSubScope('team')}
+              className={`tasks-scope-btn ${backlogSubScope === 'team' ? 'active' : 'inactive'}`}
+              style={{ fontSize: '0.72rem', padding: '5px 12px', borderRadius: '6px', cursor: 'pointer' }}
+            >
+              Team Backlog Plan
+            </button>
+          </div>
+        )}
+
         <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '2rem' }}>
           <DataTable
             Data={filteredTasks}
@@ -712,6 +773,19 @@ export default function Tasks({ setCurrentPage, initialScope }) {
             getRowClassName={(task) => task.id === highlightTaskId ? 'glow-highlight' : ''}
           />
         </div>
+
+        <DelegateTaskModal
+          show={showDelegateModal}
+          onClose={() => { setShowDelegateModal(false); setDelegatingTask(null); }}
+          task={delegatingTask}
+          teamMembers={(() => {
+            if (!delegatingTask || !teams) return [];
+            const team = teams.find(t => String(t.id) === String(delegatingTask.assignedTeamId));
+            if (!team) return [];
+            return users.filter(u => team.members.includes(u.id));
+          })()}
+          onSubmit={handleDelegateSubmit}
+        />
 
         <ETAExtensionModal
           show={showETAModal}
@@ -831,6 +905,50 @@ export default function Tasks({ setCurrentPage, initialScope }) {
       title="Claim Task"
       message={`Are you sure you want to claim task "${pendingclaimtask?.name}"?`}
       />
+    </div>
+  );
+}
+
+function DelegateTaskModal({ show, onClose, task, teamMembers, onSubmit }) {
+  const [selectedMember, setSelectedMember] = useState('');
+
+  if (!show || !task) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" style={{ maxWidth: '400px', backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1.25rem', boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
+          <h3 className="modal-title" style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--foreground)' }}>Delegate Task</h3>
+          <button className="modal-close" onClick={onClose} style={{ border: 'none', background: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--muted-foreground)' }}>×</button>
+        </div>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (selectedMember) {
+            onSubmit(task.id, selectedMember);
+            onClose();
+          }
+        }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <label className="form-label" style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>Select Team Member</label>
+            <select 
+              className="input-control" 
+              value={selectedMember} 
+              onChange={e => setSelectedMember(e.target.value)}
+              required
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--secondary)', color: 'var(--foreground)' }}
+            >
+              <option value="">-- Choose Member --</option>
+              {teamMembers.map(m => (
+                <option key={m.id} value={m.id}>{m.name} ({m.designation || 'Member'})</option>
+              ))}
+            </select>
+          </div>
+          <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose} style={{ padding: '0.45rem 1rem', borderRadius: '8px', border: '1px solid var(--border)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ backgroundColor: '#0010AE', color: '#ffffff', border: 'none', padding: '0.45rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>Delegate Task</button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

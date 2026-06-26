@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import moment from "moment";
 import { X, Clock, Tag, FileText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useApp } from "../../context/AppContext";
 
 const getDayColor = (hours, entries) => {
   if (hours === 0 || !entries || entries.length === 0) return null;
@@ -80,6 +82,8 @@ const STATUS_META = {
 
 export default function ModernMonthlyTimesheets({ groups, items, currentDate }) {
   // ✅ Bug 1 fixed — all hooks before any early return
+  const navigate = useNavigate();
+  const { currentUser } = useApp();
   const [popup, setPopup] = useState(null);  // ✅ Bug 2 fixed — consistent casing
   const popupRef = useRef(null);
 
@@ -300,7 +304,23 @@ export default function ModernMonthlyTimesheets({ groups, items, currentDate }) 
                   </div>
                   {entry.raw.taskTitle && (
                     <div className="flex items-center gap-1 text-xs text-slate-600">
-                      <FileText size={11} className="shrink-0" />{entry.raw.taskTitle}
+                      <FileText size={11} className="shrink-0" />
+                      {entry.raw.taskId ? (
+                        <button
+                          onClick={() => {
+                            const path = currentUser?.role === 'Admin' ? '/admin/tasks' : ((currentUser?.role === 'Team Lead' || currentUser?.role === 'Sub Lead') ? '/lead/tasks' : '/tasks');
+                            navigate(path, { state: { highlightTaskId: entry.raw.taskId } });
+                          }}
+                          style={{
+                            background: 'none', border: 'none', padding: 0, margin: 0, font: 'inherit', textAlign: 'left',
+                            color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold'
+                          }}
+                        >
+                          {entry.raw.taskTitle}
+                        </button>
+                      ) : (
+                        entry.raw.taskTitle
+                      )}
                     </div>
                   )}
                   {entry.raw.category && (

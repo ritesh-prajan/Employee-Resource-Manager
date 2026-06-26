@@ -37,13 +37,27 @@ function mapexit(exit){
     return `${dateStr}T${timeStr}:00`;
   };
 
+  let calculatedEndTime = exit.endTime;
+  if (!calculatedEndTime && exit.startTime && (exit.duration || exit.durationHours)) {
+    const duration = exit.duration ? Number(exit.duration) : (exit.durationHours || 0);
+    const match = exit.startTime.match(/^(\d{2}):(\d{2})$/);
+    if (match) {
+      const startHrs = parseInt(match[1], 10);
+      const startMins = parseInt(match[2], 10);
+      const totalMinutes = startHrs * 60 + startMins + Math.round(duration * 60);
+      const endHrs = Math.floor(totalMinutes / 60) % 24;
+      const endMins = totalMinutes % 60;
+      calculatedEndTime = `${String(endHrs).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+    }
+  }
+
   return {
     employee: { id: exit.employeeId || exit.userId },
     task: (exit.taskId && exit.taskId !== 'Break' && exit.taskId !== '') ? { id: Number(exit.taskId) } : null,
     project: exit.projectId && exit.projectId !== 'Break' ? { id: Number(exit.projectId) } : null,
     date: dateStr,
     startTime: formatDateTime(exit.startTime),
-    endTime: formatDateTime(exit.endTime),
+    endTime: formatDateTime(calculatedEndTime),
     durationHours: exit.duration ? Number(exit.duration) : (exit.durationHours || 0),
     workCategory: tobackendcategory(exit.workCategory),
     description: exit.description || '',

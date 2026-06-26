@@ -945,7 +945,7 @@ export const AppProvider = ({ children }) => {
         toggleBreak: timerHook.toggleBreak,
         clockOut: timerHook.clockOut,
         cancelTimer: timerHook.cancelTimer,
-        addManualEntry: (data) => timeEntriesHook.addManualEntry.mutate(data),
+        addManualEntry: (data) => timeEntriesHook.addManualEntry.mutateAsync(data),
         deleteTimeEntry: (id) => timeEntriesHook.deleteTimeEntry.mutate(id),
         createProject,
         deleteProject,

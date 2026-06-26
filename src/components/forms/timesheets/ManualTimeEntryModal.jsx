@@ -60,8 +60,8 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
 
   if (!show) return null;
 
-  // Filter tasks to show only those explicitly assigned to the current user
-  const relevantTasks = tasks.filter(t => t.assignedTo === currentUser?.id);
+  // Filter tasks to show only those explicitly assigned to the current user and not completed/submitted for review
+  const relevantTasks = tasks.filter(t => t.assignedTo === currentUser?.id && t.status !== 'Completed' && t.status !== 'Pending Review');
 
   const taskOptions = relevantTasks.map(t => {
     const proj = projects.find(p => p.id === t.projectId);

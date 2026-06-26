@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronRight, ChevronDown, Search, Layers, Filter, Briefcase, Tag, Clock, Users, X, Plus, AlertTriangle } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import ManualTimeEntryModal from "../forms/timesheets/ManualTimeEntryModal";
@@ -116,7 +117,7 @@ function TimesheetStatusPill({ status }) {
 }
 
 // ─── Week row (collapsible) ───────────────────────────────────────────────────
-function WeekBlock({ week, entries, openWeeks, toggleWeek, projectColors }) {
+function WeekBlock({ week, entries, openWeeks, toggleWeek, projectColors, currentUser, navigate }) {
   const isOpen = openWeeks[week.id] ?? false;
   const weekEntries = entries.filter(e => e.weekId === week.id);
   const weekTotal = weekEntries.reduce((s, e) => s + e.totalHours, 0);
@@ -197,7 +198,22 @@ function WeekBlock({ week, entries, openWeeks, toggleWeek, projectColors }) {
                 <div className="px-2 py-2 min-w-0">
                   <div className="text-[12px] font-semibold truncate flex items-center gap-1.5" style={{ color: entry.isOverEta ? "#ef4444" : "var(--primary)" }}>
                     {entry.isOverEta && <AlertTriangle size={12} className="shrink-0 text-red-500 animate-pulse" />}
-                    <span className="truncate">{entry.task}</span>
+                    {entry.taskId ? (
+                      <button
+                        onClick={() => {
+                          const path = currentUser?.role === 'Admin' ? '/admin/tasks' : ((currentUser?.role === 'Team Lead' || currentUser?.role === 'Sub Lead') ? '/lead/tasks' : '/tasks');
+                          navigate(path, { state: { highlightTaskId: entry.taskId } });
+                        }}
+                        style={{
+                          background: 'none', border: 'none', padding: 0, margin: 0, font: 'inherit', textAlign: 'left',
+                          color: 'inherit', cursor: 'pointer', textDecoration: 'underline'
+                        }}
+                      >
+                        {entry.task}
+                      </button>
+                    ) : (
+                      <span className="truncate">{entry.task}</span>
+                    )}
                     <TimesheetStatusPill status={entry.status} />
                   </div>
                   <div className="text-[11px] italic truncate" style={{ color: "var(--muted-foreground)" }}>{entry.desc}</div>
@@ -223,6 +239,7 @@ function WeekBlock({ week, entries, openWeeks, toggleWeek, projectColors }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function ClassicTimesheet() {
   const { users, projects, tasks, timeEntries, teams, currentUser } = useApp();
+  const navigate = useNavigate();
 
   const [classifyBy, setClassifyBy] = useState("employee");
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
@@ -730,6 +747,8 @@ export default function ClassicTimesheet() {
               openWeeks={openWeeks}
               toggleWeek={toggleWeek}
               projectColors={projectColors}
+              currentUser={currentUser}
+              navigate={navigate}
             />
           ))
         )}

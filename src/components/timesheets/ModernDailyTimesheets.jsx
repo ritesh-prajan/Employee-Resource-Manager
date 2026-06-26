@@ -1,4 +1,5 @@
 import React, { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import moment from "moment";
 import Timeline, { TimelineHeaders, SidebarHeader, DateHeader } from "react-calendar-timeline";
 import "react-calendar-timeline/style.css";
@@ -52,6 +53,7 @@ const STATUS_META = {
 export default function Timesheets() {
   const { users, timeEntries, tasks, teams, projects, currentUser, editTimeEntry, deleteTimeEntry } = useApp();
   const toast = useToast();
+  const routerNavigate = useNavigate();
   const [pendingdeleteentryid,setpendingdeleteentryid]=useState(null);
   const [popup, setPopup] = useState(null);
   const [showManualModal, setShowManualModal] = useState(false);
@@ -137,6 +139,7 @@ export default function Timesheets() {
       start: moment(startStr).valueOf(),
       end: moment(endStr).valueOf(),
       type,
+      taskId: e.taskId,
       taskTitle: taskObj ? `${taskObj.taskNumber ? taskObj.taskNumber + ': ' : ''}${taskObj.name}` : (e.description || "Manual Entry"),
       category: e.workCategory || "General",
       description: e.description,
@@ -619,7 +622,22 @@ export default function Timesheets() {
               </div>
               <div>
                 <div className="text-[11px] font-medium" style={{ color: "var(--muted-foreground)" }}>{group?.title}</div>
-                <div className="text-sm font-bold leading-tight" style={{ color: "var(--foreground)" }}>{popup.item.taskTitle ?? popup.item.title}</div>
+                <div className="text-sm font-bold leading-tight" style={{ color: "var(--foreground)" }}>
+                  {popup.item.taskId ? (
+                    <button
+                      onClick={() => {
+                        const path = currentUser?.role === 'Admin' ? '/admin/tasks' : ((currentUser?.role === 'Team Lead' || currentUser?.role === 'Sub Lead') ? '/lead/tasks' : '/tasks');
+                        routerNavigate(path, { state: { highlightTaskId: popup.item.taskId } });
+                      }}
+                      style={{
+                        background: 'none', border: 'none', padding: 0, margin: 0, font: 'inherit', textAlign: 'left',
+                        color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold'
+                      }}
+                    >
+                      {popup.item.taskTitle}
+                    </button>
+                  ) : popup.item.taskTitle ?? popup.item.title}
+                </div>
               </div>
             </div>
             <div className="pt-3 flex flex-col gap-2.5" style={{ borderTop: "1px solid var(--border)" }}>

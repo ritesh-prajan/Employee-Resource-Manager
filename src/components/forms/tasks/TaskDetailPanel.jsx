@@ -16,7 +16,7 @@ export default function TaskDetailPanel({
   newComment, setNewComment,
   progressValue, setProgressValue,
   progressNote, setProgressNote,
-  onStartTask, onTriggerPause, onTriggerFinish,
+  onStartTask, onTriggerPause, onTriggerFinish, onTriggerLog,
   onAddComment, onProgressUpdate,
   onOpenETA, onOpenTransfer,
   onResolveETA, onResolveTransfer,
@@ -34,6 +34,7 @@ export default function TaskDetailPanel({
   const [sessionDescription, setSessionDescription] = useState('');
   const [sessionJustification, setSessionJustification] = useState('');
   const [reviewComment,setReviewComment]=useState('');
+  const [showManualLog, setShowManualLog] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -44,6 +45,7 @@ export default function TaskDetailPanel({
       setSessionDescription('');
       setSessionJustification('');
       setReviewComment('');
+      setShowManualLog(false);
     }
   }, [task?.id, task?.type]);
   if (!task) return null;
@@ -334,6 +336,142 @@ export default function TaskDetailPanel({
                         >
                           <Play size={16} /> Start Working
                         </button>
+
+                        {!showManualLog ? (
+                          <button
+                            type="button"
+                            className="w-full py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer bg-white flex items-center justify-center gap-1.5"
+                            onClick={() => {
+                              setSessionDate(new Date().toISOString().split('T')[0]);
+                              setSessionStartTime('09:00');
+                              setSessionHours('');
+                              setSessionCategory(task.type || 'Story');
+                              setSessionDescription('');
+                              setSessionJustification('');
+                              setShowManualLog(true);
+                            }}
+                          >
+                            <Clock size={14} /> Log Time Manually
+                          </button>
+                        ) : (
+                          <div className="flex flex-col gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 mt-2">
+                            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                              <div className="flex items-center gap-2">
+                                <Clock size={16} className="text-[#0010AE]" />
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">Log Manual Entry</h4>
+                              </div>
+                              <button
+                                type="button"
+                                className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                                onClick={() => setShowManualLog(false)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+
+                            {/* Date & Start Time */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Date Working</label>
+                                <input
+                                  type="date"
+                                  className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                                  value={sessionDate}
+                                  onChange={(e) => setSessionDate(e.target.value)}
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Start Time</label>
+                                <input
+                                  type="time"
+                                  className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                                  value={sessionStartTime}
+                                  onChange={(e) => setSessionStartTime(e.target.value)}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Hours Worked & Category */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Hours Worked</label>
+                                <input
+                                  type="number"
+                                  step="0.25"
+                                  min="0"
+                                  placeholder="e.g. 1.0"
+                                  className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                                  value={sessionHours}
+                                  onChange={(e) => setSessionHours(e.target.value)}
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Category</label>
+                                <select
+                                  className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800 cursor-pointer"
+                                  value={sessionCategory}
+                                  onChange={(e) => setSessionCategory(e.target.value)}
+                                >
+                                  <option value="Story">Story</option>
+                                  <option value="Bug">Bug</option>
+                                  <option value="Feature">Feature</option>
+                                  <option value="Review">Review</option>
+                                  <option value="R&D">R&D</option>
+                                  <option value="General">General</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Description */}
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Work Description</label>
+                              <textarea
+                                placeholder="Describe what you did..."
+                                rows="2"
+                                className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800 resize-none"
+                                value={sessionDescription}
+                                onChange={(e) => setSessionDescription(e.target.value)}
+                              />
+                            </div>
+
+                            {/* Justification if overrun */}
+                            {(isOverrun || (enteredHours > Math.max(0, task.eta - task.logged))) && (
+                              <div className="flex flex-col gap-1">
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-amber-600 flex items-center gap-1">
+                                  <AlertTriangle size={12} /> ETA Exceeded Justification
+                                </div>
+                                <textarea
+                                  placeholder="Provide justification comment..."
+                                  rows="2"
+                                  className="w-full rounded-xl border border-amber-200 py-2 px-3 outline-none focus:border-amber-500 transition text-sm bg-amber-50/20 text-slate-800 resize-none"
+                                  value={sessionJustification}
+                                  onChange={(e) => setSessionJustification(e.target.value)}
+                                />
+                              </div>
+                            )}
+
+                            {/* Log Button */}
+                            <button
+                              type="button"
+                              className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 animate-pulse"
+                              onClick={() => {
+                                const entryData = {
+                                  date: sessionDate,
+                                  startTime: sessionStartTime,
+                                  duration: enteredHours,
+                                  workCategory: sessionCategory,
+                                  description: sessionDescription,
+                                  justification: sessionJustification
+                                };
+                                onTriggerLog(task, entryData);
+                                setShowManualLog(false);
+                              }}
+                            >
+                              <Check size={14} /> Log Time Entry
+                            </button>
+                          </div>
+                        )}
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                           <button
                             type="button"

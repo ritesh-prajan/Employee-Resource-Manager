@@ -18,6 +18,7 @@ export function useTimeEntries(params={}) {
     mutationFn:(entrydata)=>timesheetService.create(entrydata),
     onSuccess:()=>{
       queryclient.invalidateQueries({queryKey:TIMESHEET_KEY});
+      queryclient.invalidateQueries({queryKey: ['tasks']});
     },
     onError:(err)=>console.error('Failed to create timesheet entry',err),
   });
@@ -26,13 +27,15 @@ export function useTimeEntries(params={}) {
       timesheetService.updateStatus(id,status,managerComment),
     onSuccess:()=>{
       queryclient.invalidateQueries({queryKey:TIMESHEET_KEY});
+      queryclient.invalidateQueries({queryKey: ['tasks']});
     },
     onError:(err)=>console.error('failed to update entry status',err),
   });
   const deleteTimeEntry=useMutation({
     mutationFn:(id)=>timesheetService.delete(id),
     onSuccess:()=>{
-      queryclient.invalidateQueries({queryKey:TIMESHEET_KEY})
+      queryclient.invalidateQueries({queryKey:TIMESHEET_KEY});
+      queryclient.invalidateQueries({queryKey: ['tasks']});
     },
     onError:(err)=> console.error('Failed to delete timesheet entry',err)
   })

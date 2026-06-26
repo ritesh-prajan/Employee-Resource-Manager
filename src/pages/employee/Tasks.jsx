@@ -94,6 +94,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     if (location.state?.highlightTaskId) {
       const taskId = location.state.highlightTaskId;
       setHighlightTaskId(taskId);
+      setExpandedTaskId(taskId);
       
       window.history.replaceState({}, document.title);
       
@@ -237,7 +238,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     });
   };
 
-  const executePauseOrFinish = (task, actionType, entryData) => {
+  const executePauseOrFinish = async (task, actionType, entryData) => {
     const { date, startTime, duration, workCategory, description, justification } = entryData;
 
     if (timerState.isClockedIn && timerState.taskId === task.id) {
@@ -245,17 +246,22 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     }
 
     if (duration > 0) {
-      addManualEntry({
-        employeeId:currentUser?.id,
-        taskId: task.id,
-        projectId: task.projectId,
-        description: description || `Worked on task: ${task.name}`,
-        date: date,
-        startTime: startTime,
-        duration: duration,
-        workCategory: workCategory,
-        justification: justification
-      });
+      try {
+        await addManualEntry({
+          employeeId:currentUser?.id,
+          taskId: task.id,
+          projectId: task.projectId,
+          description: description || `Worked on task: ${task.name}`,
+          date: date,
+          startTime: startTime,
+          duration: duration,
+          workCategory: workCategory,
+          justification: justification
+        });
+      } catch (err) {
+        console.error("Failed to create timesheet entry", err);
+        return; // Don't proceed to change task status if timesheet logging failed
+      }
     }
 
     if(actionType==='pause'){
@@ -267,15 +273,24 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           etaExceededComment:justification||task.etaExceededComment
         }
       })
+    } else if (actionType === 'log') {
+      const nextStatus = task.status === 'Open' ? 'In Progress' : task.status;
+      updateTask.mutate({
+        id:task.id,
+        data:{
+          ...task,
+          status: nextStatus,
+          etaExceededComment:justification||task.etaExceededComment
+        }
+      })
     }else{
       submitTaskReview.mutate({taskId:task.id,justification});
     }
 
-    
-
+    const actionLabel = actionType === 'pause' ? 'Paused' : (actionType === 'log' ? 'Logged Time' : 'Submitted for Review');
     const commentMsg = justification
-      ? `[${actionType === 'pause' ? 'Paused' : 'Submitted for Review'} - Comment]: ${justification}. Session hours: ${duration}h.`
-      : `[${actionType === 'pause' ? 'Paused' : 'Submitted for Review'}]. Session hours: ${duration}h.`;
+      ? `[${actionLabel} - Comment]: ${justification}. Session hours: ${duration}h.`
+      : `[${actionLabel}]. Session hours: ${duration}h.`;
 
     addTaskComment.mutate({
       taskId: task.id,
@@ -299,6 +314,21 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     }
 
     executePauseOrFinish(task, 'pause', entryData);
+  };
+
+  const triggerLogTask = (task, entryData) => {
+    const { duration, justification } = entryData;
+    if (duration <= 0 || isNaN(duration)) { toast.warning("Please enter valid hours worked."); return; }
+
+    const remainingEta = Math.max(0, task.eta - task.logged);
+    const isOverrun = duration > remainingEta;
+
+    if (isOverrun && !justification.trim()) {
+      toast.warning("Please provide comments/justification for exceeding the estimated task time.");
+      return;
+    }
+
+    executePauseOrFinish(task, 'log', entryData);
   };
 
   const triggerFinishTask = (task, entryData) => {
@@ -918,6 +948,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           onStartTask={handleStartTask}
           onTriggerPause={triggerPauseTask}
           onTriggerFinish={triggerFinishTask}
+          onTriggerLog={triggerLogTask}
           onAddComment={handleAddCommentSubmit}
           onOpenETA={(id) => { setActiveTaskId(id); setShowETAModal(true); }}
           onOpenTransfer={(id) => { setActiveTaskId(id); setShowTransferModal(true); }}

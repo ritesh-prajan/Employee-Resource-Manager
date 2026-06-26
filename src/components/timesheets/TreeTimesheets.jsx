@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from "../../context/AppContext";
 import { ChevronRight, Calendar, Briefcase, ChevronLeft, ChevronDown, Search, Layers, Filter, Tag, Users, X, Plus, AlertTriangle } from "lucide-react";
 import ManualTimeEntryModal from "../forms/timesheets/ManualTimeEntryModal";
@@ -156,6 +157,7 @@ const buildTreeFromContext = ({ users, projects, tasks, timeEntries, teams, curr
         start: entry.startTime,
         end: entry.endTime,
         hours: parseFloat(entry.duration) || 0,
+        taskId: entry.taskId,
         isOverEta
       });
     });
@@ -297,7 +299,7 @@ function personrow({ node, isopen, Ontoggle }) {
   );
 }
 
-function entryrow({ node, isFirstOfDate, isFirstOfPerson, dailyTotal, weeklyTotal, projectLabel, projectColor }) {
+function entryrow({ node, isFirstOfDate, isFirstOfPerson, dailyTotal, weeklyTotal, projectLabel, projectColor, currentUser, navigate }) {
   const badge = BADGE_COLORS[node.entryType] ?? BADGE_COLORS.Feature;
   const displayColor = projectColor || avatarcolor(projectLabel || "AAM");
 
@@ -336,7 +338,20 @@ function entryrow({ node, isFirstOfDate, isFirstOfPerson, dailyTotal, weeklyTota
       <div className="min-w-0 pr-2">
         <div className="text-[12px] font-semibold truncate flex items-center gap-1" style={{ color: node.isOverEta ? "#ef4444" : "var(--primary)" }}>
           {node.isOverEta && <AlertTriangle size={12} className="shrink-0 text-red-500 animate-pulse" />}
-          {node.task}
+          {node.taskId && currentUser && navigate ? (
+            <button
+              onClick={() => {
+                const path = currentUser.role === 'Admin' ? '/admin/tasks' : ((currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') ? '/lead/tasks' : '/tasks');
+                navigate(path, { state: { highlightTaskId: node.taskId } });
+              }}
+              style={{
+                background: 'none', border: 'none', padding: 0, margin: 0, font: 'inherit', textAlign: 'left',
+                color: 'inherit', cursor: 'pointer', textDecoration: 'underline'
+              }}
+            >
+              {node.task}
+            </button>
+          ) : node.task}
         </div>
         {node.desc && (
           <div className="text-[11px] truncate mt-0.5" style={{ color: "var(--muted-foreground)" }}>
@@ -384,11 +399,14 @@ function Treenode({ node, depth = 0, coloridx = 0, openmap, setopenmap, extraPro
           const weeklyTotalVal = siblings.reduce((sum, s) => sum + (s.hours || 0), 0);
           
           childExtra = {
+            ...extraProps,
             isFirstOfDate,
             isFirstOfPerson,
             dailyTotal: dailyTotalVal,
             weeklyTotal: weeklyTotalVal,
           };
+        } else {
+          childExtra = extraProps;
         }
 
         return (
@@ -548,6 +566,7 @@ function Toolbar({ weeks, selectedIds, onToggleWeek, customDate, onCustomDate, c
 // ─── Root ─────────────────────────────────────────────────────────────────────
 export default function TreeTimesheets() {
   const { users, projects, tasks, timeEntries, teams, currentUser } = useApp();
+  const navigate = useNavigate();
 
   const [showManualModal, setShowManualModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -747,6 +766,7 @@ export default function TreeTimesheets() {
               coloridx={i}
               openmap={openmap}
               setopenmap={setopenmap}
+              extraProps={{ currentUser, navigate }}
             />
           </div>
         ))}

@@ -1,13 +1,14 @@
-// pages/admin/Approvals.jsx
 import React, { useState, useMemo } from 'react';
-import { UserCheck } from 'lucide-react';
+import { UserCheck, CheckSquare, Clock } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
+import { useTasks } from '../../hooks/useTasks';
 
 import ApprovalKpiBar      from '../../components/approvals/ApprovalKpiBar';
 import ApprovalTabToggle   from '../../components/approvals/ApprovalTabToggle';
 import ApprovalFilterBar   from '../../components/approvals/ApprovalFilterBar';
 import ApprovalTable       from '../../components/approvals/ApprovalTable';
+import ApprovalTaskTable   from '../../components/approvals/ApprovalTaskTable';
 
 export default function Approvals() {
   const {
@@ -32,13 +33,21 @@ export default function Approvals() {
     return new Set(ledTeams.flatMap((t) => t.members));
   }, [isAdmin, teams, currentUser]);
 
+  const {
+    approveTaskReview,
+    rejectTaskReview,
+    undoTaskReview
+  } = useTasks();
+
   // ── UI state ──────────────────────────────────────────────────────────────
+  const [activeCategoryTab,  setActiveCategoryTab]  = useState('timelogs'); // 'timelogs' | 'tasks'
   const [showHistory,        setShowHistory]        = useState(false);
   const [searchQuery,        setSearchQuery]        = useState('');
   const [selectedUserId,     setSelectedUserId]     = useState('');
   const [selectedProjectId,  setSelectedProjectId]  = useState('');
   const [showOnlyOverruns,   setShowOnlyOverruns]   = useState(false);
   const [comments,           setComments]           = useState({}); // { [entryId]: string }
+  const [taskComments,       setTaskComments]       = useState({}); // { [taskId]: string }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const getUser    = (id) => users.find((u) => u.id === id);
@@ -94,6 +103,51 @@ export default function Approvals() {
     tasks, users, projects,
   ]);
 
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      // Scope: TL can only see their team members
+      if (!isAdmin && ledMemberIds && !ledMemberIds.has(t.assignedTo)) return false;
+
+      // Tab: pending vs history
+      if (showHistory) {
+        if (t.completionReviewStatus !== 'APPROVED' && t.completionReviewStatus !== 'REJECTED') return false;
+      } else {
+        if (t.status !== 'Pending Review') return false;
+      }
+
+      // User filter
+      if (selectedUserId && t.assignedTo !== selectedUserId) return false;
+
+      // Project filter
+      if (selectedProjectId && t.projectId !== selectedProjectId) return false;
+
+      // ETA overrun filter: task is over ETA
+      if (showOnlyOverruns) {
+        if (t.logged <= t.eta) return false;
+      }
+
+      // Search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const u = getUser(t.assignedTo);
+        const p = getProject(t.projectId);
+        const hit =
+          t.name.toLowerCase().includes(q) ||
+          (t.taskNumber && t.taskNumber.toLowerCase().includes(q)) ||
+          (u && u.name.toLowerCase().includes(q)) ||
+          (p && p.name.toLowerCase().includes(q)) ||
+          (t.description && t.description.toLowerCase().includes(q));
+        if (!hit) return false;
+      }
+
+      return true;
+    });
+  }, [
+    tasks, isAdmin, ledMemberIds, showHistory,
+    selectedUserId, selectedProjectId, showOnlyOverruns, searchQuery,
+    users, projects,
+  ]);
+
   // ── KPI counts ────────────────────────────────────────────────────────────
   const kpiCounts = useMemo(() => {
     const scoped = isAdmin
@@ -109,6 +163,20 @@ export default function Approvals() {
       }).length,
     };
   }, [timeEntries, isAdmin, ledMemberIds, tasks]);
+
+  const taskKpiCounts = useMemo(() => {
+    const scoped = isAdmin
+      ? tasks
+      : tasks.filter((t) => ledMemberIds?.has(t.assignedTo));
+    return {
+      pending:  scoped.filter((t) => t.status === 'Pending Review').length,
+      approved: scoped.filter((t) => t.completionReviewStatus === 'APPROVED').length,
+      rejected: scoped.filter((t) => t.completionReviewStatus === 'REJECTED').length,
+      overruns: scoped.filter((t) => t.logged > t.eta).length,
+    };
+  }, [tasks, isAdmin, ledMemberIds]);
+
+  const activeKpiCounts = activeCategoryTab === 'timelogs' ? kpiCounts : taskKpiCounts;
 
   // ── Filter dropdown options ───────────────────────────────────────────────
   const userOptions = useMemo(
@@ -143,6 +211,40 @@ export default function Approvals() {
 
   const handleCommentChange = (entryId, val) => {
     setComments((prev) => ({ ...prev, [entryId]: val }));
+  };
+
+  const handleTaskApprove = (taskId) => {
+    approveTaskReview.mutate({ taskid: taskId, comment: taskComments[taskId] || '' }, {
+      onSuccess: () => {
+        toast.success('Task approved successfully');
+        setTaskComments((prev) => { const c = { ...prev }; delete c[taskId]; return c; });
+      }
+    });
+  };
+
+  const handleTaskReject = (taskId) => {
+    if (!taskComments[taskId]?.trim()) {
+      toast.warning('Please add review feedback before rejecting.');
+      return;
+    }
+    rejectTaskReview.mutate({ taskid: taskId, comment: taskComments[taskId] }, {
+      onSuccess: () => {
+        toast.success('Task completion rejected');
+        setTaskComments((prev) => { const c = { ...prev }; delete c[taskId]; return c; });
+      }
+    });
+  };
+
+  const handleTaskRevert = (taskId) => {
+    undoTaskReview.mutate(taskId, {
+      onSuccess: () => {
+        toast.success('Task review decision undone');
+      }
+    });
+  };
+
+  const handleTaskCommentChange = (taskId, val) => {
+    setTaskComments((prev) => ({ ...prev, [taskId]: val }));
   };
 
   const handleClearFilters = () => {
@@ -190,7 +292,7 @@ export default function Approvals() {
               Approvals Center
             </h2>
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-              Review and action employee time log submissions
+              {activeCategoryTab === 'timelogs' ? 'Review and action employee time log submissions' : 'Review and action employee task completion requests'}
             </p>
           </div>
         </div>
@@ -199,17 +301,61 @@ export default function Approvals() {
         <ApprovalTabToggle
           showHistory={showHistory}
           onToggle={setShowHistory}
-          pendingCount={kpiCounts.pending}
-          historyCount={kpiCounts.approved + kpiCounts.rejected}
+          pendingCount={activeKpiCounts.pending}
+          historyCount={activeKpiCounts.approved + activeKpiCounts.rejected}
         />
+      </div>
+
+      {/* Category selector (Time Logs vs Task Reviews) */}
+      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '2px' }}>
+        <button
+          onClick={() => setActiveCategoryTab('timelogs')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeCategoryTab === 'timelogs' ? '2px solid var(--primary)' : '2px solid transparent',
+            color: activeCategoryTab === 'timelogs' ? 'var(--primary)' : 'var(--muted-foreground)',
+            padding: '0.5rem 1rem',
+            fontSize: '0.825rem',
+            fontWeight: 650,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Clock size={14} />
+          Time Logs
+        </button>
+        <button
+          onClick={() => setActiveCategoryTab('tasks')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeCategoryTab === 'tasks' ? '2px solid var(--primary)' : '2px solid transparent',
+            color: activeCategoryTab === 'tasks' ? 'var(--primary)' : 'var(--muted-foreground)',
+            padding: '0.5rem 1rem',
+            fontSize: '0.825rem',
+            fontWeight: 650,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <CheckSquare size={14} />
+          Task Reviews
+        </button>
       </div>
 
       {/* KPI tiles */}
       <ApprovalKpiBar
-        pendingCount={kpiCounts.pending}
-        approvedCount={kpiCounts.approved}
-        rejectedCount={kpiCounts.rejected}
-        overrunCount={kpiCounts.overruns}
+        pendingCount={activeKpiCounts.pending}
+        approvedCount={activeKpiCounts.approved}
+        rejectedCount={activeKpiCounts.rejected}
+        overrunCount={activeKpiCounts.overruns}
       />
 
       {/* Filter bar */}
@@ -244,23 +390,37 @@ export default function Approvals() {
             border: '1px solid var(--border)',
           }}
         >
-          {filteredEntries.length}
+          {activeCategoryTab === 'timelogs' ? filteredEntries.length : filteredTasks.length}
         </span>
       </div>
 
       {/* Table */}
-      <ApprovalTable
-        entries={filteredEntries}
-        showHistory={showHistory}
-        users={users}
-        tasks={tasks}
-        projects={projects}
-        comments={comments}
-        onCommentChange={handleCommentChange}
-        onApprove={handleApprove}
-        onReject={handleReject}
-        onRevert={handleRevert}
-      />
+      {activeCategoryTab === 'timelogs' ? (
+        <ApprovalTable
+          entries={filteredEntries}
+          showHistory={showHistory}
+          users={users}
+          tasks={tasks}
+          projects={projects}
+          comments={comments}
+          onCommentChange={handleCommentChange}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          onRevert={handleRevert}
+        />
+      ) : (
+        <ApprovalTaskTable
+          tasks={filteredTasks}
+          showHistory={showHistory}
+          users={users}
+          projects={projects}
+          comments={taskComments}
+          onCommentChange={handleTaskCommentChange}
+          onApprove={handleTaskApprove}
+          onReject={handleTaskReject}
+          onRevert={handleTaskRevert}
+        />
+      )}
       
     </div>
   );

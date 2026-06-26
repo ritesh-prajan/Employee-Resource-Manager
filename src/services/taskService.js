@@ -240,6 +240,7 @@ export const taskService={
             task:{id:taskid},
             author:{id:authoremployeeid},
             commentText:commenttext,
+            createdAt: new Date().toISOString().slice(0, -1)
         })
     },
     deletecomment:async(commentid)=>{

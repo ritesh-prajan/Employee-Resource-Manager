@@ -568,15 +568,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [mutateUpdateProject, mutateRemoveProjectMember, mutateAddProjectMember]);
 
-  const editTask = useCallback(async (taskId, updatedData) => {
-    try {
-      await mutateUpdateTask.mutateAsync({ id: taskId, data: updatedData });
-    } catch (err) {
-      console.error('Failed to update task:', err);
-      toast.error('Failed to update task: ' + err.message);
-    }
-  }, [mutateUpdateTask]);
-
   const editEmployee = useCallback(async (userId, updatedData) => {
     try {
       const updated = await mutateUpdateEmployee.mutateAsync({ id: userId, data: updatedData });
@@ -614,6 +605,83 @@ export const AppProvider = ({ children }) => {
       console.error('Failed to add task comment:', err);
     }
   }, [mutateAddTaskComment, auth.currentUser?.id]);
+
+  const editTask = useCallback(async (taskId, updatedData) => {
+    try {
+      const originalTask = tasks.find(t => t.id === taskId);
+      await mutateUpdateTask.mutateAsync({ id: taskId, data: updatedData });
+
+      if (originalTask) {
+        const diffMessages = [];
+
+        if (updatedData.name !== undefined && originalTask.name !== updatedData.name) {
+          diffMessages.push(`Title: "${originalTask.name}" → "${updatedData.name}"`);
+        }
+        if (updatedData.projectId !== undefined && String(originalTask.projectId) !== String(updatedData.projectId)) {
+          const oldProjName = projects.find(p => String(p.id) === String(originalTask.projectId))?.name.split(' (')[0] || 'Unknown';
+          const newProjName = projects.find(p => String(p.id) === String(updatedData.projectId))?.name.split(' (')[0] || 'Unknown';
+          diffMessages.push(`Project: ${oldProjName} → ${newProjName}`);
+        }
+        if (updatedData.assignedTo !== undefined && String(originalTask.assignedTo || '') !== String(updatedData.assignedTo || '')) {
+          const oldUserName = users.find(u => String(u.id) === String(originalTask.assignedTo || ''))?.name || 'Unassigned';
+          const newUserName = users.find(u => String(u.id) === String(updatedData.assignedTo || ''))?.name || 'Unassigned';
+          diffMessages.push(`Assignee: ${oldUserName} → ${newUserName}`);
+        }
+        if (updatedData.eta !== undefined && Number(originalTask.eta) !== Number(updatedData.eta)) {
+          diffMessages.push(`Estimate: ${originalTask.eta}h → ${updatedData.eta}h`);
+        }
+        if (updatedData.type !== undefined && originalTask.type !== updatedData.type) {
+          diffMessages.push(`Type: ${originalTask.type} → ${updatedData.type}`);
+        }
+        if (updatedData.epic !== undefined && originalTask.epic !== updatedData.epic) {
+          diffMessages.push(`Epic: ${originalTask.epic || 'None'} → ${updatedData.epic || 'None'}`);
+        }
+        if (updatedData.priority !== undefined && originalTask.priority !== updatedData.priority) {
+          diffMessages.push(`Priority: ${originalTask.priority} → ${updatedData.priority}`);
+        }
+        if (updatedData.status !== undefined && originalTask.status !== updatedData.status) {
+          diffMessages.push(`Status: ${originalTask.status} → ${updatedData.status}`);
+        }
+
+        const parseToIso = (val) => {
+          if (!val) return null;
+          const d = new Date(val);
+          if (isNaN(d.getTime())) return null;
+          return d.toISOString();
+        };
+
+        const formatDate = (val) => {
+          if (!val) return 'None';
+          const d = new Date(val);
+          if (isNaN(d.getTime())) return 'None';
+          return d.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        };
+
+        if (updatedData.hasOwnProperty('etaDate')) {
+          const oldEtaDateStr = parseToIso(originalTask.etaDate);
+          const newEtaDateStr = parseToIso(updatedData.etaDate);
+          if (oldEtaDateStr !== newEtaDateStr) {
+            diffMessages.push(`ETA Date: ${formatDate(originalTask.etaDate)} → ${formatDate(updatedData.etaDate)}`);
+          }
+        }
+
+        if (diffMessages.length > 0) {
+          const systemComment = `[Task Edited]: ${diffMessages.join('; ')}`;
+          await addTaskComment(taskId, systemComment);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to update task:', err);
+      toast.error('Failed to update task: ' + err.message);
+    }
+  }, [mutateUpdateTask, tasks, projects, users, addTaskComment]);
+
 
   const updateTaskProgress = useCallback(async (taskId, percentage, notes) => {
     try {

@@ -71,6 +71,19 @@ function mapetaextension(eta){
     }
 }
 
+function mapcomment(comment){
+    return{
+        id:comment.id,
+        taskId:comment.task?.id||null,
+        userId:comment.author?.id||null,
+        author:comment.author||null,
+        text:comment.commentText||"",
+        commentText:comment.commentText||"",
+        timestamp:comment.createdAt||"",
+        createdAt:comment.createdAt||"",
+    }
+}
+
 function maptasktype(type){
     const map={
         'FEATURE': 'Feature',
@@ -233,7 +246,8 @@ export const taskService={
         return api.get(`/tasks/${taskid}/attachments/${attachmentid}`)
     },
     getComments:async(taskid)=>{
-        return api.get(`/tasks/${taskid}/comments`)
+        const data=await api.get(`/tasks/${taskid}/comments`);
+        return (data||[]).map(mapcomment);
     },
     addComment:async(taskid,authoremployeeid,commenttext)=>{
         return api.post('/task-comments',{

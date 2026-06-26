@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Link2, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Link2, ChevronUp, Send } from 'lucide-react';
 import { projectService } from '#services/projectService';
 import SearchableSelect from '../../ui/SearchableSelect';
 import { useToast } from '../../../context/ToastContext';
@@ -14,11 +14,25 @@ export default function CreateTaskModal({
   assignForm, setAssignForm,
   showAssignForm, setShowAssignForm,
   showBacklogDropdown, setShowBacklogDropdown,
+  onSendBatchToTeams, onDiscardDraft,
 }) {
   const toast = useToast();
   const [projectMembers, setProjectMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [isSummaryFocused, setIsSummaryFocused] = useState(false);
+  const [sendingBatchToTeams, setSendingBatchToTeams] = useState(false);
+
+  const handleBatchSendToTeams = async () => {
+    if (!onSendBatchToTeams) return;
+    setSendingBatchToTeams(true);
+    try {
+      await onSendBatchToTeams();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSendingBatchToTeams(false);
+    }
+  };
 
   // Fetch project members dynamically when selected project changes
   useEffect(() => {
@@ -197,7 +211,18 @@ export default function CreateTaskModal({
               {/* Staged tasks list */}
               {stagedTasks.length > 0 && (
                 <div className="flex flex-col gap-2">
-                  <label className="block font-semibold text-sm text-slate-700">Staged Tasks ({stagedTasks.length})</label>
+                  <div className="flex items-center justify-between">
+                    <label className="block font-semibold text-sm text-slate-700">Staged Tasks ({stagedTasks.length})</label>
+                    {onDiscardDraft && (
+                      <button
+                        type="button"
+                        onClick={onDiscardDraft}
+                        className="text-xs text-red-500 hover:text-red-700 font-semibold transition cursor-pointer bg-transparent border-none flex items-center gap-1"
+                      >
+                        <Trash2 size={12} /> Discard All
+                      </button>
+                    )}
+                  </div>
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {stagedTasks.map(staged => {
                       const assignee = users.find(u => String(u.id) === String(staged.assignedTo));
@@ -417,7 +442,25 @@ export default function CreateTaskModal({
                   className="px-5 py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 text-sm font-semibold transition cursor-pointer bg-white"
                   onClick={onClose}
                 >
-                  Cancel
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBatchSendToTeams}
+                  disabled={stagedTasks.length === 0 || sendingBatchToTeams}
+                  className="flex items-center gap-1.5 px-5 py-2.5 border border-blue-200 hover:border-blue-500 rounded-xl text-xs font-semibold bg-blue-50/10 hover:bg-blue-50/30 text-blue-600 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {sendingBatchToTeams ? (
+                    <>
+                      <div className="animate-spin h-3.5 w-3.5 border-2 border-blue-600 border-t-transparent rounded-full" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={13} />
+                      Send to Teams
+                    </>
+                  )}
                 </button>
                 <button
                   type="submit"

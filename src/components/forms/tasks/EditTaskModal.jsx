@@ -2,15 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { projectService } from '#services/projectService';
 
-export default function EditTaskModal({ show, onClose, onSubmit, editingTask, setEditingTask, projects, users, isAdmin, ledProjectIds }) {
-  if (!editingTask) return null;
-
+export default function EditTaskModal({ show, onClose, onSubmit, editingTask, setEditingTask, projects, users, isAdmin, ledProjectIds, getDatetimeInputValue }) {
   const [projectMembers, setProjectMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
+  // Local raw datetime-local string, derived from editingTask.etaDate ONLY when
+  // the task being edited changes — never recomputed from itself on every
+  // keystroke. This avoids re-running the UTC<->local conversion on a value
+  // that's already in local datetime-local format (which was shifting the time
+  // by the timezone offset on every change, making edits look like they
+  // "didn't work").
+  const [etaDateInput, setEtaDateInput] = useState('');
+
+  useEffect(() => {
+    if (!editingTask) return;
+    setEtaDateInput(getDatetimeInputValue(editingTask.etaDate));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingTask?.id]);
 
   // Fetch project members dynamically when selected project changes
   useEffect(() => {
-    if (!editingTask.projectId) {
+    if (!editingTask?.projectId) {
       setProjectMembers([]);
       return;
     }
@@ -25,7 +36,9 @@ export default function EditTaskModal({ show, onClose, onSubmit, editingTask, se
       .finally(() => {
         setLoadingMembers(false);
       });
-  }, [editingTask.projectId]);
+  }, [editingTask?.projectId]);
+
+  if (!editingTask) return null;
 
   const availableProjects = projects.filter(p => isAdmin || ledProjectIds.map(id => String(id)).includes(String(p.id)) || String(p.id) === String(editingTask.projectId));
   const availableUsers = projectMembers;
@@ -89,6 +102,23 @@ export default function EditTaskModal({ show, onClose, onSubmit, editingTask, se
                     <option key={u.id} value={u.id}>{u.name} — {u.designation}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">ETA Date &amp; Time</label>
+                <input
+                  type="datetime-local"
+                  className="form-input"
+                  value={etaDateInput}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setEtaDateInput(raw);
+                    setEditingTask(prev => ({
+                      ...prev,
+                      etaDate: raw ? new Date(raw).toISOString() : null,
+                    }));
+                  }}
+                />
               </div>
 
               <div className="keep-inline-mobile-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.75rem' }}>

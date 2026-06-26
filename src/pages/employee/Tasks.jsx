@@ -4,6 +4,8 @@ import { useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTasks } from '../../hooks/useTasks';
 import { useToast } from '../../context/ToastContext';
+import { teamsService } from '../../services/teamsService';
+import { draftService } from '../../services/draftService';
 import ETAExtensionModal from '../../components/forms/tasks/ETAExtensionModal';
 import CreateTaskModal from '../../components/forms/tasks/CreateTaskModal';
 import EditTaskModal from '../../components/forms/tasks/EditTaskModal';
@@ -14,7 +16,7 @@ import SearchableSelect from '../../components/ui/SearchableSelect';
 import UserAvatar from '../../components/ui/UserAvatar';
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 export default function Tasks({ setCurrentPage, initialScope }) {
-  const { currentUser, projects, users, timerState, clockIn, clockOut, cancelTimer, teams, etaExtensions, taskTransfers, addManualEntry, claimBacklogTask, requestClaimBacklogTask } = useApp();
+  const { currentUser, projects, users, timerState, clockIn, clockOut, cancelTimer, teams, etaExtensions, taskTransfers, addManualEntry, claimBacklogTask, requestClaimBacklogTask, editTask } = useApp();
   const toast = useToast();
 
   const {
@@ -115,6 +117,35 @@ export default function Tasks({ setCurrentPage, initialScope }) {
       };
     }
   }, [location.state]);
+
+  // ─── Draft hydration — restore staged-but-unpublished tasks on mount ───
+  const draftHydratedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (draftHydratedRef.current) return;
+    draftHydratedRef.current = true;
+    draftService.loadDrafts().then(draft => {
+      if (draft && draft.tasks && draft.tasks.length > 0) {
+        setStagedTasks(draft.tasks);
+        if (draft.projectId) {
+          setTaskData(prev => ({ ...prev, projectId: draft.projectId }));
+        }
+      }
+    }).catch(err => console.warn('Failed to load task drafts:', err));
+  }, []);
+
+  // ─── Draft persistence — auto-save whenever stagedTasks change ───
+  const draftMountedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!draftMountedRef.current) {
+      draftMountedRef.current = true;
+      return; // skip initial render to avoid overwriting before hydration
+    }
+    if (stagedTasks.length > 0 && taskData.projectId) {
+      draftService.saveDrafts(stagedTasks, taskData.projectId, users);
+    } else if (stagedTasks.length === 0) {
+      draftService.deleteDrafts();
+    }
+  }, [stagedTasks, taskData.projectId, users]);
 
   const getProjectInfo = (projectId) => projects.find(p => p.id === projectId);
   const getUserInfo = (userId) => users.find(u => u.id === userId);
@@ -378,8 +409,110 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const handleEditTaskSubmit = (e) => {
     e.preventDefault();
     if (!editingTask.name || !editingTask.projectId) { toast.warning("Please fill in task name and select a project."); return; }
-    updateTask.mutate({ id: editingTask.id, data: { name: editingTask.name, projectId: editingTask.projectId, assignedTo: editingTask.assignedTo || '', eta: parseFloat(editingTask.eta) || 0, type: editingTask.type, epic: editingTask.epic || 'Backlog', priority: editingTask.priority, status: editingTask.status } });
-    setShowEditTaskModal(false); setEditingTask(null);
+    editTask(editingTask.id, {
+      name: editingTask.name,
+      projectId: editingTask.projectId,
+      assignedTo: editingTask.assignedTo || '',
+      eta: parseFloat(editingTask.eta) || 0,
+      type: editingTask.type,
+      epic: editingTask.epic || 'Backlog',
+      priority: editingTask.priority,
+      status: editingTask.status,
+      etaDate: editingTask.etaDate || null,
+    });
+    setShowEditTaskModal(false);
+    setEditingTask(null);
+  };
+
+  const handleSendToTeams = async (task) => {
+    try {
+      const assignee = users.find(u => String(u.id) === String(task.assignedTo));
+      const assigneeName = assignee ? assignee.name : 'Unassigned';
+
+      const project = projects.find(p => String(p.id) === String(task.projectId));
+      const projectName = project ? project.name.split(' (')[0] : 'General';
+
+      const formatEtaDate = (isoStr) => {
+        if (!isoStr) return 'None';
+        return new Date(isoStr).toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      };
+
+      const messageText = `📋 ${task.taskNumber}: ${task.name}\n` +
+                          `Assigned to: ${assigneeName}\n` +
+                          `Project: ${projectName}\n` +
+                          `Priority: ${task.priority}\n` +
+                          `ETA: ${formatEtaDate(task.etaDate)}\n` +
+                          `Assigned by: ${currentUser?.name || 'Unknown'}`;
+
+      await teamsService.postMessage("New Task Assigned", messageText);
+      toast.success("Sent to Teams");
+
+      addTaskComment.mutate({
+        taskId: task.id,
+        authorEmployeeId: currentUser.id,
+        commentText: `[Sent to Teams]: Task details posted to MS Teams channel by ${currentUser.name}`
+      });
+    } catch (err) {
+      if (err.status === 429) {
+        toast.error("Teams is rate-limiting right now — try again in a bit.");
+      } else if (err.status === 500) {
+        toast.error("Couldn't reach Teams — try again.");
+      } else {
+        toast.error("Failed to send message: " + (err.message || "Unknown error"));
+      }
+      throw err;
+    }
+  };
+
+  const handleSendBatchToTeams = async () => {
+    if (stagedTasks.length === 0) return;
+    if (!taskData.projectId) { toast.warning("Please select a project."); return; }
+    try {
+      // 1. Ensure the draft is fully saved on backend before sending
+      await draftService.saveDrafts(stagedTasks, taskData.projectId, users);
+
+      // 2. Trigger send and set status to PUBLISHED in backend via /api/v1/task-drafts/send
+      await draftService.sendDraftToTeams();
+
+      // 3. Convert staged tasks to real tasks
+      stagedTasks.forEach(staged => {
+        if (staged.isNew) {
+          createTask.mutate({ name: staged.name, projectId: taskData.projectId, assignedTo: staged.assignedTo, eta: parseFloat(staged.eta) || 8, type: staged.type || 'Story', priority: staged.priority || 'Medium', epic: 'Backlog', taskNumber: staged.taskNumber, etaDate: staged.etaDate, bugNumber: staged.bugNumber });
+        } else {
+          const backlogTask = tasks.find(t => t.id === staged.backlogTaskId);
+          if (backlogTask) {
+            updateTask.mutate({ id: staged.backlogTaskId, data: { ...backlogTask, assignedTo: staged.assignedTo, status: 'Open' } });
+          }
+        }
+      });
+
+      // 4. Reset state locally (the backend draft is already marked as PUBLISHED)
+      setShowTaskModal(false); setSelectedEmployeeIds([]); setStagedTasks([]); setShowAssignForm(false);
+      setTaskData({ name: '', projectId: '', assignedTo: '', eta: '', type: 'Story', epic: 'Backlog', priority: 'Medium' });
+
+      toast.success('Batch summary sent to Teams and tasks published successfully');
+    } catch (err) {
+      if (err.status === 429) {
+        toast.error("Teams is rate-limiting right now — try again in a bit.");
+      } else if (err.status === 500) {
+        toast.error("Couldn't reach Teams — try again.");
+      } else {
+        toast.error("Failed to send batch to Teams: " + (err.message || "Unknown error"));
+      }
+    }
+  };
+
+  const handleDiscardDraft = async () => {
+    setStagedTasks([]);
+    setTaskData(prev => ({ ...prev, projectId: '' }));
+    await draftService.deleteDrafts();
+    toast.success('Draft discarded');
   };
 
   const handlePublishTasks = (e) => {
@@ -398,6 +531,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     });
     setShowTaskModal(false); setSelectedEmployeeIds([]); setStagedTasks([]); setShowAssignForm(false);
     setTaskData({ name: '', projectId: '', assignedTo: '', eta: '', type: 'Story', epic: 'Backlog', priority: 'Medium' });
+    draftService.deleteDrafts();
   };
 
   const projectOptions = [
@@ -908,10 +1042,11 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           users={users}
           isAdmin={isAdmin}
           ledProjectIds={ledProjectIds}
+          getDatetimeInputValue={getDatetimeInputValue}
         />
         <CreateTaskModal
           show={showTaskModal}
-          onClose={() => { setShowTaskModal(false); setStagedTasks([]); setShowAssignForm(false); setShowBacklogDropdown(false); }}
+          onClose={() => { setShowTaskModal(false); setShowAssignForm(false); setShowBacklogDropdown(false); }}
           onSubmit={handlePublishTasks}
           projects={projects}
           tasks={tasks}
@@ -928,6 +1063,8 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           setShowAssignForm={setShowAssignForm}
           showBacklogDropdown={showBacklogDropdown}
           setShowBacklogDropdown={setShowBacklogDropdown}
+          onSendBatchToTeams={handleSendBatchToTeams}
+          onDiscardDraft={handleDiscardDraft}
         />
         <TaskDetailPanel
           show={!!expandedTaskId}
@@ -949,6 +1086,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           onTriggerPause={triggerPauseTask}
           onTriggerFinish={triggerFinishTask}
           onTriggerLog={triggerLogTask}
+          onSendToTeams={handleSendToTeams}
           onAddComment={handleAddCommentSubmit}
           onOpenETA={(id) => { setActiveTaskId(id); setShowETAModal(true); }}
           onOpenTransfer={(id) => { setActiveTaskId(id); setShowTransferModal(true); }}

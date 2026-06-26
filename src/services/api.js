@@ -6,15 +6,15 @@ const defaultHeaders = {
   'Content-Type': 'application/json',
 };
 
-async function request(method, path, body = null) {
+async function request(method, path, body = null, isRaw = false, contentType = 'application/json') {
   const options = {
     method,
-    headers: defaultHeaders,
+    headers: isRaw ? { 'Content-Type': contentType } : defaultHeaders,
     credentials: 'include',
   };
 
   if (body !== null) {
-    options.body = JSON.stringify(body);
+    options.body = isRaw ? body : JSON.stringify(body);
   }
 
   try {
@@ -27,8 +27,8 @@ async function request(method, path, body = null) {
       throw error;
     }
 
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
+    const responseContentType = response.headers.get('content-type');
+    if (responseContentType && responseContentType.includes('application/json')) {
       return response.json();
     }
 
@@ -44,18 +44,19 @@ async function request(method, path, body = null) {
     ) {
       console.warn('Local API on 8080 is unreachable. Falling back to Production API...');
       activeBaseUrl = PROD_URL;
-      return request(method, path, body);
+      return request(method, path, body, isRaw, contentType);
     }
     throw err;
   }
 }
 
 export const api = {
-  get:    (path)        => request('GET',    path),
-  post:   (path, body)  => request('POST',   path, body),
-  put:    (path, body)  => request('PUT',    path, body),
-  patch:  (path, body)  => request('PATCH',  path, body),
-  delete: (path, body)  => request('DELETE', path, body),
+  get:     (path)        => request('GET',    path),
+  post:    (path, body)  => request('POST',   path, body),
+  postRaw: (path, body, contentType) => request('POST', path, body, true, contentType),
+  put:     (path, body)  => request('PUT',    path, body),
+  patch:   (path, body)  => request('PATCH',  path, body),
+  delete:  (path, body)  => request('DELETE', path, body),
 };
 
 /**

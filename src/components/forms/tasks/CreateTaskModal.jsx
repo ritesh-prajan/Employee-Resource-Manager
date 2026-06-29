@@ -15,11 +15,47 @@ export default function CreateTaskModal({
   showAssignForm, setShowAssignForm,
   showBacklogDropdown, setShowBacklogDropdown,
   onDiscardDraft,
+  // Teams Integration props
+  teams = [],
+  teamsGroupId,
+  setTeamsGroupId,
+  teamsChannelId,
+  setTeamsChannelId,
+  currentUser
 }) {
   const toast = useToast();
   const [projectMembers, setProjectMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [isSummaryFocused, setIsSummaryFocused] = useState(false);
+
+  // Compute teams the current user is a member of and has Group/Channel IDs set
+  const myTeams = React.useMemo(() => {
+    if (!teams || !currentUser) return [];
+    return teams.filter(t =>
+      t.members.map(String).includes(String(currentUser.id)) &&
+      t.teamsGroupId && t.teamsGroupId.trim() !== '' &&
+      t.teamsChannelId && t.teamsChannelId.trim() !== ''
+    );
+  }, [teams, currentUser]);
+
+  const handleTeamChange = (teamId) => {
+    const selectedTeam = myTeams.find(t => String(t.id) === String(teamId));
+    if (selectedTeam) {
+      setTeamsGroupId(selectedTeam.teamsGroupId);
+      setTeamsChannelId(selectedTeam.teamsChannelId);
+    } else {
+      setTeamsGroupId('');
+      setTeamsChannelId('');
+    }
+  };
+
+  // Auto-select if there is exactly 1 team channel available
+  React.useEffect(() => {
+    if (show && myTeams.length === 1 && !teamsChannelId) {
+      setTeamsGroupId(myTeams[0].teamsGroupId);
+      setTeamsChannelId(myTeams[0].teamsChannelId);
+    }
+  }, [show, myTeams, teamsChannelId]);
 
 
 
@@ -195,6 +231,30 @@ export default function CreateTaskModal({
                     minHeight: '40px'
                   }}
                 />
+              </div>
+
+              {/* Teams Channel Selector */}
+              <div className="form-group flex flex-col">
+                <label className="mb-1 block font-semibold text-sm text-slate-700">Target Teams Channel</label>
+                {myTeams.length === 0 ? (
+                  <div className="p-3.5 rounded-xl border border-red-200 bg-red-50 text-red-500 text-xs font-semibold">
+                    You are not assigned to any team with configured Teams Group and Channel IDs. Please ask an admin to configure them.
+                  </div>
+                ) : (
+                  <select
+                    className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                    value={myTeams.find(t => t.teamsChannelId === teamsChannelId)?.id || ''}
+                    onChange={(e) => handleTeamChange(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Team Channel...</option>
+                    {myTeams.map(t => (
+                      <option key={t.id} value={String(t.id)}>
+                        {t.teamName || t.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Staged tasks list */}

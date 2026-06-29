@@ -17,6 +17,8 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
   const [subLeadId, setSubLeadId] = useState('');
   const [members, setMembers] = useState([]);
   const [description, setDescription] = useState('');
+  const [teamsGroupId, setTeamsGroupId] = useState('');
+  const [teamsChannelId, setTeamsChannelId] = useState('');
   const toast = useToast();
 
   if (!isOpen) return null;
@@ -27,6 +29,10 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
     e.preventDefault();
     if (!name.trim() || !leadId) {
       toast.warning('Please fill in team name, team lead, and sub lead.');
+      return;
+    }
+    if (!teamsGroupId.trim() || !teamsChannelId.trim()) {
+      toast.warning('Please fill in Teams Group ID and Channel ID.');
       return;
     }
     // Auto-include the lead in members if not already there
@@ -40,10 +46,14 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
       subLeadId: subLeadId || null,
       members: finalMembers,
       description: description.trim(),
+      teamsGroupId: teamsGroupId.trim(),
+      teamsChannelId: teamsChannelId.trim(),
     });
     // Reset form
     setSubLeadId('');
     setDescription('');
+    setTeamsGroupId('');
+    setTeamsChannelId('');
     setName('');
     setLeadId('');
     setMembers([]);
@@ -53,6 +63,8 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
     setName('');
     setLeadId('');
     setMembers([]);
+    setTeamsGroupId('');
+    setTeamsChannelId('');
     onClose();
   };
 
@@ -117,6 +129,30 @@ export default function CreateTeamModal({ isOpen, onClose, users = [], onSubmit 
               rows={2}
               style={{ resize: 'vertical' }}
             />
+          </div>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">TEAMS GROUP ID</label>
+              <input
+                type="text"
+                className="input-control"
+                placeholder="e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                value={teamsGroupId}
+                onChange={e => setTeamsGroupId(e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">TEAMS CHANNEL ID</label>
+              <input
+                type="text"
+                className="input-control"
+                placeholder="e.g. 19:xxxxxx@thread.tacv2"
+                value={teamsChannelId}
+                onChange={e => setTeamsChannelId(e.target.value)}
+                required
+              />
+            </div>
           </div>
           <div className="form-group" style={{ marginBottom: '40px' }}>
             <label className="form-label">TEAM MEMBERS</label>

@@ -1006,6 +1006,8 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           show={showTeamsDraftModal}
           onClose={() => setShowTeamsDraftModal(false)}
           users={users}
+          teams={teams}
+          currentUser={currentUser}
         />
         <TaskDetailPanel
           show={!!expandedTaskId}
@@ -1199,12 +1201,25 @@ function SubmitReviewModal({ show, onClose, task, onSubmit, checkTaskExceedsETA 
   );
 }
 
-function TeamsDraftModal({ show, onClose, users }) {
+function TeamsDraftModal({ show, onClose, users, teams = [], currentUser }) {
   const [draft, setDraft] = useState(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [discarding, setDiscarding] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState('');
   const toast = useToast();
+
+  // Compute teams the current user is a member of AND that have both IDs configured
+  const myTeams = React.useMemo(() => {
+    if (!teams || !currentUser) return [];
+    return teams.filter(t =>
+      t.members.includes(currentUser.id) &&
+      t.teamsGroupId && t.teamsGroupId.trim() !== '' &&
+      t.teamsChannelId && t.teamsChannelId.trim() !== ''
+    );
+  }, [teams, currentUser]);
+
+  const selectedTeam = myTeams.find(t => String(t.id) === String(selectedTeamId)) || null;
 
   const fetchDraft = async () => {
     setLoading(true);
@@ -1212,6 +1227,15 @@ function TeamsDraftModal({ show, onClose, users }) {
       const res = await api.get('/task-drafts');
       if (res && res.teamsMessage) {
         setDraft(res);
+        // Pre-select the team matching the draft's stored IDs
+        if (res.teamsGroupId && res.teamsChannelId) {
+          const matchingTeam = myTeams.find(
+            t => t.teamsGroupId === res.teamsGroupId && t.teamsChannelId === res.teamsChannelId
+          );
+          if (matchingTeam) {
+            setSelectedTeamId(String(matchingTeam.id));
+          }
+        }
       } else {
         setDraft(null);
       }
@@ -1226,12 +1250,28 @@ function TeamsDraftModal({ show, onClose, users }) {
   React.useEffect(() => {
     if (show) {
       fetchDraft();
+      // Auto-select if only one team
+      if (myTeams.length === 1 && !selectedTeamId) {
+        setSelectedTeamId(String(myTeams[0].id));
+      }
     }
-  }, [show]);
+  }, [show, myTeams.length]);
 
   const handleSend = async () => {
+    if (!selectedTeam) {
+      toast.warning('Please select a team channel to send to.');
+      return;
+    }
     setSending(true);
     try {
+      // Save the team IDs to the draft before sending (ensures they're persisted)
+      if (draft) {
+        await api.post('/task-drafts', {
+          teamsMessage: draft.teamsMessage,
+          teamsGroupId: selectedTeam.teamsGroupId,
+          teamsChannelId: selectedTeam.teamsChannelId,
+        });
+      }
       await draftService.sendDraftToTeams();
       toast.success("Draft sent to Teams successfully");
       onClose();
@@ -1257,6 +1297,8 @@ function TeamsDraftModal({ show, onClose, users }) {
 
   if (!show) return null;
 
+  const hasNoTeams = myTeams.length === 0;
+
   return (
     <div className="modal-overlay" onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
       <div 
@@ -1267,6 +1309,29 @@ function TeamsDraftModal({ show, onClose, users }) {
         <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
           <h3 className="modal-title" style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--foreground)' }}>Today's Teams Draft Batch</h3>
           <button className="modal-close" onClick={onClose} style={{ border: 'none', background: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--muted-foreground)' }}>&times;</button>
+        </div>
+
+        {/* Team channel dropdown */}
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted-foreground)', marginBottom: '0.35rem' }}>
+            Send to Team Channel
+          </label>
+          {hasNoTeams ? (
+            <div style={{ padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.05)', color: '#ef4444', fontSize: '0.8rem', fontWeight: 500 }}>
+              You're not assigned to any team with a configured Teams channel. Please ask an admin to add Teams Group ID and Channel ID to your team.
+            </div>
+          ) : (
+            <select
+              value={selectedTeamId}
+              onChange={e => setSelectedTeamId(e.target.value)}
+              style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--secondary)', color: 'var(--foreground)', fontSize: '0.85rem', cursor: 'pointer' }}
+            >
+              <option value="">— Select a team —</option>
+              {myTeams.map(t => (
+                <option key={t.id} value={String(t.id)}>{t.teamName || t.name}</option>
+              ))}
+            </select>
+          )}
         </div>
         
         <div style={{ minHeight: '150px', maxHeight: '350px', overflowY: 'auto', marginBottom: '1rem', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--secondary)' }}>
@@ -1311,8 +1376,8 @@ function TeamsDraftModal({ show, onClose, users }) {
               <button 
                 type="button" 
                 onClick={handleSend}
-                disabled={discarding || sending}
-                style={{ backgroundColor: '#0010AE', color: '#ffffff', border: 'none', padding: '0.45rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
+                disabled={discarding || sending || hasNoTeams || !selectedTeamId}
+                style={{ backgroundColor: (hasNoTeams || !selectedTeamId) ? '#94a3b8' : '#0010AE', color: '#ffffff', border: 'none', padding: '0.45rem 1rem', borderRadius: '8px', cursor: (hasNoTeams || !selectedTeamId) ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
               >
                 {sending ? 'Sending...' : 'Send to Teams'}
               </button>
@@ -1323,3 +1388,4 @@ function TeamsDraftModal({ show, onClose, users }) {
     </div>
   );
 }
+

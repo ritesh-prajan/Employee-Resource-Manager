@@ -11,6 +11,7 @@ function mapTeam(team) {
     lead:            team.lead || null,
     subLeadId:       team.subLead?.id || null,
     subLead:         team.subLead || null,
+    teamsGroupId:    team.teamsGroupId || '',
     teamsChannelId:  team.teamsChannelId || '',
     status:          mapStatus(team.status),
     members:         [], // loaded separately via getMembers()
@@ -33,6 +34,7 @@ function toBackendTeam(data) {
     description:    data.description || '',
     lead:           data.leadId ? { id: data.leadId } : null,
     subLead:        data.subLeadId ? { id: data.subLeadId } : null,
+    teamsGroupId:   data.teamsGroupId || '',
     teamsChannelId: data.teamsChannelId || '',
     status:         toBackendStatus(data.status),
   };

@@ -8,10 +8,12 @@ const STORAGE_KEY = 'erm_task_drafts';
  * Persists the staged tasks to the backend /api/v1/task-drafts endpoint
  * by formatting the HTML message required by Teams and embedding the structured
  * JSON metadata as an HTML comment.
+ *
+ * Backend expects JSON: { teamsMessage, teamsGroupId, teamsChannelId }
  */
 export const draftService = {
   /** Save the current staged-tasks array. */
-  saveDrafts: async (stagedTasks, projectId, users) => {
+  saveDrafts: async (stagedTasks, projectId, users, teamsGroupId, teamsChannelId) => {
     if (!stagedTasks || stagedTasks.length === 0) {
       await draftService.deleteDrafts();
       return;
@@ -39,7 +41,11 @@ export const draftService = {
     const rawHtml = `${teamsMessage}<!--DRAFT_METADATA:${JSON.stringify(metadata)}-->`;
     
     try {
-      await api.postRaw('/task-drafts', rawHtml, 'text/plain');
+      await api.post('/task-drafts', {
+        teamsMessage: rawHtml,
+        teamsGroupId,
+        teamsChannelId,
+      });
     } catch (err) {
       console.warn('Backend draft save failed, saving to localStorage:', err);
     }
@@ -69,7 +75,9 @@ export const draftService = {
           return {
             tasks: parsed.tasks || [],
             projectId: parsed.projectId || '',
-            id: rawDraft.id
+            id: rawDraft.id,
+            teamsGroupId: rawDraft.teamsGroupId || '',
+            teamsChannelId: rawDraft.teamsChannelId || '',
           };
         } catch (e) {
           console.error('Failed to parse metadata from backend teamsMessage:', e);
@@ -85,7 +93,9 @@ export const draftService = {
         return {
           tasks: parsed.tasks || [],
           projectId: parsed.projectId || '',
-          id: null
+          id: null,
+          teamsGroupId: '',
+          teamsChannelId: '',
         };
       } catch {
         /* corrupt data — ignore */
@@ -112,7 +122,7 @@ export const draftService = {
   },
 
   /** Append newly created or assigned tasks to today's active draft batch. */
-  appendTasks: async (newTasks, users) => {
+  appendTasks: async (newTasks, users, teamsGroupId, teamsChannelId) => {
     if (!newTasks || newTasks.length === 0) return;
 
     const newHtmlLines = newTasks.map(task => {
@@ -132,11 +142,16 @@ export const draftService = {
     
     const newTeamsMessage = newHtmlLines.join('<br/>');
 
+    // Fetch existing draft to get current message and team IDs
     let existingMessage = '';
+    let existingGroupId = '';
+    let existingChannelId = '';
     try {
       const res = await api.get('/task-drafts');
       if (res && res.teamsMessage) {
         existingMessage = res.teamsMessage.replace(/<!--DRAFT_METADATA:(.*?)-->/, '').trim();
+        existingGroupId = res.teamsGroupId || '';
+        existingChannelId = res.teamsChannelId || '';
       }
     } catch (err) {
       console.warn('Failed to load drafts from backend:', err);
@@ -146,6 +161,14 @@ export const draftService = {
       ? `${existingMessage}<br/>${newTeamsMessage}`
       : newTeamsMessage;
 
-    await api.postRaw('/task-drafts', combinedMessage, 'text/plain');
+    // New values win over existing stored ones; fall back to existing if not provided
+    const finalGroupId = teamsGroupId || existingGroupId;
+    const finalChannelId = teamsChannelId || existingChannelId;
+
+    await api.post('/task-drafts', {
+      teamsMessage: combinedMessage,
+      teamsGroupId: finalGroupId,
+      teamsChannelId: finalChannelId,
+    });
   }
 };

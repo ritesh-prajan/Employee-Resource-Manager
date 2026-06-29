@@ -18,7 +18,27 @@ async function request(method, path, body = null, isRaw = false, contentType = '
   }
 
   try {
-    const response = await fetch(`${activeBaseUrl}${path}`, options);
+    let response = await fetch(`${activeBaseUrl}${path}`, options);
+
+    if (response.status === 401 && path !== '/auth/refresh' && path !== '/auth/login') {
+      console.log('Access token expired (401). Attempting silent token refresh...');
+      try {
+        const refreshResponse = await fetch(`${activeBaseUrl}/auth/refresh`, {
+          method: 'POST',
+          headers: defaultHeaders,
+          credentials: 'include'
+        });
+
+        if (refreshResponse.ok) {
+          console.log('Token refreshed successfully. Retrying original request...');
+          response = await fetch(`${activeBaseUrl}${path}`, options);
+        } else {
+          console.warn('Silent token refresh failed with status:', refreshResponse.status);
+        }
+      } catch (refreshErr) {
+        console.warn('Error during silent token refresh:', refreshErr);
+      }
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -38,9 +58,7 @@ async function request(method, path, body = null, isRaw = false, contentType = '
     if (
       activeBaseUrl === LOCAL_URL &&
       (err.name === 'TypeError' ||
-        err.message?.includes('Failed to fetch') ||
-        err.status === 502 ||
-        err.status === 504)
+        err.message?.includes('Failed to fetch'))
     ) {
       console.warn('Local API on 8080 is unreachable. Falling back to Production API...');
       activeBaseUrl = PROD_URL;

@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, AlertTriangle, Filter, Pencil, Trash2, CheckCircle, ChevronUp, RotateCcw } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Filter, Pencil, Trash2, CheckCircle, ChevronUp, RotateCcw, Send } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTasks } from '../../hooks/useTasks';
 import { useToast } from '../../context/ToastContext';
 import { teamsService } from '../../services/teamsService';
 import { draftService } from '../../services/draftService';
+import { api } from '../../services/api';
 import ETAExtensionModal from '../../components/forms/tasks/ETAExtensionModal';
 import CreateTaskModal from '../../components/forms/tasks/CreateTaskModal';
 import EditTaskModal from '../../components/forms/tasks/EditTaskModal';
@@ -88,6 +89,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const [showBacklogDropdown, setShowBacklogDropdown] = useState(false);
   const [assignForm, setAssignForm] = useState({ name: '', backlogTaskId: '', eta: '8', type: 'Story', priority: 'Medium', assignedTo: '', taskNumber: '', etaDate: '', bugNumber: '' });
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+  const [showTeamsDraftModal, setShowTeamsDraftModal] = useState(false);
 
   const location = useLocation();
   const [highlightTaskId, setHighlightTaskId] = useState(null);
@@ -118,34 +120,21 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     }
   }, [location.state]);
 
-  // ─── Draft hydration — restore staged-but-unpublished tasks on mount ───
-  const draftHydratedRef = React.useRef(false);
+  // ─── Local staging persistence ───
   React.useEffect(() => {
-    if (draftHydratedRef.current) return;
-    draftHydratedRef.current = true;
-    draftService.loadDrafts().then(draft => {
-      if (draft && draft.tasks && draft.tasks.length > 0) {
-        setStagedTasks(draft.tasks);
-        if (draft.projectId) {
-          setTaskData(prev => ({ ...prev, projectId: draft.projectId }));
-        }
+    const stored = localStorage.getItem('erm_staged_tasks');
+    if (stored) {
+      try {
+        setStagedTasks(JSON.parse(stored));
+      } catch (e) {
+        console.error("Failed to parse stored staged tasks", e);
       }
-    }).catch(err => console.warn('Failed to load task drafts:', err));
+    }
   }, []);
 
-  // ─── Draft persistence — auto-save whenever stagedTasks change ───
-  const draftMountedRef = React.useRef(false);
   React.useEffect(() => {
-    if (!draftMountedRef.current) {
-      draftMountedRef.current = true;
-      return; // skip initial render to avoid overwriting before hydration
-    }
-    if (stagedTasks.length > 0 && taskData.projectId) {
-      draftService.saveDrafts(stagedTasks, taskData.projectId, users);
-    } else if (stagedTasks.length === 0) {
-      draftService.deleteDrafts();
-    }
-  }, [stagedTasks, taskData.projectId, users]);
+    localStorage.setItem('erm_staged_tasks', JSON.stringify(stagedTasks));
+  }, [stagedTasks]);
 
   const getProjectInfo = (projectId) => projects.find(p => p.id === projectId);
   const getUserInfo = (userId) => users.find(u => u.id === userId);
@@ -206,17 +195,23 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     setShowETAModal(false);
   };
 
-  const handleDelegateSubmit = (taskId, memberId) => {
+  const handleDelegateSubmit = async (taskId, memberId) => {
     const taskObj = tasks.find(t => t.id === taskId);
     if (!taskObj) return;
-    updateTask.mutate({
-      id: taskId,
-      data: {
-        ...taskObj,
-        assignedTo: memberId,
-        status: 'Open'
-      }
-    });
+    try {
+      const res = await updateTask.mutateAsync({
+        id: taskId,
+        data: {
+          ...taskObj,
+          assignedTo: memberId,
+          status: 'Open'
+        }
+      });
+      await draftService.appendTasks([res], users);
+      toast.success('Task delegated and added to Teams draft batch');
+    } catch (err) {
+      console.error('Failed to delegate task:', err);
+    }
   };
 
   const handleTransferSubmit = (e) => {
@@ -226,11 +221,17 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     setShowTransferModal(false);
   };
 
-  const handleDirectReassign = (taskId, newAssigneeId) => {
-    if (newAssigneeId) {
-      assignTask.mutate({ taskId, userId: newAssigneeId });
-    } else {
-      unassignTask.mutate(taskId);
+  const handleDirectReassign = async (taskId, newAssigneeId) => {
+    try {
+      if (newAssigneeId) {
+        const res = await assignTask.mutateAsync({ taskId, userId: newAssigneeId });
+        await draftService.appendTasks([res], users);
+        toast.success('Task reassigned and added to Teams draft batch');
+      } else {
+        await unassignTask.mutateAsync(taskId);
+      }
+    } catch (err) {
+      console.error('Failed to reassign task:', err);
     }
   };
 
@@ -424,114 +425,42 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     setEditingTask(null);
   };
 
-  const handleSendToTeams = async (task) => {
-    try {
-      const assignee = users.find(u => String(u.id) === String(task.assignedTo));
-      const assigneeName = assignee ? assignee.name : 'Unassigned';
-
-      const project = projects.find(p => String(p.id) === String(task.projectId));
-      const projectName = project ? project.name.split(' (')[0] : 'General';
-
-      const formatEtaDate = (isoStr) => {
-        if (!isoStr) return 'None';
-        return new Date(isoStr).toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      };
-
-      const messageText = `📋 ${task.taskNumber}: ${task.name}\n` +
-                          `Assigned to: ${assigneeName}\n` +
-                          `Project: ${projectName}\n` +
-                          `Priority: ${task.priority}\n` +
-                          `ETA: ${formatEtaDate(task.etaDate)}\n` +
-                          `Assigned by: ${currentUser?.name || 'Unknown'}`;
-
-      await teamsService.postMessage("New Task Assigned", messageText);
-      toast.success("Sent to Teams");
-
-      addTaskComment.mutate({
-        taskId: task.id,
-        authorEmployeeId: currentUser.id,
-        commentText: `[Sent to Teams]: Task details posted to MS Teams channel by ${currentUser.name}`
-      });
-    } catch (err) {
-      if (err.status === 429) {
-        toast.error("Teams is rate-limiting right now — try again in a bit.");
-      } else if (err.status === 500) {
-        toast.error("Couldn't reach Teams — try again.");
-      } else {
-        toast.error("Failed to send message: " + (err.message || "Unknown error"));
-      }
-      throw err;
-    }
-  };
-
-  const handleSendBatchToTeams = async () => {
-    if (stagedTasks.length === 0) return;
-    if (!taskData.projectId) { toast.warning("Please select a project."); return; }
-    try {
-      // 1. Ensure the draft is fully saved on backend before sending
-      await draftService.saveDrafts(stagedTasks, taskData.projectId, users);
-
-      // 2. Trigger send and set status to PUBLISHED in backend via /api/v1/task-drafts/send
-      await draftService.sendDraftToTeams();
-
-      // 3. Convert staged tasks to real tasks
-      stagedTasks.forEach(staged => {
-        if (staged.isNew) {
-          createTask.mutate({ name: staged.name, projectId: taskData.projectId, assignedTo: staged.assignedTo, eta: parseFloat(staged.eta) || 8, type: staged.type || 'Story', priority: staged.priority || 'Medium', epic: 'Backlog', taskNumber: staged.taskNumber, etaDate: staged.etaDate, bugNumber: staged.bugNumber });
-        } else {
-          const backlogTask = tasks.find(t => t.id === staged.backlogTaskId);
-          if (backlogTask) {
-            updateTask.mutate({ id: staged.backlogTaskId, data: { ...backlogTask, assignedTo: staged.assignedTo, status: 'Open' } });
-          }
-        }
-      });
-
-      // 4. Reset state locally (the backend draft is already marked as PUBLISHED)
-      setShowTaskModal(false); setSelectedEmployeeIds([]); setStagedTasks([]); setShowAssignForm(false);
-      setTaskData({ name: '', projectId: '', assignedTo: '', eta: '', type: 'Story', epic: 'Backlog', priority: 'Medium' });
-
-      toast.success('Batch summary sent to Teams and tasks published successfully');
-    } catch (err) {
-      if (err.status === 429) {
-        toast.error("Teams is rate-limiting right now — try again in a bit.");
-      } else if (err.status === 500) {
-        toast.error("Couldn't reach Teams — try again.");
-      } else {
-        toast.error("Failed to send batch to Teams: " + (err.message || "Unknown error"));
-      }
-    }
-  };
-
-  const handleDiscardDraft = async () => {
+  const handleDiscardStaged = () => {
     setStagedTasks([]);
-    setTaskData(prev => ({ ...prev, projectId: '' }));
-    await draftService.deleteDrafts();
-    toast.success('Draft discarded');
+    localStorage.removeItem('erm_staged_tasks');
+    toast.success('Staged tasks cleared');
   };
 
-  const handlePublishTasks = (e) => {
+  const handlePublishTasks = async (e) => {
     if (e) e.preventDefault();
     if (!taskData.projectId) { toast.warning("Please select a project."); return; }
     if (stagedTasks.length === 0) { toast.warning("Please stage at least one task."); return; }
-    stagedTasks.forEach(staged => {
-      if (staged.isNew) {
-        createTask.mutate({ name: staged.name, projectId: taskData.projectId, assignedTo: staged.assignedTo, eta: parseFloat(staged.eta) || 8, type: staged.type || 'Story', priority: staged.priority || 'Medium', epic: 'Backlog', taskNumber: staged.taskNumber, etaDate: staged.etaDate, bugNumber: staged.bugNumber });
-      } else {
-        const backlogTask = tasks.find(t => t.id === staged.backlogTaskId);
-        if (backlogTask) {
-          updateTask.mutate({ id: staged.backlogTaskId, data: { ...backlogTask, assignedTo: staged.assignedTo, status: 'Open' } });
+
+    const createdTasks = [];
+    try {
+      for (const staged of stagedTasks) {
+        if (staged.isNew) {
+          const res = await createTask.mutateAsync({ name: staged.name, projectId: taskData.projectId, assignedTo: staged.assignedTo, eta: parseFloat(staged.eta) || 8, type: staged.type || 'Story', priority: staged.priority || 'Medium', epic: 'Backlog', taskNumber: staged.taskNumber, etaDate: staged.etaDate, bugNumber: staged.bugNumber });
+          createdTasks.push(res);
+        } else {
+          const backlogTask = tasks.find(t => t.id === staged.backlogTaskId);
+          if (backlogTask) {
+            const res = await updateTask.mutateAsync({ id: staged.backlogTaskId, data: { ...backlogTask, assignedTo: staged.assignedTo, status: 'Open' } });
+            createdTasks.push(res);
+          }
         }
       }
-    });
+
+      await draftService.appendTasks(createdTasks, users);
+      toast.success('Tasks published and appended to daily Teams draft');
+    } catch (err) {
+      console.error('Failed to publish tasks:', err);
+      toast.error('Failed to publish tasks: ' + (err.message || 'Unknown error'));
+    }
+
     setShowTaskModal(false); setSelectedEmployeeIds([]); setStagedTasks([]); setShowAssignForm(false);
     setTaskData({ name: '', projectId: '', assignedTo: '', eta: '', type: 'Story', epic: 'Backlog', priority: 'Medium' });
-    draftService.deleteDrafts();
+    localStorage.removeItem('erm_staged_tasks');
   };
 
   const projectOptions = [
@@ -949,13 +878,21 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                 </div>
 
                 {isLeader && (
-                  <button
-                    className="rounded-xl px-4 py-2 text-xs font-bold text-white transition tasks-create-btn whitespace-nowrap"
-                    style={{ backgroundColor: '#0010ae' }}
-                    onClick={() => setShowTaskModal(true)}
-                  >
-                    <Plus size={13} /> Create Task
-                  </button>
+                  <>
+                    <button
+                      className="rounded-xl px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition border border-slate-200 bg-white whitespace-nowrap flex items-center gap-1.5"
+                      onClick={() => setShowTeamsDraftModal(true)}
+                    >
+                      <Send size={13} /> View Teams Draft
+                    </button>
+                    <button
+                      className="rounded-xl px-4 py-2 text-xs font-bold text-white transition tasks-create-btn whitespace-nowrap"
+                      style={{ backgroundColor: '#0010ae' }}
+                      onClick={() => setShowTaskModal(true)}
+                    >
+                      <Plus size={13} /> Create Task
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -1063,8 +1000,12 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           setShowAssignForm={setShowAssignForm}
           showBacklogDropdown={showBacklogDropdown}
           setShowBacklogDropdown={setShowBacklogDropdown}
-          onSendBatchToTeams={handleSendBatchToTeams}
-          onDiscardDraft={handleDiscardDraft}
+          onDiscardDraft={handleDiscardStaged}
+        />
+        <TeamsDraftModal
+          show={showTeamsDraftModal}
+          onClose={() => setShowTeamsDraftModal(false)}
+          users={users}
         />
         <TaskDetailPanel
           show={!!expandedTaskId}
@@ -1086,7 +1027,6 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           onTriggerPause={triggerPauseTask}
           onTriggerFinish={triggerFinishTask}
           onTriggerLog={triggerLogTask}
-          onSendToTeams={handleSendToTeams}
           onAddComment={handleAddCommentSubmit}
           onOpenETA={(id) => { setActiveTaskId(id); setShowETAModal(true); }}
           onOpenTransfer={(id) => { setActiveTaskId(id); setShowTransferModal(true); }}
@@ -1254,6 +1194,131 @@ function SubmitReviewModal({ show, onClose, task, onSubmit, checkTaskExceedsETA 
             <button type="submit" className="btn btn-primary" style={{ backgroundColor: 'var(--primary)', color: '#ffffff', border: 'none', padding: '0.45rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>Submit for Review</button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+function TeamsDraftModal({ show, onClose, users }) {
+  const [draft, setDraft] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
+  const toast = useToast();
+
+  const fetchDraft = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/task-drafts');
+      if (res && res.teamsMessage) {
+        setDraft(res);
+      } else {
+        setDraft(null);
+      }
+    } catch (err) {
+      console.warn("Failed to load today's Teams draft:", err);
+      setDraft(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (show) {
+      fetchDraft();
+    }
+  }, [show]);
+
+  const handleSend = async () => {
+    setSending(true);
+    try {
+      await draftService.sendDraftToTeams();
+      toast.success("Draft sent to Teams successfully");
+      onClose();
+    } catch (err) {
+      toast.error("Failed to send draft: " + (err.message || "Unknown error"));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleDiscard = async () => {
+    setDiscarding(true);
+    try {
+      await draftService.deleteDrafts();
+      toast.success("Draft discarded successfully");
+      onClose();
+    } catch (err) {
+      toast.error("Failed to discard draft: " + (err.message || "Unknown error"));
+    } finally {
+      setDiscarding(false);
+    }
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+      <div 
+        className="modal-content liquid-glass-card" 
+        style={{ maxWidth: '600px', width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1.5rem', boxShadow: 'var(--shadow-lg)' }} 
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+          <h3 className="modal-title" style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--foreground)' }}>Today's Teams Draft Batch</h3>
+          <button className="modal-close" onClick={onClose} style={{ border: 'none', background: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--muted-foreground)' }}>&times;</button>
+        </div>
+        
+        <div style={{ minHeight: '150px', maxHeight: '350px', overflowY: 'auto', marginBottom: '1rem', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--secondary)' }}>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '150px', color: 'var(--muted-foreground)' }}>
+              Loading draft...
+            </div>
+          ) : draft ? (
+            <div 
+              style={{ fontSize: '0.85rem', lineHeight: '1.6', color: 'var(--foreground)' }}
+              dangerouslySetInnerHTML={{ __html: draft.teamsMessage.replace(/<!--DRAFT_METADATA:(.*?)-->/, '') }} 
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '150px', color: 'var(--muted-foreground)', gap: '8px' }}>
+              <span>No open draft batch exists for today.</span>
+              <span style={{ fontSize: '0.75rem' }}>Newly created or assigned tasks will automatically accumulate here.</span>
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
+          <button 
+            type="button" 
+            className="btn btn-secondary" 
+            onClick={onClose} 
+            style={{ padding: '0.45rem 1rem', borderRadius: '8px', border: '1px solid var(--border)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, background: 'transparent', color: 'var(--text-secondary)' }}
+          >
+            Close
+          </button>
+          
+          {draft && (
+            <>
+              <button 
+                type="button" 
+                onClick={handleDiscard}
+                disabled={discarding || sending}
+                style={{ padding: '0.45rem 1rem', borderRadius: '8px', border: '1px solid #ef4444', color: '#ef4444', background: 'transparent', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                {discarding ? 'Discarding...' : 'Discard Draft'}
+              </button>
+              
+              <button 
+                type="button" 
+                onClick={handleSend}
+                disabled={discarding || sending}
+                style={{ backgroundColor: '#0010AE', color: '#ffffff', border: 'none', padding: '0.45rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                {sending ? 'Sending...' : 'Send to Teams'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ export default function TaskDetailPanel({
   newComment, setNewComment,
   progressValue, setProgressValue,
   progressNote, setProgressNote,
-  onStartTask, onTriggerPause, onTriggerFinish, onTriggerLog, onSendToTeams,
+  onStartTask, onTriggerPause, onTriggerFinish, onTriggerLog,
   onAddComment, onProgressUpdate,
   onOpenETA, onOpenTransfer,
   onResolveETA, onResolveTransfer,
@@ -35,7 +35,6 @@ export default function TaskDetailPanel({
   const [sessionJustification, setSessionJustification] = useState('');
   const [reviewComment,setReviewComment]=useState('');
   const [showManualLog, setShowManualLog] = useState(false);
-  const [sendingToTeams, setSendingToTeams] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -50,17 +49,7 @@ export default function TaskDetailPanel({
     }
   }, [task?.id, task?.type]);
 
-  const handleSendToTeams = async () => {
-    if (!onSendToTeams) return;
-    setSendingToTeams(true);
-    try {
-      await onSendToTeams(task);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSendingToTeams(false);
-    }
-  };
+
 
   if (!task) return null;
   const enteredHours = parseFloat(sessionHours) || 0;
@@ -185,29 +174,7 @@ export default function TaskDetailPanel({
                 </div>
               </div>
 
-              {/* Send to Teams button */}
-              {task.assignedTo && canLead && (
-                <div className="flex justify-end pt-1">
-                  <button
-                    type="button"
-                    onClick={handleSendToTeams}
-                    disabled={sendingToTeams}
-                    className="flex items-center gap-1.5 px-4 py-2 border border-blue-200 hover:border-blue-500 rounded-xl text-xs font-semibold bg-blue-50/10 hover:bg-blue-50/30 text-blue-600 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {sendingToTeams ? (
-                      <>
-                        <div className="animate-spin h-3.5 w-3.5 border-2 border-blue-600 border-t-transparent rounded-full" />
-                        Posting to Teams...
-                      </>
-                    ) : (
-                      <>
-                        <Send size={13} />
-                        Send to Teams
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
+
 
               {/* Action buttons — member actions */}
               {isMyTask && (

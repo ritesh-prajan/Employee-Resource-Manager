@@ -109,5 +109,43 @@ export const draftService = {
     const res = await api.post('/task-drafts/send');
     localStorage.removeItem(STORAGE_KEY);
     return res;
+  },
+
+  /** Append newly created or assigned tasks to today's active draft batch. */
+  appendTasks: async (newTasks, users) => {
+    if (!newTasks || newTasks.length === 0) return;
+
+    const newHtmlLines = newTasks.map(task => {
+      const assignedToId = task.assignedTo?.id || task.assignedTo;
+      const assignee = users.find(u => String(u.id) === String(assignedToId));
+      const assigneeName = assignee ? assignee.name : 'Unassigned';
+      
+      const taskNum = task.taskNumber || 'NEW';
+      
+      const d = new Date(task.etaDate);
+      const formattedDate = !isNaN(d.getTime()) 
+        ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : 'N/A';
+        
+      return `<b>${taskNum}:</b> ${task.name} | Assigned to: ${assigneeName} (ETA: ${formattedDate})`;
+    });
+    
+    const newTeamsMessage = newHtmlLines.join('<br/>');
+
+    let existingMessage = '';
+    try {
+      const res = await api.get('/task-drafts');
+      if (res && res.teamsMessage) {
+        existingMessage = res.teamsMessage.replace(/<!--DRAFT_METADATA:(.*?)-->/, '').trim();
+      }
+    } catch (err) {
+      console.warn('Failed to load drafts from backend:', err);
+    }
+
+    const combinedMessage = existingMessage 
+      ? `${existingMessage}<br/>${newTeamsMessage}`
+      : newTeamsMessage;
+
+    await api.postRaw('/task-drafts', combinedMessage, 'text/plain');
   }
 };

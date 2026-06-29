@@ -14,25 +14,14 @@ export default function CreateTaskModal({
   assignForm, setAssignForm,
   showAssignForm, setShowAssignForm,
   showBacklogDropdown, setShowBacklogDropdown,
-  onSendBatchToTeams, onDiscardDraft,
+  onDiscardDraft,
 }) {
   const toast = useToast();
   const [projectMembers, setProjectMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [isSummaryFocused, setIsSummaryFocused] = useState(false);
-  const [sendingBatchToTeams, setSendingBatchToTeams] = useState(false);
 
-  const handleBatchSendToTeams = async () => {
-    if (!onSendBatchToTeams) return;
-    setSendingBatchToTeams(true);
-    try {
-      await onSendBatchToTeams();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSendingBatchToTeams(false);
-    }
-  };
+
 
   // Fetch project members dynamically when selected project changes
   useEffect(() => {
@@ -444,24 +433,7 @@ export default function CreateTaskModal({
                 >
                   Close
                 </button>
-                <button
-                  type="button"
-                  onClick={handleBatchSendToTeams}
-                  disabled={stagedTasks.length === 0 || sendingBatchToTeams}
-                  className="flex items-center gap-1.5 px-5 py-2.5 border border-blue-200 hover:border-blue-500 rounded-xl text-xs font-semibold bg-blue-50/10 hover:bg-blue-50/30 text-blue-600 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {sendingBatchToTeams ? (
-                    <>
-                      <div className="animate-spin h-3.5 w-3.5 border-2 border-blue-600 border-t-transparent rounded-full" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Send size={13} />
-                      Send to Teams
-                    </>
-                  )}
-                </button>
+
                 <button
                   type="submit"
                   className="px-5 py-2.5 bg-[#0010AE] hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed border border-[#0010AE] hover:border-blue-800 text-white rounded-xl text-sm font-semibold transition cursor-pointer"

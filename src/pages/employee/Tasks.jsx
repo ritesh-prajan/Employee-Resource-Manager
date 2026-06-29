@@ -297,25 +297,10 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     }
 
     if(actionType==='pause'){
-      updateTask.mutate({
-        id:task.id,
-        data:{
-          ...task,
-          status:'Paused',
-          etaExceededComment:justification||task.etaExceededComment
-        }
-      })
-    } else if (actionType === 'log') {
-      const nextStatus = task.status === 'Open' ? 'In Progress' : task.status;
-      updateTask.mutate({
-        id:task.id,
-        data:{
-          ...task,
-          status: nextStatus,
-          etaExceededComment:justification||task.etaExceededComment
-        }
-      })
-    }else{
+    // employees can't PATCH tasks — timesheet entry captures the hours
+    } else if(actionType==='log'){
+      // same — no task update needed, timesheet entry is the record
+    } else {
       submitTaskReview.mutate({taskId:task.id,justification});
     }
 

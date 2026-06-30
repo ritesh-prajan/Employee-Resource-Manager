@@ -1,8 +1,28 @@
 import React from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, HelpCircle } from 'lucide-react';
 
-export default function ConfirmDialog({ isOpen, onClose, onConfirm, title, message }) {
+export default function ConfirmDialog({ isOpen, onClose, onConfirm, title, message, confirmText, variant = 'danger' }) {
   if (!isOpen) return null;
+
+  const isDanger = variant === 'danger';
+  const accentBg = isDanger 
+    ? 'linear-gradient(90deg, #ef4444, #f97316)' 
+    : 'linear-gradient(90deg, var(--primary), #3b82f6)';
+  
+  const iconColor = isDanger ? '#ef4444' : 'var(--primary)';
+  const iconBg = isDanger 
+    ? 'color-mix(in srgb, #ef4444 12%, transparent)' 
+    : 'color-mix(in srgb, var(--primary) 12%, transparent)';
+  const iconBorder = isDanger 
+    ? '1px solid color-mix(in srgb, #ef4444 25%, transparent)' 
+    : '1px solid color-mix(in srgb, var(--primary) 25%, transparent)';
+
+  const btnBg = isDanger 
+    ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
+    : 'linear-gradient(135deg, var(--primary), #2563eb)';
+  const btnShadow = isDanger 
+    ? '0 2px 10px -2px rgba(239,68,68,0.45)' 
+    : '0 2px 10px -2px rgba(37,99,235,0.45)';
 
   return (
     <div
@@ -30,8 +50,8 @@ export default function ConfirmDialog({ isOpen, onClose, onConfirm, title, messa
           animation: 'scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        {/* Red top accent bar */}
-        <div style={{ height: '4px', background: 'linear-gradient(90deg, #ef4444, #f97316)', width: '100%' }} />
+        {/* top accent bar */}
+        <div style={{ height: '4px', background: accentBg, width: '100%' }} />
 
         {/* Body */}
         <div style={{ padding: '1.75rem 1.75rem 1.5rem' }}>
@@ -40,11 +60,15 @@ export default function ConfirmDialog({ isOpen, onClose, onConfirm, title, messa
             <div style={{
               flexShrink: 0,
               width: 44, height: 44, borderRadius: '12px',
-              background: 'color-mix(in srgb, #ef4444 12%, transparent)',
-              border: '1px solid color-mix(in srgb, #ef4444 25%, transparent)',
+              background: iconBg,
+              border: iconBorder,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <AlertTriangle size={22} color="#ef4444" />
+              {isDanger ? (
+                <AlertTriangle size={22} color={iconColor} />
+              ) : (
+                <HelpCircle size={22} color={iconColor} />
+              )}
             </div>
             <div>
               <h3 style={{
@@ -62,7 +86,7 @@ export default function ConfirmDialog({ isOpen, onClose, onConfirm, title, messa
                 color: 'var(--muted-foreground)',
                 lineHeight: 1.55,
               }}>
-                {message || 'Are you sure you want to proceed? This action cannot be undone.'}
+                {message || 'Are you sure you want to proceed?'}
               </p>
             </div>
           </div>
@@ -100,18 +124,18 @@ export default function ConfirmDialog({ isOpen, onClose, onConfirm, title, messa
               padding: '0.6rem 1.35rem',
               borderRadius: '10px',
               border: 'none',
-              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+              background: btnBg,
               color: '#fff',
               fontSize: '0.85rem',
               fontWeight: 700,
               cursor: 'pointer',
-              boxShadow: '0 2px 10px -2px rgba(239,68,68,0.45)',
+              boxShadow: btnShadow,
               transition: 'opacity 0.15s, transform 0.12s',
             }}
             onMouseEnter={e => { e.currentTarget.style.opacity = '0.88'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
             onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
           >
-            Delete
+            {confirmText || (isDanger ? 'Delete' : 'Confirm')}
           </button>
         </div>
       </div>

@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Bell, Inbox, CheckCheck, Trash2, ChevronDown, X, CalendarX,
   Eye, EyeOff, ExternalLink, CheckSquare, Clock, Check, ShieldAlert,
-  Calendar, Video, Megaphone, MessageSquare, UserX, TrendingUp
+  Calendar, Video, Megaphone, MessageSquare, UserX, TrendingUp, Search
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import DataTable from '../components/ui/DataTable';
+import SearchableSelect from '../components/ui/SearchableSelect';
 import ETABreachPopup from '../components/alerts/ETABreachPopup';
 import DailyTaskPrompt, { shouldShowDailyPrompt } from '../components/alerts/DailyTaskPrompt';
 import TaskAssignedToast from '../components/alerts/TaskAssignedToast';
@@ -47,6 +48,7 @@ function resolveNavTarget(type, role) {
     case 'TASK_ASSIGNED':
     case 'TASK_UPDATED':
     case 'TASK_REJECTED':
+    case 'TASK_COMMENTED':
     case 'ETA_DECISION':
     case 'TRANSFER_DECISION':
     case 'BACKLOG_CLAIMED':
@@ -140,6 +142,9 @@ export default function Alerts() {
   const [filterEmployee, setFilterEmployee]   = useState('');
   const [filterTeam, setFilterTeam]           = useState('');
   const [filterProject, setFilterProject]     = useState('');
+  const [filterTask, setFilterTask]           = useState('');
+  const [filterSender, setFilterSender]       = useState('');
+  const [searchQuery, setSearchQuery]         = useState('');
   
   const role = currentUser?.role;
 
@@ -181,7 +186,7 @@ export default function Alerts() {
   }, [notifications, role, currentUser, seenToastIds, tasks]);
 
   // ── Regular notifications (non-overdue) ────────────────────────────────────
-  const mine = notifications.filter(n => n.recipientId === currentUser?.id);
+  const mine = notifications.filter(n => String(n.recipientId) === String(currentUser?.id));
   const unreadCount = mine.filter(n => !n.isRead).length;
 
   // ── Filter options built from etaBreaches ─────────────────────────────────
@@ -218,28 +223,84 @@ export default function Alerts() {
       .sort((a, b) => a.label.localeCompare(b.label))
   , [etaBreaches, projects]);
 
-  const hasActiveFilters = filterEmployee || filterTeam || filterProject;
-  const clearFilters = () => { setFilterEmployee(''); setFilterTeam(''); setFilterProject(''); };
+  // ── Global options for all tasks, projects, users ───────────────────────
+  const allProjectOptions = useMemo(() => 
+    projects.map(p => ({ value: p.id, label: p.name.split(' (')[0] }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  , [projects]);
+
+  const allTaskOptions = useMemo(() => 
+    tasks.map(t => ({ value: t.id, label: `${t.taskNumber || 'Task'}: ${t.name}` }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  , [tasks]);
+
+  const allUserOptions = useMemo(() => 
+    users.map(u => ({ value: u.id, label: u.name }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  , [users]);
+
+  const hasActiveFilters = searchQuery || filterEmployee || filterTeam || filterProject || filterTask || filterSender;
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterEmployee('');
+    setFilterTeam('');
+    setFilterProject('');
+    setFilterTask('');
+    setFilterSender('');
+  };
 
   // ── Apply ETA filters ─────────────────────────────────────────────────────
   const filteredBreaches = useMemo(() => {
     return etaBreaches.filter(t => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const nameMatch = t.name.toLowerCase().includes(q);
+        const idMatch = t.taskNumber?.toLowerCase().includes(q);
+        const assignee = users.find(u => u.id === t.assignedTo);
+        const assigneeMatch = assignee?.name.toLowerCase().includes(q);
+        if (!nameMatch && !idMatch && !assigneeMatch) return false;
+      }
       if (filterEmployee && t.assignedTo !== filterEmployee) return false;
       if (filterProject  && t.projectId  !== filterProject)  return false;
+      if (filterTask     && t.id         !== filterTask)     return false;
       if (filterTeam) {
         const team = teams.find(tm => tm.members.includes(t.assignedTo));
         if (!team || team.id !== filterTeam) return false;
       }
       return true;
     }).sort((a, b) => new Date(a.etaDate) - new Date(b.etaDate)); // oldest breach first
-  }, [etaBreaches, filterEmployee, filterTeam, filterProject, teams]);
+  }, [etaBreaches, searchQuery, filterEmployee, filterProject, filterTask, filterTeam, users]);
 
   // ── Regular notification feed (all/unread/system tabs) ───────────────────
-  const filteredNotifs = useMemo(() =>
-    mine
+  const filteredNotifs = useMemo(() => {
+    return mine
       .filter(n => matchesTab(n, tab))
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-  , [mine, tab]);
+      .filter(n => {
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase();
+          const titleMatch = n.title?.toLowerCase().includes(q);
+          const msgMatch = n.message?.toLowerCase().includes(q);
+          const senderMatch = n.senderName?.toLowerCase().includes(q);
+          if (!titleMatch && !msgMatch && !senderMatch) return false;
+        }
+        if (filterProject) {
+          if (n.entityType === 'TASK') {
+            const task = tasks.find(t => t.id === n.entityId);
+            if (!task || task.projectId !== filterProject) return false;
+          } else {
+            return false;
+          }
+        }
+        if (filterTask) {
+          if (n.entityType !== 'TASK' || n.entityId !== filterTask) return false;
+        }
+        if (filterSender && String(n.senderId) !== String(filterSender)) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, [mine, tab, searchQuery, filterProject, filterTask, filterSender, tasks]);
 
   const tabCount = (key) => {
     if (key === 'crossedEta') return etaBreaches.length;
@@ -249,7 +310,12 @@ export default function Alerts() {
   const navigate=useNavigate();
   const handleNavigate = useCallback((n) => {
     if (n && n.id && !isSystemGenerated(n.id)) markNotificationRead(n.id);
-    navigate(`/${resolveNavTarget(n?.type || 'overdue', role)}`);
+    const targetPath = `/${resolveNavTarget(n?.type || 'overdue', role)}`;
+    if (n?.entityType === 'TASK') {
+      navigate(targetPath, { state: { highlightTaskId: n.entityId } });
+    } else {
+      navigate(targetPath);
+    }
   }, [markNotificationRead, navigate, role]);
 
   const handleNavigateTask = useCallback((taskId) => {
@@ -504,189 +570,178 @@ export default function Alerts() {
   ], [projects, users, teams, handleNavigateTask]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
+    <div className="tasks-page-container">
+      <div className="tasks-toolbar-wrapper">
+        <div className="tasks-filter-card" style={{ width: '100%' }}>
+          <div className="tasks-filter-row" style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', width: '100%' }}>
+            <div className="flex items-center gap-2 flex-shrink-1 min-w-0" style={{ flexWrap: 'nowrap' }}>
+              <div className="tasks-search-box" style={{ width: '160px', flexShrink: 1 }}>
+                <Search size={14} className="tasks-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="tasks-search-input"
+                />
+              </div>
 
-      {/* ── Header card ── */}
-      <div className="card" style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '1.25rem 1.5rem', flexWrap: 'wrap', gap: '1rem',backgroundColor: 'var(--card)',borderRadius: '10px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: '10px',
-            backgroundColor: 'color-mix(in srgb, var(--primary) 12%, transparent)',
-            color: 'var(--primary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Bell size={20} />
-          </div>
-          <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
-              Alerts Center
-            </h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-              You have {unreadCount} unread system notification{unreadCount !== 1 ? 's' : ''}
-              {etaBreaches.length > 0 && (
-                <span style={{ color: 'var(--destructive)', marginLeft: '0.5rem', fontWeight: 600 }}>
-                  · {etaBreaches.length} ETA breach{etaBreaches.length !== 1 ? 'es' : ''}
-                </span>
+              <div className="flex items-center">
+                <SearchableSelect
+                  options={[{ value: '', label: 'All Projects' }, ...allProjectOptions]}
+                  value={filterProject}
+                  onChange={setFilterProject}
+                  placeholder="All Projects"
+                  style={{ width: '140px' }}
+                />
+              </div>
+
+              <div className="flex items-center">
+                <SearchableSelect
+                  options={[{ value: '', label: 'All Tasks' }, ...allTaskOptions]}
+                  value={filterTask}
+                  onChange={setFilterTask}
+                  placeholder="All Tasks"
+                  style={{ width: '130px' }}
+                />
+              </div>
+
+              {tab === 'crossedEta' ? (
+                <>
+                  <div className="flex items-center">
+                    <SearchableSelect
+                      options={[{ value: '', label: 'All Employees' }, ...employeeOptions]}
+                      value={filterEmployee}
+                      onChange={setFilterEmployee}
+                      placeholder="All Employees"
+                      style={{ width: '130px' }}
+                    />
+                  </div>
+                  {(role === 'Admin' || role === 'Team Lead' || role === 'Sub Lead') && (
+                    <div className="flex items-center">
+                      <SearchableSelect
+                        options={[{ value: '', label: 'All Teams' }, ...teamOptions]}
+                        value={filterTeam}
+                        onChange={setFilterTeam}
+                        placeholder="All Teams"
+                        style={{ width: '130px' }}
+                      />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center">
+                  <SearchableSelect
+                    options={[{ value: '', label: 'All Senders' }, ...allUserOptions]}
+                    value={filterSender}
+                    onChange={setFilterSender}
+                    placeholder="All Senders"
+                    style={{ width: '130px' }}
+                  />
+                </div>
               )}
-            </span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {unreadCount > 0 && (
-            <button onClick={handleMarkAllRead} style={{
-              fontSize: '0.75rem', padding: '0.45rem 0.9rem', borderRadius: '0.5rem',
-              border: '1px solid var(--border)', background: 'none',
-              color: 'var(--muted-foreground)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '0.35rem',
-            }}>
-              <CheckCheck size={13} /> Mark all read
-            </button>
-          )}
-          {mine.length > 0 && (
-            <button onClick={clearNotifications} style={{
-              fontSize: '0.75rem', padding: '0.45rem 0.9rem', borderRadius: '0.5rem',
-              border: '1px solid color-mix(in srgb, var(--destructive) 30%, transparent)',
-              backgroundColor: 'color-mix(in srgb, var(--destructive) 6%, transparent)',
-              color: 'var(--destructive)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '0.35rem',
-            }}>
-              <Trash2 size={13} /> Clear all
-            </button>
-          )}
-        </div>
-      </div>
 
-      {/* ── Tabs ── */}
-      <div style={{
-        display: 'flex', gap: '0.35rem',
-        borderBottom: '1px solid var(--border)',
-        paddingBottom: '2px', overflowX: 'auto',
-      }}>
-        {TABS.map(t => {
-          const count = tabCount(t.key);
-          const active = tab === t.key;
-          const isEta  = t.key === 'crossedEta';
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              style={{
-                padding: '0.6rem 1.1rem', background: 'none', border: 'none',
-                borderBottom: active
-                  ? `2px solid ${isEta ? 'var(--destructive)' : 'var(--primary)'}`
-                  : '2px solid transparent',
-                color: active
-                  ? (isEta ? 'var(--destructive)' : 'var(--primary)')
-                  : 'var(--muted-foreground)',
-                fontWeight: active ? 700 : 500, fontSize: '0.85rem',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                whiteSpace: 'nowrap', transition: 'all 0.2s',
-              }}
-            >
-              {isEta && <CalendarX size={13} />}
-              <span>{t.label}</span>
-              {count > 0 && (
-                <span style={{
-                  fontSize: '0.65rem', fontWeight: 700,
-                  backgroundColor: active
-                    ? (isEta
-                        ? 'color-mix(in srgb, var(--destructive) 12%, transparent)'
-                        : 'color-mix(in srgb, var(--primary) 12%, transparent)')
-                    : 'var(--secondary)',
-                  color: active
-                    ? (isEta ? 'var(--destructive)' : 'var(--primary)')
-                    : 'var(--muted-foreground)',
-                  padding: '1px 6px', borderRadius: '10px',
-                }}>
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── Crossed ETA: filters + task table ── */}
-      {tab === 'crossedEta' ? (
-        <>
-          {/* Filters */}
-          {etaBreaches.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <FilterSelect label="Employee" value={filterEmployee} onChange={setFilterEmployee} options={employeeOptions} />
-              <FilterSelect label="Team"     value={filterTeam}     onChange={setFilterTeam}     options={teamOptions} />
-              <FilterSelect label="Project"  value={filterProject}  onChange={setFilterProject}  options={projectOptions} />
               {hasActiveFilters && (
-                <button onClick={clearFilters} style={{
-                  display: 'flex', alignItems: 'center', gap: '0.3rem',
-                  padding: '0.38rem 0.7rem', borderRadius: '0.5rem',
-                  border: '1px solid var(--border)', background: 'none',
-                  color: 'var(--muted-foreground)', fontSize: '0.75rem', cursor: 'pointer',
-                }}>
+                <button
+                  onClick={clearFilters}
+                  className="btn btn-secondary"
+                  style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', height: '32px' }}
+                >
                   <X size={12} /> Clear
                 </button>
               )}
-              <span style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', marginLeft: 'auto' }}>
-                {filteredBreaches.length} of {etaBreaches.length} task{etaBreaches.length !== 1 ? 's' : ''}
-              </span>
             </div>
-          )}
 
-          {/* ETA breach table */}
-          {filteredBreaches.length === 0 ? (
+            <div className="flex items-center gap-2.5 flex-shrink-0" style={{ marginLeft: 'auto', flexWrap: 'nowrap' }}>
+              <div className="tasks-scope-toggle" style={{ flexWrap: 'nowrap' }}>
+                {TABS.map(t => {
+                  const count = tabCount(t.key);
+                  const active = tab === t.key;
+                  return (
+                    <button
+                      key={t.key}
+                      onClick={() => setTab(t.key)}
+                      className={`tasks-scope-btn ${active ? 'active' : 'inactive'}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      {t.label}
+                      {count > 0 && (
+                        <span style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          backgroundColor: active ? 'rgba(255,255,255,0.2)' : 'var(--secondary)',
+                          color: active ? '#white' : 'var(--muted-foreground)',
+                          padding: '1px 5px',
+                          borderRadius: '8px',
+                          marginLeft: '2px'
+                        }}>
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '2rem', marginTop: '1.25rem' }}>
+        {tab === 'crossedEta' ? (
+          <>
+            {filteredBreaches.length === 0 ? (
+              <div style={{
+                padding: '4rem 2rem', textAlign: 'center',
+                border: '1px dashed var(--border)', borderRadius: '0.875rem',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
+                backgroundColor: 'var(--card)'
+              }}>
+                <CalendarX size={32} style={{ opacity: 0.3, color: 'var(--destructive)' }} />
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
+                    {hasActiveFilters ? 'No results match your filters' : 'No ETA breaches'}
+                  </h4>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                    {hasActiveFilters ? 'Try adjusting or clearing the filters.' : 'All tasks are on track.'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <DataTable
+                Data={filteredBreaches}
+                columns={etaColumns}
+                onRowClick={(task) => handleNavigateTask(task.id)}
+              />
+            )}
+          </>
+        ) : (
+          filteredNotifs.length === 0 ? (
             <div style={{
               padding: '4rem 2rem', textAlign: 'center',
               border: '1px dashed var(--border)', borderRadius: '0.875rem',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
               backgroundColor: 'var(--card)'
             }}>
-              <CalendarX size={32} style={{ opacity: 0.3, color: 'var(--destructive)' }} />
+              <Inbox size={32} style={{ opacity: 0.3 }} />
               <div>
                 <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-                  {hasActiveFilters ? 'No results match your filters' : 'No ETA breaches'}
+                  No alerts here
                 </h4>
                 <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                  {hasActiveFilters ? 'Try adjusting or clearing the filters.' : 'All tasks are on track.'}
+                  {hasActiveFilters ? 'No alerts match your filter selections.' : 'There are no alerts matching this category.'}
                 </p>
               </div>
             </div>
           ) : (
             <DataTable
-              Data={filteredBreaches}
-              columns={etaColumns}
-              onRowClick={(task) => handleNavigateTask(task.id)}
+              Data={filteredNotifs}
+              columns={notifColumns}
+              onRowClick={(n) => handleNavigate(n)}
             />
-          )}
-        </>
-      ) : (
-        /* ── Regular notification feed ── */
-        filteredNotifs.length === 0 ? (
-          <div style={{
-            padding: '4rem 2rem', textAlign: 'center',
-            border: '1px dashed var(--border)', borderRadius: '0.875rem',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
-            backgroundColor: 'var(--card)'
-          }}>
-            <Inbox size={32} style={{ opacity: 0.3 }} />
-            <div>
-              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-                No alerts here
-              </h4>
-              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                There are no alerts matching this category.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <DataTable
-            Data={filteredNotifs}
-            columns={notifColumns}
-            onRowClick={(n) => handleNavigate(n)}
-          />
-        )
-      )}
+          )
+        )}
+      </div>
 
       {/* ── Modals & toasts ── */}
       <ETABreachPopup

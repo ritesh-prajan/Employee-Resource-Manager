@@ -91,7 +91,7 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
         setMeetingId(editingEntry.meetingId || '');
         if (editingEntry.workCategory === 'Meeting') setEntryType('meeting');
       } else {
-        const targetDate = date || defaultDate || new Date().toISOString().split('T')[0];
+        const targetDate = new Date().toISOString().split('T')[0];
         setDate(targetDate);
         setEntryType('work');
         setDuration('1');
@@ -185,10 +185,17 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
     const newStart = dayjs(`${date}T${startTime}:00`);
     const newEnd = dayjs(`${date}T${endTime}:00`);
 
+    if (newEnd.isBefore(newStart) || newEnd.isSame(newStart)) {
+      toast.warning('End time must be after start time.');
+      return;
+    }
+
     const hasOverlap = timeEntries.some(e => {
-      if (editingEntry && e.id === editingEntry.id) return false;
+      if (editingEntry && String(e.id) === String(editingEntry.id)) return false;
+      const entryUserId = e.userId || e.employeeId || e.employee?.id;
       return (
-        e.userId === currentUser?.id &&
+        entryUserId &&
+        String(entryUserId) === String(currentUser?.id) &&
         e.date === date &&
         dayjs(`${e.date}T${e.startTime}:00`).isBefore(newEnd) &&
         newStart.isBefore(dayjs(`${e.date}T${e.endTime}:00`))
@@ -272,6 +279,20 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               
+              {/* LOP Policy Warning Note */}
+              <div style={{
+                padding: '0.65rem 0.85rem',
+                backgroundColor: 'color-mix(in srgb, var(--destructive) 8%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--destructive) 25%, transparent)',
+                borderRadius: '8px',
+                fontSize: '0.72rem',
+                color: 'var(--destructive)',
+                fontWeight: 600,
+                lineHeight: '1.2'
+              }}>
+                ⚠️ Note: Failing to submit timesheets will result in Loss of Pay (LOP) for those days. New entries can only be logged for today.
+              </div>
+
               {/* Entry Type Toggle */}
               {/* Entry Type Toggle */}
               <div style={{ display: 'flex', gap: '8px', padding: '2px', background: 'var(--secondary)', borderRadius: '10px' }}>
@@ -318,7 +339,8 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
                     value={date}
                     onChange={e => setDate(e.target.value)}
                     required
-                    style={{ paddingLeft: '32px', width: '100%' }}
+                    disabled={true}
+                    style={{ paddingLeft: '32px', width: '100%', opacity: 0.7, cursor: 'not-allowed', backgroundColor: 'var(--secondary)' }}
                   />
                 </div>
               </div>

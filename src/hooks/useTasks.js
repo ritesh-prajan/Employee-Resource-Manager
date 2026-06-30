@@ -39,11 +39,10 @@ export function useTasks(options={}){
       const enrichedTasks=await Promise.all(
         taskdata.map(async(task)=>{
           try{
-            const [comments,progresslogs,tags,timesheets]=await Promise.all([
+            const [comments,progresslogs,tags]=await Promise.all([
               taskService.getComments(task.id),
               taskService.getProgress(task.id),
               taskService.getAllTags(),
-              api.get(`/timesheets?taskId=${task.id}`).catch(()=>[]),
             ]);
 
             let latestprogress=0;
@@ -55,10 +54,9 @@ export function useTasks(options={}){
             }
             const tasktags=(tags||[]).filter(tag=>tag.taskId===task.id);
 
-            const loggedHours=(timesheets||[]).reduce((sum,e)=>sum+(e.durationHours||0),0);
             return{
               ...task,
-              logged:parseFloat(loggedHours.toFixed(2)),
+              logged:parseFloat(task.loggedHours||0),
               progress:latestprogress,
               comments:comments||[],
               tags:tasktags,

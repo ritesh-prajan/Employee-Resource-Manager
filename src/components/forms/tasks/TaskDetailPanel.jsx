@@ -5,10 +5,13 @@ import {
   CheckCircle2, MessageSquare, Send, ChevronDown, ChevronUp,
   Trash2, Pencil, User,Check,X
 } from 'lucide-react';
+import dayjs from 'dayjs';
+import { useToast } from '../../../context/ToastContext';
 
 export default function TaskDetailPanel({
   show, onClose, task,
   currentUser, users, projects,
+  timeEntries = [],
   timerState, taskComments,
   isAdmin, isLeader,
   ledProjectIds, ledMemberIds,
@@ -27,20 +30,70 @@ export default function TaskDetailPanel({
   getStatusColor, checkTaskExceedsETA,
   getDatetimeInputValue,
 }) {
+  const toast = useToast();
   const [sessionDate, setSessionDate] = useState('');
   const [sessionStartTime, setSessionStartTime] = useState('09:00');
-  const [sessionHours, setSessionHours] = useState('');
+  const [sessionEndTime, setSessionEndTime] = useState('10:00');
+  const [sessionHours, setSessionHours] = useState('1');
   const [sessionCategory, setSessionCategory] = useState('Story');
   const [sessionDescription, setSessionDescription] = useState('');
   const [sessionJustification, setSessionJustification] = useState('');
   const [reviewComment,setReviewComment]=useState('');
   const [showManualLog, setShowManualLog] = useState(false);
 
+  const handleStartTimeChange = (val) => {
+    setSessionStartTime(val);
+    if (val && sessionHours) {
+      const match = val.match(/^(\d{2}):(\d{2})$/);
+      if (match) {
+        const durationMins = Math.round(parseFloat(sessionHours) * 60);
+        const totalMinutes = parseInt(match[1], 10) * 60 + parseInt(match[2], 10) + durationMins;
+        const endHrs = Math.floor(totalMinutes / 60) % 24;
+        const endMins = totalMinutes % 60;
+        setSessionEndTime(`${String(endHrs).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`);
+      }
+    }
+  };
+
+  const handleEndTimeChange = (val) => {
+    setSessionEndTime(val);
+    if (val && sessionStartTime) {
+      const startMatch = sessionStartTime.match(/^(\d{2}):(\d{2})$/);
+      const endMatch = val.match(/^(\d{2}):(\d{2})$/);
+      if (startMatch && endMatch) {
+        const startMins = parseInt(startMatch[1], 10) * 60 + parseInt(startMatch[2], 10);
+        let endMins = parseInt(endMatch[1], 10) * 60 + parseInt(endMatch[2], 10);
+        if (endMins < startMins) {
+          endMins += 24 * 60;
+        }
+        const diffHrs = (endMins - startMins) / 60;
+        setSessionHours(diffHrs.toFixed(2).replace(/\.?0+$/, ''));
+      }
+    }
+  };
+
+  const handleHoursChange = (val) => {
+    setSessionHours(val);
+    if (val && sessionStartTime) {
+      const match = sessionStartTime.match(/^(\d{2}):(\d{2})$/);
+      if (match) {
+        const durationMins = Math.round(parseFloat(val) * 60);
+        if (!isNaN(durationMins)) {
+          const totalMinutes = parseInt(match[1], 10) * 60 + parseInt(match[2], 10) + durationMins;
+          const endHrs = Math.floor(totalMinutes / 60) % 24;
+          const endMins = totalMinutes % 60;
+          setSessionEndTime(`${String(endHrs).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`);
+        }
+      }
+    }
+  };
+
   useEffect(() => {
     if (task) {
       setSessionDate(new Date().toISOString().split('T')[0]);
       setSessionStartTime('09:00');
-      setSessionHours('');
+      setSessionEndTime('10:00');
+      setSessionHours('1');
       setSessionCategory(task.type || 'Story');
       setSessionDescription('');
       setSessionJustification('');
@@ -342,21 +395,13 @@ export default function TaskDetailPanel({
                         <ChevronUp size={14}/> Unsubmit Review
                         </button>
                       </div>
-                  ):(
-                    task.status !== 'Completed' && task.status !== 'Pending Review' && (
-                      <div className="flex flex-col gap-2.5">
-                        <button
-                          type="button"
-                          className="w-full py-3.5 bg-[#0010AE] hover:bg-blue-800 text-white rounded-xl text-sm font-bold transition cursor-pointer flex items-center justify-center gap-2 border border-[#0010AE]"
-                          onClick={() => onStartTask(task)}
-                        >
-                          <Play size={16} /> Start Working
-                        </button>
-
+                    ) : (
+                      task.status !== 'Completed' && task.status !== 'Pending Review' && (
+                        <div className="flex flex-col gap-2.5">
                         {!showManualLog ? (
                           <button
                             type="button"
-                            className="w-full py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer bg-white flex items-center justify-center gap-1.5"
+                            className="w-full py-3.5 bg-[#0010AE] hover:bg-blue-800 text-white rounded-xl text-sm font-bold transition cursor-pointer flex items-center justify-center gap-2 border border-[#0010AE]"
                             onClick={() => {
                               setSessionDate(new Date().toISOString().split('T')[0]);
                               setSessionStartTime('09:00');
@@ -367,7 +412,7 @@ export default function TaskDetailPanel({
                               setShowManualLog(true);
                             }}
                           >
-                            <Clock size={14} /> Log Time Manually
+                            <Clock size={16} /> Log Time Manually
                           </button>
                         ) : (
                           <div className="flex flex-col gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 mt-2">
@@ -385,6 +430,19 @@ export default function TaskDetailPanel({
                               </button>
                             </div>
 
+                            {/* LOP Policy Warning Note */}
+                            <div style={{
+                              padding: '0.65rem 0.85rem',
+                              backgroundColor: 'color-mix(in srgb, var(--destructive) 8%, transparent)',
+                              border: '1px solid color-mix(in srgb, var(--destructive) 25%, transparent)',
+                              borderRadius: '8px',
+                              fontSize: '0.72rem',
+                              color: 'var(--destructive)',
+                              fontWeight: 600,
+                              lineHeight: '1.2'
+                            }}>
+                              ⚠️ Note: Failing to submit timesheets will result in Loss of Pay (LOP) for those days. New entries can only be logged for today.
+                            </div>
                             {/* Date & Start Time */}
                             <div className="grid grid-cols-2 gap-4">
                               <div className="flex flex-col gap-1">
@@ -393,7 +451,8 @@ export default function TaskDetailPanel({
                                   type="date"
                                   className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                                   value={sessionDate}
-                                  onChange={(e) => setSessionDate(e.target.value)}
+                                  disabled={true}
+                                  style={{ opacity: 0.7, cursor: 'not-allowed', backgroundColor: 'var(--secondary)' }}
                                 />
                               </div>
                               <div className="flex flex-col gap-1">
@@ -402,13 +461,22 @@ export default function TaskDetailPanel({
                                   type="time"
                                   className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                                   value={sessionStartTime}
-                                  onChange={(e) => setSessionStartTime(e.target.value)}
+                                  onChange={(e) => handleStartTimeChange(e.target.value)}
                                 />
                               </div>
                             </div>
 
-                            {/* Hours Worked & Category */}
+                            {/* End Time & Hours Worked */}
                             <div className="grid grid-cols-2 gap-4">
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">End Time</label>
+                                <input
+                                  type="time"
+                                  className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                                  value={sessionEndTime}
+                                  onChange={(e) => handleEndTimeChange(e.target.value)}
+                                />
+                              </div>
                               <div className="flex flex-col gap-1">
                                 <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Hours Worked</label>
                                 <input
@@ -418,24 +486,26 @@ export default function TaskDetailPanel({
                                   placeholder="e.g. 1.0"
                                   className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
                                   value={sessionHours}
-                                  onChange={(e) => setSessionHours(e.target.value)}
+                                  onChange={(e) => handleHoursChange(e.target.value)}
                                 />
                               </div>
-                              <div className="flex flex-col gap-1">
-                                <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Category</label>
-                                <select
-                                  className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800 cursor-pointer"
-                                  value={sessionCategory}
-                                  onChange={(e) => setSessionCategory(e.target.value)}
-                                >
-                                  <option value="Story">Story</option>
-                                  <option value="Bug">Bug</option>
-                                  <option value="Feature">Feature</option>
-                                  <option value="Review">Review</option>
-                                  <option value="R&D">R&D</option>
-                                  <option value="General">General</option>
-                                </select>
-                              </div>
+                            </div>
+
+                            {/* Category */}
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Category</label>
+                              <select
+                                className="w-full rounded-xl border border-slate-200 py-2 px-3 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800 cursor-pointer"
+                                value={sessionCategory}
+                                onChange={(e) => setSessionCategory(e.target.value)}
+                              >
+                                <option value="Story">Story</option>
+                                <option value="Bug">Bug</option>
+                                <option value="Feature">Feature</option>
+                                <option value="Review">Review</option>
+                                <option value="R&D">R&D</option>
+                                <option value="General">General</option>
+                              </select>
                             </div>
 
                             {/* Description */}
@@ -471,9 +541,34 @@ export default function TaskDetailPanel({
                               type="button"
                               className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 animate-pulse"
                               onClick={() => {
+                                const newStart = dayjs(`${sessionDate}T${sessionStartTime}:00`);
+                                const newEnd = dayjs(`${sessionDate}T${sessionEndTime}:00`);
+
+                                if (newEnd.isBefore(newStart) || newEnd.isSame(newStart)) {
+                                  toast.warning('End time must be after start time.');
+                                  return;
+                                }
+
+                                const hasOverlap = timeEntries.some(e => {
+                                  const entryUserId = e.userId || e.employeeId || e.employee?.id;
+                                  return (
+                                    entryUserId &&
+                                    String(entryUserId) === String(currentUser?.id) &&
+                                    e.date === sessionDate &&
+                                    dayjs(`${e.date}T${e.startTime}:00`).isBefore(newEnd) &&
+                                    newStart.isBefore(dayjs(`${e.date}T${e.endTime}:00`))
+                                  );
+                                });
+
+                                if (hasOverlap) {
+                                  toast.warning('This time slot overlaps with an existing time entry on this date.');
+                                  return;
+                                }
+
                                 const entryData = {
                                   date: sessionDate,
                                   startTime: sessionStartTime,
+                                  endTime: sessionEndTime,
                                   duration: enteredHours,
                                   workCategory: sessionCategory,
                                   description: sessionDescription,

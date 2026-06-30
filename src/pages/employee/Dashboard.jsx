@@ -148,7 +148,7 @@ export default function EmployeeDashboard() {
                 Missing Timesheet Logs Detected
               </span>
               <span style={{ fontSize: '0.72rem', color: '#b91c1c99', fontWeight: 500 }}>
-                You have {missingDays.length} working day{missingDays.length > 1 ? 's' : ''} without any timesheet logs in the last 2 weeks: {missingDays.join(', ')}. These will be auto-flagged as {adminSettings?.missingTimesheetPolicy || 'LOP'}.
+                You have {missingDays.length} missed timesheet day{missingDays.length > 1 ? 's' : ''} in the last 2 weeks. Note: Failing to submit timesheets will result in Loss of Pay (LOP) for those days.
               </span>
             </div>
           </div>

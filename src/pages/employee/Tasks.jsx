@@ -17,7 +17,7 @@ import SearchableSelect from '../../components/ui/SearchableSelect';
 import UserAvatar from '../../components/ui/UserAvatar';
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 export default function Tasks({ setCurrentPage, initialScope }) {
-  const { currentUser, projects, users, timerState, clockIn, clockOut, cancelTimer, teams, etaExtensions, taskTransfers, addManualEntry, claimBacklogTask, requestClaimBacklogTask, editTask } = useApp();
+  const { currentUser, projects, users, timerState, clockIn, clockOut, cancelTimer, teams, etaExtensions, taskTransfers, addManualEntry, claimBacklogTask, requestClaimBacklogTask, editTask, timeEntries } = useApp();
   const toast = useToast();
 
   const {
@@ -296,7 +296,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   };
 
   const executePauseOrFinish = async (task, actionType, entryData) => {
-    const { date, startTime, duration, workCategory, description, justification } = entryData;
+    const { date, startTime, endTime, duration, workCategory, description, justification } = entryData;
 
     if (timerState.isClockedIn && timerState.taskId === task.id) {
       cancelTimer();
@@ -311,6 +311,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           description: description || `Worked on task: ${task.name}`,
           date: date,
           startTime: startTime,
+          endTime: endTime,
           duration: duration,
           workCategory: workCategory,
           justification: justification
@@ -1045,6 +1046,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           currentUser={currentUser}
           users={users}
           projects={projects}
+          timeEntries={timeEntries}
           timerState={timerState}
           isAdmin={isAdmin}
           isLeader={isLeader}
@@ -1105,6 +1107,8 @@ export default function Tasks({ setCurrentPage, initialScope }) {
       }}
       title="Claim Task"
       message={`Are you sure you want to claim task "${pendingclaimtask?.name}"?`}
+      confirmText="Claim"
+      variant="primary"
       />
       <SubmitReviewModal
         show={showSubmitModal}

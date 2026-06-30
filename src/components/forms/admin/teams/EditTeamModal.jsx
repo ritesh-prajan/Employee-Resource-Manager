@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '../../../ui/Modal';
 import SearchableSelect from "../../../ui/SearchableSelect";
 import MultiSearchSelect from "../../../ui/MultiSelectDropdown";
 import { useToast } from '../../../../context/ToastContext';
+import { useMsTeamsGroups, useMsTeamsChannels } from '../../../../hooks/useMsTeams';
 
 /**
  * EditTeamModal
@@ -23,9 +24,24 @@ export default function EditTeamModal({ isOpen, onClose, team, users = [], onSav
     const [teamsChannelId, setTeamsChannelId] = useState('');
     const toast = useToast();
 
+  // Live Microsoft Teams dropdowns
+  const {
+    data: groupsData,
+    isLoading: groupsLoading,
+    isError: groupsError,
+    refetch: refetchGroups,
+  } = useMsTeamsGroups({ enabled: isOpen });
+
+  const {
+    data: channelsData,
+    isLoading: channelsLoading,
+    isError: channelsError,
+    refetch: refetchChannels,
+  } = useMsTeamsChannels(teamsGroupId, { enabled: isOpen && !!teamsGroupId });
+
   // Sync form fields whenever the team prop changes (different row clicked)
   useEffect(() => {
-  if (team) {
+    if (team) {
       setName(team.name || '');
       setLeadId(team.leadId || '');
       setSubLeadId(team.subLeadId || '');
@@ -36,9 +52,33 @@ export default function EditTeamModal({ isOpen, onClose, team, users = [], onSav
     }
   }, [team]);
 
+  // Build channel options with graceful fallback for unknown/legacy channel IDs
+  const channelOptions = useMemo(() => {
+    const fetched = (channelsData || []).map(c => ({ value: c.id, label: c.displayName }));
+
+    // If editing a team with a stored channelId that doesn't match any fetched option,
+    // show the raw ID as a fallback so the admin can see what was previously set
+    if (
+      teamsChannelId &&
+      !channelsLoading &&
+      !channelsError &&
+      fetched.length > 0 &&
+      !fetched.some(o => o.value === teamsChannelId)
+    ) {
+      fetched.unshift({
+        value: teamsChannelId,
+        label: `Unknown channel (raw ID: ${teamsChannelId.substring(0, 30)}${teamsChannelId.length > 30 ? '…' : ''})`,
+      });
+    }
+
+    return fetched;
+  }, [channelsData, channelsLoading, channelsError, teamsChannelId]);
+
   if (!isOpen || !team) return null;
 
   const userOptions = users.map(u => ({ value: u.id, label: `${u.name} (${u.role})` }));
+
+  const groupOptions = (groupsData || []).map(g => ({ value: g.id, label: g.displayName }));
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -46,8 +86,8 @@ export default function EditTeamModal({ isOpen, onClose, team, users = [], onSav
       toast.warning('Please fill in team name and select a lead.');
       return;
     }
-    if (!teamsGroupId.trim() || !teamsChannelId.trim()) {
-      toast.warning('Please fill in Teams Group ID and Channel ID.');
+    if (!teamsGroupId || !teamsChannelId) {
+      toast.warning('Please select a Microsoft Team and Channel.');
       return;
     }
     let finalMembers = members.includes(leadId) ? members : [leadId, ...members];
@@ -60,8 +100,8 @@ export default function EditTeamModal({ isOpen, onClose, team, users = [], onSav
         subLeadId: subLeadId || null,
         members: finalMembers,
         description: description.trim(),
-        teamsGroupId: teamsGroupId.trim(),
-        teamsChannelId: teamsChannelId.trim(),
+        teamsGroupId,
+        teamsChannelId,
       });
       onClose();
   };
@@ -126,30 +166,60 @@ export default function EditTeamModal({ isOpen, onClose, team, users = [], onSav
             style={{ resize: 'vertical' }}
           />
         </div>
+
+        {/* Microsoft Teams integration dropdowns */}
         <div style={{ display: 'flex', gap: '1rem' }}>
           <div className="form-group" style={{ flex: 1 }}>
-            <label className="form-label">TEAMS GROUP ID</label>
-            <input
-              type="text"
-              className="input-control"
-              placeholder="e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              value={teamsGroupId}
-              onChange={e => setTeamsGroupId(e.target.value)}
-              required
-            />
+            <label className="form-label">MICROSOFT TEAM</label>
+            {groupsError ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.05)', fontSize: '0.8rem', color: '#ef4444' }}>
+                <span>Couldn't load Microsoft Teams</span>
+                <button
+                  type="button"
+                  onClick={() => refetchGroups()}
+                  style={{ background: 'none', border: '1px solid #ef4444', borderRadius: '4px', color: '#ef4444', cursor: 'pointer', fontSize: '0.7rem', padding: '2px 8px', fontWeight: 600 }}
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <SearchableSelect
+                options={groupOptions}
+                value={teamsGroupId}
+                onChange={(val) => {
+                  setTeamsGroupId(val);
+                  setTeamsChannelId(''); // reset channel when group changes
+                }}
+                placeholder={groupsLoading ? 'Loading teams...' : 'Select a Microsoft Team...'}
+                disabled={groupsLoading}
+              />
+            )}
           </div>
           <div className="form-group" style={{ flex: 1 }}>
-            <label className="form-label">TEAMS CHANNEL ID</label>
-            <input
-              type="text"
-              className="input-control"
-              placeholder="e.g. 19:xxxxxx@thread.tacv2"
-              value={teamsChannelId}
-              onChange={e => setTeamsChannelId(e.target.value)}
-              required
-            />
+            <label className="form-label">CHANNEL</label>
+            {channelsError && teamsGroupId ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.3)', backgroundColor: 'rgba(239,68,68,0.05)', fontSize: '0.8rem', color: '#ef4444' }}>
+                <span>Couldn't load channels</span>
+                <button
+                  type="button"
+                  onClick={() => refetchChannels()}
+                  style={{ background: 'none', border: '1px solid #ef4444', borderRadius: '4px', color: '#ef4444', cursor: 'pointer', fontSize: '0.7rem', padding: '2px 8px', fontWeight: 600 }}
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <SearchableSelect
+                options={channelOptions}
+                value={teamsChannelId}
+                onChange={setTeamsChannelId}
+                placeholder={!teamsGroupId ? 'Select a team first' : channelsLoading ? 'Loading channels...' : 'Select a channel...'}
+                disabled={!teamsGroupId || channelsLoading}
+              />
+            )}
           </div>
         </div>
+
         <div className="form-group">
           <label className="form-label">TEAM MEMBERS</label>
           <MultiSearchSelect

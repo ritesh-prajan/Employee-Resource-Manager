@@ -71,7 +71,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileSidebarOp
       <div
       style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'center'}}
       >
-        <Bell size={10}/>
+        <Bell size={18}/>
         {unreadCount>0&&(
           <span className={isCollapsed?'sidebar-notif-dot':'sidebar-notif-badge'}>
             {isCollapsed?'':unreadCount}

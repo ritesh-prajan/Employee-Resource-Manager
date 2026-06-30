@@ -36,8 +36,10 @@ const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().
     return true;
   });
 
-  const rankings = users.map(user => {
-    const entries = filterByPeriod(timeEntries.filter(e => e.userId === user.id));
+  const rankings = users
+    .filter(user => user.role !== 'Admin' && user.role !== 'System-Admin')
+    .map(user => {
+      const entries = filterByPeriod(timeEntries.filter(e => e.userId === user.id));
     const totalHours = entries.reduce((sum, e) => sum + parseFloat(e.duration), 0);
 
     const projectBreakdown = projects.map(proj => ({

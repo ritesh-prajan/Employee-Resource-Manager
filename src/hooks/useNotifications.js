@@ -3,10 +3,22 @@
  * @description Domain hook managing list and status of system and workspace notifications.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export function useNotifications() {
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const stored = localStorage.getItem('erm_notifications');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      console.error("Failed to parse notifications from localStorage:", e);
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('erm_notifications', JSON.stringify(notifications));
+  }, [notifications]);
 
   const addNotification = useCallback((notif) => {
     setNotifications(prev => [notif, ...prev]);

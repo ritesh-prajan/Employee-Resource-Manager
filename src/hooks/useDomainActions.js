@@ -9,6 +9,7 @@ export function useDomainActions({
   users,
   rawUsers,
   auth,
+  notificationsHook,
   handleAddNotification,
   toast,
   mutateCreateProject,
@@ -38,10 +39,26 @@ export function useDomainActions({
         authorEmployeeId: auth.currentUser?.id,
         commentText
       });
+      
+      const task = tasks.find(t => t.id === taskId);
+      if (task && task.assignedTo && String(task.assignedTo) !== String(auth.currentUser?.id)) {
+        handleAddNotification({
+          id: `notif-${Date.now()}`,
+          recipientId: task.assignedTo,
+          type: "TASK_COMMENTED",
+          title: "New Comment on Task",
+          message: `${auth.currentUser?.name} commented on task ${task.taskNumber || 'Task'}: "${commentText.length > 50 ? commentText.substring(0, 50) + '...' : commentText}"`,
+          entityType: "TASK",
+          entityId: taskId,
+          channel: "IN_APP",
+          isRead: false,
+          createdAt: new Date().toISOString()
+        });
+      }
     } catch (err) {
       console.error('Failed to add task comment:', err);
     }
-  }, [mutateAddTaskComment, auth.currentUser?.id]);
+  }, [mutateAddTaskComment, auth.currentUser?.id, tasks, handleAddNotification, auth.currentUser?.name]);
 
   const createProject = useCallback(async (projData) => {
     try {

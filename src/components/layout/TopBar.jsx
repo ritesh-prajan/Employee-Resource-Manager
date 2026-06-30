@@ -5,10 +5,12 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 
 export default function TopBar({ title, isCollapsed, isMobileSidebarOpen, setIsMobileSidebarOpen }) {
-  const { theme, toggleTheme, currentUser, changeUser, users, notifications = [] } = useApp();
+  const { theme, toggleTheme, currentUser, changeUser, users, notifications = [], markNotificationRead, clearNotifications } = useApp();
   const { logout } = useAuth();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const menuRef = useRef(null);
+  const notificationsRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const currentpath = location.pathname;
@@ -89,6 +91,9 @@ export default function TopBar({ title, isCollapsed, isMobileSidebarOpen, setIsM
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setShowProfileMenu(false);
       }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -104,7 +109,7 @@ export default function TopBar({ title, isCollapsed, isMobileSidebarOpen, setIsM
     (u.workEmail && currentUser?.email && u.workEmail.toLowerCase() === currentUser.email.toLowerCase())
   ) || currentUser;
 
-  const userNotifications = notifications.filter(n => n.recipientId === currentUser.id);
+  const userNotifications = notifications.filter(n => String(n.recipientId) === String(currentUser.id));
   const unreadCount = userNotifications.filter(n => !n.isRead).length;
 
   const handleUserChange = (e) => {
@@ -287,25 +292,100 @@ export default function TopBar({ title, isCollapsed, isMobileSidebarOpen, setIsM
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 
         {/* Notification Bell */}
-        <button
-          onClick={() => navigate('/alerts')}
-          title="Alerts"
-          style={{ background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center', borderRadius: '8px', position: 'relative' }}
-        >
-          <Bell size={18} />
-          {unreadCount > 0 && (
-            <span style={{
-              position: 'absolute', top: '2px', right: '2px',
-              backgroundColor: '#ef4444', color: '#fff',
-              fontSize: '0.6rem', fontWeight: 700,
-              borderRadius: '10px', padding: '1px 4px',
-              border: '1.5px solid var(--background)',
-              lineHeight: 1, minWidth: '16px', textAlign: 'center'
+        <div style={{ position: 'relative' }} ref={notificationsRef}>
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            title="Notifications"
+            style={{ background: 'none', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', padding: '8px', display: 'flex', alignItems: 'center', borderRadius: '8px', position: 'relative' }}
+          >
+            <Bell size={18} />
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute', top: '2px', right: '2px',
+                backgroundColor: '#ef4444', color: '#fff',
+                fontSize: '0.6rem', fontWeight: 700,
+                borderRadius: '10px', padding: '1px 4px',
+                border: '1.5px solid var(--background)',
+                lineHeight: 1, minWidth: '16px', textAlign: 'center'
+              }}>
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {showNotifications && (
+            <div style={{
+              position: 'absolute', right: 0, top: '40px',
+              backgroundColor: 'var(--background)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              boxShadow: 'var(--shadow-lg)',
+              width: '320px', zIndex: 110, padding: '8px 0',
+              maxHeight: '400px', overflowY: 'auto'
             }}>
-              {unreadCount}
-            </span>
+              <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--foreground)' }}>Notifications</span>
+                {userNotifications.length > 0 && (
+                  <button 
+                    onClick={clearNotifications}
+                    style={{ border: 'none', background: 'none', color: 'var(--primary)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {userNotifications.length === 0 ? (
+                  <div style={{ padding: '16px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                    No notifications
+                  </div>
+                ) : (
+                  userNotifications.map(n => (
+                    <div
+                      key={n.id}
+                      onClick={() => {
+                        markNotificationRead(n.id);
+                        setShowNotifications(false);
+                        if (n.entityType === 'TASK') {
+                          const targetTasksPage = currentUser.role === 'Admin' ? '/admin/tasks' : (currentUser.role === 'Team Lead' || currentUser.role === 'Sub Lead') ? '/lead/tasks' : '/tasks';
+                          navigate(targetTasksPage, { state: { highlightTaskId: n.entityId } });
+                        } else {
+                          navigate('/alerts');
+                        }
+                      }}
+                      style={{
+                        padding: '10px 16px',
+                        borderBottom: '1px solid var(--border)',
+                        cursor: 'pointer',
+                        backgroundColor: n.isRead ? 'transparent' : 'color-mix(in oklch, var(--primary) 5%, transparent)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2px'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--accent)'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = n.isRead ? 'transparent' : 'color-mix(in oklch, var(--primary) 5%, transparent)'}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: n.isRead ? 600 : 700, fontSize: '0.78rem', color: 'var(--foreground)' }}>
+                          {n.title}
+                        </span>
+                        {!n.isRead && (
+                          <span style={{ width: '6px', height: '6px', backgroundColor: '#3b82f6', borderRadius: '50%' }} />
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)' }}>
+                        {n.message}
+                      </span>
+                      <span style={{ fontSize: '0.62rem', color: 'var(--muted-foreground)', marginTop: '2px', textAlign: 'right' }}>
+                        {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           )}
-        </button>
+        </div>
 
         {/* Profile dropdown */}
         <div style={{ position: 'relative' }} ref={menuRef}>

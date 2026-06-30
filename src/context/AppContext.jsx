@@ -312,6 +312,57 @@ export const AppProvider = ({ children }) => {
     return map;
   }, [taskComments]);
 
+  // Watch for new task comments to notify the owner
+  useEffect(() => {
+    if (!auth.currentUser || !tasks || tasks.length === 0) return;
+
+    try {
+      const storedNotified = localStorage.getItem('erm_notified_comments');
+      const notifiedCommentIds = storedNotified ? JSON.parse(storedNotified) : [];
+      const newNotifiedIds = [...notifiedCommentIds];
+      let hasNew = false;
+
+      tasks.forEach(task => {
+        // If the current user is the task owner (assignedTo)
+        if (task.assignedTo && String(task.assignedTo) === String(auth.currentUser.id)) {
+          if (task.comments && task.comments.length > 0) {
+            task.comments.forEach(comment => {
+              // And the comment was authored by someone else (not the current user)
+              const authorId = comment.userId || comment.author?.id;
+              if (authorId && String(authorId) !== String(auth.currentUser.id)) {
+                // And we haven't notified them about this comment yet
+                if (!notifiedCommentIds.includes(comment.id)) {
+                  newNotifiedIds.push(comment.id);
+                  hasNew = true;
+                  
+                  // Add notification!
+                  handleAddNotification({
+                    id: `notif-comment-${comment.id}-${Date.now()}`,
+                    recipientId: auth.currentUser.id,
+                    type: "TASK_COMMENTED",
+                    title: "New Comment on Your Task",
+                    message: `${comment.author?.name || 'Someone'} commented on task ${task.taskNumber || 'Task'}: "${comment.text || comment.commentText || ''}"`,
+                    entityType: "TASK",
+                    entityId: task.id,
+                    channel: "IN_APP",
+                    isRead: false,
+                    createdAt: comment.createdAt || comment.timestamp || new Date().toISOString()
+                  });
+                }
+              }
+            });
+          }
+        }
+      });
+
+      if (hasNew) {
+        localStorage.setItem('erm_notified_comments', JSON.stringify(newNotifiedIds));
+      }
+    } catch (e) {
+      console.error("Failed to check for new comment notifications:", e);
+    }
+  }, [tasks, auth.currentUser, handleAddNotification]);
+
   const domainActions = useDomainActions({
     tasks,
     projects,
@@ -319,6 +370,7 @@ export const AppProvider = ({ children }) => {
     users,
     rawUsers,
     auth,
+    notificationsHook,
     handleAddNotification,
     toast,
     mutateCreateProject,

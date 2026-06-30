@@ -48,7 +48,22 @@ export default function Tasks({ setCurrentPage, initialScope }) {
   const ledTeams = teams ? teams.filter(t => String(t.leadId) === String(currentUser.id) || String(t.subLeadId) === String(currentUser.id)) : [];
   const ledMemberIds = new Set(ledTeams.flatMap(t => t.members).map(mId => String(mId)));
   const ledTeamIds = ledTeams.map(t => t.id);
-  const ledProjectIds = projects ? projects.filter(p => (p.teams || []).some(tId => ledTeamIds.map(id => String(id)).includes(String(tId)))).map(p => p.id) : [];
+  const ledProjectIds = projects 
+    ? projects.filter(p => 
+        (p.members || []).some(mId => String(mId) === String(currentUser.id)) ||
+        (p.teams || []).some(tId => ledTeamIds.map(id => String(id)).includes(String(tId)))
+      ).map(p => p.id) 
+    : [];
+
+  const getLocalDateString = (dObjOrStr) => {
+    if (!dObjOrStr) return '';
+    const d = new Date(dObjOrStr);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
   
   const [scope, setScope] = useState(initialScope || (isLeader ? 'all' : 'my'));
   React.useEffect(() => { if (initialScope) setScope(initialScope); }, [initialScope]);
@@ -184,7 +199,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     // 2. Date overrun — etaDate deadline has passed and task is still open
     const completedStatuses = ['Completed', 'Pending Review'];
     const dateExceeded = task.etaDate &&
-      new Date(task.etaDate) < new Date() &&
+      getLocalDateString(task.etaDate) < getLocalDateString(new Date()) &&
       !completedStatuses.includes(task.status);
 
     return hoursExceeded || dateExceeded;
@@ -508,8 +523,8 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     if (selectedStatus && t.status !== selectedStatus) return false;
     if (selectedPriority && t.priority !== selectedPriority) return false;
     if (showExceededETA && !checkTaskExceedsETA(t)) return false;
-    if (startDateFilter && (!t.etaDate || new Date(t.etaDate) < new Date(startDateFilter + 'T00:00:00'))) return false;
-    if (endDateFilter && (!t.etaDate || new Date(t.etaDate) > new Date(endDateFilter + 'T23:59:59'))) return false;
+    if (startDateFilter && (!t.etaDate || getLocalDateString(t.etaDate) < startDateFilter)) return false;
+    if (endDateFilter && (!t.etaDate || getLocalDateString(t.etaDate) > endDateFilter)) return false;
     return true;
   });
 
@@ -619,9 +634,8 @@ export default function Tasks({ setCurrentPage, initialScope }) {
       cell: ({ getValue, row }) => {
         const val = getValue();
         if (!val) return <span className="text-xs text-slate-400">—</span>;
+        const isOverdue = val && getLocalDateString(val) < getLocalDateString(new Date()) && !['Completed', 'Pending Review'].includes(row.original.status);
         const due = new Date(val);
-        const now = new Date();
-        const isOverdue = due < now && !['Completed', 'Pending Review'].includes(row.original.status);
         const formatted = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         return (
           <div className="flex items-center gap-1">

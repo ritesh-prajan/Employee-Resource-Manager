@@ -259,8 +259,19 @@ export default function TaskDetailPanel({
                             ETA Limit Alert
                           </div>
                           <div>
-                            {task.etaDate&&new Date(task.etaDate)<new Date()&&(
-                              <>This task's ETA date({new Date(task.etaDate).toLocaleDateString()}) has aldready passed.</>
+                            {(() => {
+                              if (!task.etaDate) return false;
+                              const getLocalDateString = (dStr) => {
+                                const d = new Date(dStr);
+                                if (isNaN(d.getTime())) return '';
+                                const year = d.getFullYear();
+                                const month = String(d.getMonth() + 1).padStart(2, '0');
+                                const day = String(d.getDate()).padStart(2, '0');
+                                return `${year}-${month}-${day}`;
+                              };
+                              return getLocalDateString(task.etaDate) < getLocalDateString(new Date());
+                            })() && (
+                              <>This task's ETA date ({new Date(task.etaDate).toLocaleDateString()}) has already passed. </>
                             )}
                             {enteredHours>Math.max(0,task.eta-task.logged)&&(
                               <>Adding {enteredHours}h will bring the total logged time to {(task.logged+enteredHours).toFixed(2)}h, which exceeds the task's ETA of {task.eta}h</>

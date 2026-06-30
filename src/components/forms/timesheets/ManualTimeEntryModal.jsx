@@ -14,11 +14,65 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('09:00');
   const [duration, setDuration] = useState('1');
+  const [endTime, setEndTime] = useState('10:00');
   const [taskId, setTaskId] = useState('');
   const [description, setDescription] = useState('');
   const [taskStatus, setTaskStatus] = useState('In Progress');
   const [workCategory, setWorkCategory] = useState('Story');
   const [justification, setJustification] = useState('');
+
+  const getLocalDateString = (dObjOrStr) => {
+    if (!dObjOrStr) return '';
+    const d = new Date(dObjOrStr);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleStartTimeChange = (newStartVal) => {
+    setStartTime(newStartVal);
+    const startMatch = newStartVal.match(/^(\d{2}):(\d{2})$/);
+    const endMatch = endTime.match(/^(\d{2}):(\d{2})$/);
+    if (startMatch && endMatch) {
+      const startMins = parseInt(startMatch[1], 10) * 60 + parseInt(startMatch[2], 10);
+      let endMins = parseInt(endMatch[1], 10) * 60 + parseInt(endMatch[2], 10);
+      if (endMins < startMins) {
+        endMins += 24 * 60;
+      }
+      const diffHours = (endMins - startMins) / 60;
+      setDuration(diffHours.toString());
+    }
+  };
+
+  const handleEndTimeChange = (newEndVal) => {
+    setEndTime(newEndVal);
+    const startMatch = startTime.match(/^(\d{2}):(\d{2})$/);
+    const endMatch = newEndVal.match(/^(\d{2}):(\d{2})$/);
+    if (startMatch && endMatch) {
+      const startMins = parseInt(startMatch[1], 10) * 60 + parseInt(startMatch[2], 10);
+      let endMins = parseInt(endMatch[1], 10) * 60 + parseInt(endMatch[2], 10);
+      if (endMins < startMins) {
+        endMins += 24 * 60;
+      }
+      const diffHours = (endMins - startMins) / 60;
+      setDuration(diffHours.toString());
+    }
+  };
+
+  const handleDurationChange = (newDurationVal) => {
+    setDuration(newDurationVal);
+    const durNum = parseFloat(newDurationVal);
+    const startMatch = startTime.match(/^(\d{2}):(\d{2})$/);
+    if (!isNaN(durNum) && startMatch) {
+      const startMins = parseInt(startMatch[1], 10) * 60 + parseInt(startMatch[2], 10);
+      const endMinsTotal = startMins + Math.round(durNum * 60);
+      const endHrs = Math.floor(endMinsTotal / 60) % 24;
+      const endMins = endMinsTotal % 60;
+      setEndTime(`${String(endHrs).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`);
+    }
+  };
 
   // Auto-set the start time to the end of the previous task on date change or open
   useEffect(() => {
@@ -28,6 +82,7 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
         setEntryType(editingEntry.workCategory === 'Break' ? 'break' : 'work');
         setStartTime(editingEntry.startTime);
         setDuration(editingEntry.duration);
+        setEndTime(editingEntry.endTime);
         setTaskId(editingEntry.taskId);
         setDescription(editingEntry.description);
         setTaskStatus(editingEntry.taskStatus || 'In Progress');
@@ -35,7 +90,7 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
         setJustification(editingEntry.justification || '');
         setMeetingId(editingEntry.meetingId || '');
         if (editingEntry.workCategory === 'Meeting') setEntryType('meeting');
-        } else {
+      } else {
         const targetDate = date || defaultDate || new Date().toISOString().split('T')[0];
         setDate(targetDate);
         setEntryType('work');
@@ -50,11 +105,20 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
         const userEntriesOnDate = timeEntries.filter(
           e => e.userId === currentUser.id && e.date === targetDate
         );
+        let start = '09:00';
         if (userEntriesOnDate.length > 0) {
           const sorted = [...userEntriesOnDate].sort((a, b) => a.endTime.localeCompare(b.endTime));
-          setStartTime(sorted[sorted.length - 1].endTime);
+          start = sorted[sorted.length - 1].endTime;
+        }
+        setStartTime(start);
+        const match = start.match(/^(\d{2}):(\d{2})$/);
+        if (match) {
+          const totalMinutes = parseInt(match[1], 10) * 60 + parseInt(match[2], 10) + 60;
+          const endHrs = Math.floor(totalMinutes / 60) % 24;
+          const endMins = totalMinutes % 60;
+          setEndTime(`${String(endHrs).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`);
         } else {
-          setStartTime('09:00');
+          setEndTime('10:00');
         }
       }
     }
@@ -87,7 +151,7 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
   const isDateExceeded = !!(
     selectedTask &&
     selectedTask.etaDate &&
-    new Date(selectedTask.etaDate) < new Date() &&
+    getLocalDateString(selectedTask.etaDate) < getLocalDateString(new Date()) &&
     !completedStatuses.includes(selectedTask.status)
   );
 
@@ -119,7 +183,7 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
 
     // Overlap validation (entries must not overlap)
     const newStart = dayjs(`${date}T${startTime}:00`);
-    const newEnd = newStart.add(durationVal, 'hour');
+    const newEnd = dayjs(`${date}T${endTime}:00`);
 
     const hasOverlap = timeEntries.some(e => {
       if (editingEntry && e.id === editingEntry.id) return false;
@@ -136,14 +200,12 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
       return;
     }
 
-    const calculatedEndTime = newEnd.format('HH:mm');
-
     let entryData = {
       userId: currentUser?.id,
       employeeId: currentUser?.id,
       date,
       startTime,
-      endTime: calculatedEndTime,
+      endTime,
       duration: durationVal.toString(),
       description: entryType === 'break' ? (description || 'Break') : description,
       workCategory: entryType === 'break' ? 'Break' : workCategory,
@@ -245,23 +307,24 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
                 </button>
               </div>
 
-              {/* Date & Start Time */}
-              <div className="keep-inline-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Date</label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <Calendar size={14} style={{ position: 'absolute', left: '10px', color: 'var(--muted-foreground)' }} />
-                    <input
-                      type="date"
-                      className="form-input"
-                      value={date}
-                      onChange={e => setDate(e.target.value)}
-                      required
-                      style={{ paddingLeft: '32px', width: '100%' }}
-                    />
-                  </div>
+              {/* Date */}
+              <div className="form-group">
+                <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Date</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Calendar size={14} style={{ position: 'absolute', left: '10px', color: 'var(--muted-foreground)' }} />
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={date}
+                    onChange={e => setDate(e.target.value)}
+                    required
+                    style={{ paddingLeft: '32px', width: '100%' }}
+                  />
                 </div>
+              </div>
 
+              {/* Start Time & End Time */}
+              <div className="keep-inline-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="form-group">
                   <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Start Time</label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -270,7 +333,22 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
                       type="time"
                       className="form-input"
                       value={startTime}
-                      onChange={e => setStartTime(e.target.value)}
+                      onChange={e => handleStartTimeChange(e.target.value)}
+                      required
+                      style={{ paddingLeft: '32px', width: '100%' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>End Time</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Clock size={14} style={{ position: 'absolute', left: '10px', color: 'var(--muted-foreground)' }} />
+                    <input
+                      type="time"
+                      className="form-input"
+                      value={endTime}
+                      onChange={e => handleEndTimeChange(e.target.value)}
                       required
                       style={{ paddingLeft: '32px', width: '100%' }}
                     />
@@ -288,7 +366,7 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
                   max="24"
                   className="form-input"
                   value={duration}
-                  onChange={e => setDuration(e.target.value)}
+                  onChange={e => handleDurationChange(e.target.value)}
                   required
                   style={{ width: '100%' }}
                 />

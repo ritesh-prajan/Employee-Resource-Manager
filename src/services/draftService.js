@@ -142,16 +142,26 @@ export const draftService = {
     
     const newTeamsMessage = newHtmlLines.join('<br/>');
 
-    // Fetch existing draft to get current message and team IDs
+    // Fetch existing draft to get current message, team IDs, and metadata
     let existingMessage = '';
     let existingGroupId = '';
     let existingChannelId = '';
+    let existingMetadata = { tasks: [], projectId: '' };
     try {
       const res = await api.get('/task-drafts');
       if (res && res.teamsMessage) {
         existingMessage = res.teamsMessage.replace(/<!--DRAFT_METADATA:(.*?)-->/, '').trim();
         existingGroupId = res.teamsGroupId || '';
         existingChannelId = res.teamsChannelId || '';
+
+        const match = res.teamsMessage.match(/<!--DRAFT_METADATA:(.*?)-->/);
+        if (match && match[1]) {
+          try {
+            existingMetadata = JSON.parse(match[1]);
+          } catch (e) {
+            console.error('Failed to parse metadata from backend teamsMessage:', e);
+          }
+        }
       }
     } catch (err) {
       console.warn('Failed to load drafts from backend:', err);
@@ -161,14 +171,32 @@ export const draftService = {
       ? `${existingMessage}<br/>${newTeamsMessage}`
       : newTeamsMessage;
 
+    // Normalize new tasks to match metadata expectations (e.g. assignedTo should be ID string/number)
+    const normalizedNewTasks = newTasks.map(task => {
+      const assignedToId = task.assignedTo?.id || task.assignedTo;
+      return {
+        ...task,
+        assignedTo: assignedToId
+      };
+    });
+
+    const updatedTasks = [...(existingMetadata.tasks || []), ...normalizedNewTasks];
+    const finalProjectId = existingMetadata.projectId || (newTasks[0]?.projectId || '');
+    const updatedMetadata = { tasks: updatedTasks, projectId: finalProjectId };
+
+    const rawHtml = `${combinedMessage}<!--DRAFT_METADATA:${JSON.stringify(updatedMetadata)}-->`;
+
     // New values win over existing stored ones; fall back to existing if not provided
     const finalGroupId = teamsGroupId || existingGroupId;
     const finalChannelId = teamsChannelId || existingChannelId;
 
     await api.post('/task-drafts', {
-      teamsMessage: combinedMessage,
+      teamsMessage: rawHtml,
       teamsGroupId: finalGroupId,
       teamsChannelId: finalChannelId,
     });
+
+    // Always keep localStorage updated in sync with backend
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedMetadata));
   }
 };

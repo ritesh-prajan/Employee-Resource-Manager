@@ -111,6 +111,10 @@ export default function CreateTaskModal({
 
   const handleProjectChange = (val) => {
     setTaskData(prev => ({ ...prev, projectId: val }));
+    if (stagedTasks.length > 0) {
+      setStagedTasks([]);
+      toast.info("Staged tasks cleared because the project was changed.");
+    }
   };
 
   const handleAssigneeChange = (val) => {
@@ -145,7 +149,12 @@ export default function CreateTaskModal({
         isNew: false,
         backlogTaskId: backlogTask.id,
         name: `${backlogTask.taskNumber}: ${backlogTask.name}`,
-        assignedTo: assignForm.assignedTo
+        assignedTo: assignForm.assignedTo,
+        eta: parseFloat(assignForm.eta) || backlogTask.eta || 8,
+        type: assignForm.type || backlogTask.type || 'Story',
+        priority: assignForm.priority || backlogTask.priority || 'Medium',
+        etaDate: assignForm.etaDate || backlogTask.etaDate || '',
+        bugNumber: assignForm.bugNumber || backlogTask.bugNumber || ''
       }]);
     } else {
       if (!assignForm.taskNumber?.trim()) { toast.warning("Please enter a Task Number."); return; }
@@ -165,7 +174,7 @@ export default function CreateTaskModal({
       }]);
     }
 
-    setAssignForm(prev => ({ ...prev, name: '', backlogTaskId: '', eta: '8', assignedTo: '', taskNumber: generateNextTaskNumber(), etaDate: '', bugNumber: '' }));
+    setAssignForm(prev => ({ ...prev, name: '', backlogTaskId: '', eta: '8', assignedTo: '', taskNumber: generateNextTaskNumber(), etaDate: '', bugNumber: '', type: 'Story', priority: 'Medium' }));
     setShowBacklogDropdown(false);
     setShowAssignForm(false);
   };
@@ -283,7 +292,7 @@ export default function CreateTaskModal({
                           <div className="flex flex-col gap-0.5">
                             <span className="text-sm font-semibold text-slate-800">{staged.name}</span>
                             <span className="text-xs text-slate-500">
-                              assigned to <strong className="text-slate-700 font-medium">{assignee?.name || 'Unassigned'}</strong> {staged.isNew ? `· ${staged.eta} hrs · ${staged.type} · ${staged.priority} Priority` : '· from backlog'}
+                              assigned to <strong className="text-slate-700 font-medium">{assignee?.name || 'Unassigned'}</strong> · {staged.eta} hrs · {staged.type} · {staged.priority} Priority {!staged.isNew && '(from backlog)'}
                             </span>
                           </div>
                           <button
@@ -360,79 +369,76 @@ export default function CreateTaskModal({
                     </div>
                   </div>
 
-                  {!assignForm.backlogTaskId && (
-                    <>
+                  <div className="form-group">
+                    <label className="mb-1 block font-semibold text-sm text-slate-700">Task Number (ID)</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800 disabled:bg-slate-100 disabled:text-slate-500"
+                      placeholder="e.g. TSK-100"
+                      value={assignForm.taskNumber || ''}
+                      onChange={(e) => setAssignForm(prev => ({ ...prev, taskNumber: e.target.value }))}
+                      disabled={!!assignForm.backlogTaskId}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="form-group">
+                      <label className="mb-1 block font-semibold text-sm text-slate-700">Estimate (hrs)</label>
+                      <input
+                        type="number"
+                        className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                        min="1"
+                        value={assignForm.eta}
+                        onChange={(e) => setAssignForm(prev => ({ ...prev, eta: e.target.value }))}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="mb-1 block font-semibold text-sm text-slate-700">Type</label>
+                      <select
+                        className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                        value={assignForm.type}
+                        onChange={(e) => setAssignForm(prev => ({ ...prev, type: e.target.value }))}
+                      >
+                        {['Story', 'Bug', 'Task', 'Spike', 'Epic'].map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="mb-1 block font-semibold text-sm text-slate-700">Priority</label>
+                      <select
+                        className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
+                        value={assignForm.priority}
+                        onChange={(e) => setAssignForm(prev => ({ ...prev, priority: e.target.value }))}
+                      >
+                        {['Low', 'Medium', 'High', 'Critical'].map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="form-group">
+                      <label className="mb-1 block font-semibold text-sm text-slate-700">ETA Date</label>
+                      <input
+                        type="date"
+                        className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
+                        value={assignForm.etaDate || ''}
+                        onChange={(e) => setAssignForm(prev => ({ ...prev, etaDate: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    {assignForm.type === 'Bug' && (
                       <div className="form-group">
-                        <label className="mb-1 block font-semibold text-sm text-slate-700">Task Number (ID)</label>
+                        <label className="mb-1 block font-semibold text-sm text-slate-700">Bug Number</label>
                         <input
                           type="text"
                           className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
-                          placeholder="e.g. TSK-100"
-                          value={assignForm.taskNumber || ''}
-                          onChange={(e) => setAssignForm(prev => ({ ...prev, taskNumber: e.target.value }))}
+                          placeholder="e.g. BUG-404"
+                          value={assignForm.bugNumber || ''}
+                          onChange={(e) => setAssignForm(prev => ({ ...prev, bugNumber: e.target.value }))}
                           required
                         />
                       </div>
-
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="form-group">
-                          <label className="mb-1 block font-semibold text-sm text-slate-700">Estimate (hrs)</label>
-                          <input
-                            type="number"
-                            className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
-                            min="1"
-                            value={assignForm.eta}
-                            onChange={(e) => setAssignForm(prev => ({ ...prev, eta: e.target.value }))}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="mb-1 block font-semibold text-sm text-slate-700">Type</label>
-                          <select
-                            className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
-                            value={assignForm.type}
-                            onChange={(e) => setAssignForm(prev => ({ ...prev, type: e.target.value }))}
-                          >
-                            {['Story', 'Bug', 'Task', 'Spike', 'Epic'].map(t => <option key={t} value={t}>{t}</option>)}
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label className="mb-1 block font-semibold text-sm text-slate-700">Priority</label>
-                          <select
-                            className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-[#F0F2F5] text-slate-800 cursor-pointer"
-                            value={assignForm.priority}
-                            onChange={(e) => setAssignForm(prev => ({ ...prev, priority: e.target.value }))}
-                          >
-                            {['Low', 'Medium', 'High', 'Critical'].map(p => <option key={p} value={p}>{p}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="form-group">
-                          <label className="mb-1 block font-semibold text-sm text-slate-700">ETA Date</label>
-                          <input
-                            type="date"
-                            className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
-                            value={assignForm.etaDate || ''}
-                            onChange={(e) => setAssignForm(prev => ({ ...prev, etaDate: e.target.value }))}
-                            required
-                          />
-                        </div>
-                        {assignForm.type === 'Bug' && (
-                          <div className="form-group">
-                            <label className="mb-1 block font-semibold text-sm text-slate-700">Bug Number</label>
-                            <input
-                              type="text"
-                              className="w-full rounded-xl border border-slate-200 py-2.5 px-3.5 outline-none focus:border-blue-500 transition text-sm bg-white text-slate-800"
-                              placeholder="e.g. BUG-404"
-                              value={assignForm.bugNumber || ''}
-                              onChange={(e) => setAssignForm(prev => ({ ...prev, bugNumber: e.target.value }))}
-                              required
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
+                    )}
+                  </div>
 
                   <div className="form-group">
                     <label className="mb-1 block font-semibold text-sm text-slate-700">

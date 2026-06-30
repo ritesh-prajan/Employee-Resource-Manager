@@ -264,7 +264,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
     const taskObj = tasks.find(t => t.id === taskId);
     if (!taskObj) return;
     const updated = { ...taskObj };
-    if (newEtaDate !== undefined) updated.etaDate = newEtaDate ? new Date(newEtaDate).toISOString() : null;
+    if (newEtaDate !== undefined) updated.etaDate = newEtaDate ? getLocalDateString(newEtaDate) : null;
     if (newEtaHours !== undefined) updated.eta = parseFloat(newEtaHours) || 0;
     updateTask.mutate({ id: taskId, data: updated });
   };
@@ -455,7 +455,19 @@ export default function Tasks({ setCurrentPage, initialScope }) {
         } else {
           const backlogTask = tasks.find(t => t.id === staged.backlogTaskId);
           if (backlogTask) {
-            const res = await updateTask.mutateAsync({ id: staged.backlogTaskId, data: { ...backlogTask, assignedTo: staged.assignedTo, status: 'Open' } });
+            const res = await updateTask.mutateAsync({
+              id: staged.backlogTaskId,
+              data: {
+                ...backlogTask,
+                assignedTo: staged.assignedTo,
+                status: 'Open',
+                eta: parseFloat(staged.eta) || backlogTask.eta || 8,
+                type: staged.type || backlogTask.type || 'Story',
+                priority: staged.priority || backlogTask.priority || 'Medium',
+                etaDate: staged.etaDate ? staged.etaDate : (backlogTask.etaDate || null),
+                bugNumber: staged.bugNumber ? staged.bugNumber : (backlogTask.bugNumber || null)
+              }
+            });
             createdTasks.push(res);
           }
         }

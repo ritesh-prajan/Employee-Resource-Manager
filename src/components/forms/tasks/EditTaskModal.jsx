@@ -115,7 +115,7 @@ export default function EditTaskModal({ show, onClose, onSubmit, editingTask, se
                     setEtaDateInput(raw);
                     setEditingTask(prev => ({
                       ...prev,
-                      etaDate: raw ? new Date(raw).toISOString() : null,
+                      etaDate: raw ? raw.split('T')[0] : null,
                     }));
                   }}
                 />

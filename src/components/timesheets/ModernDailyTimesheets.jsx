@@ -323,10 +323,35 @@ export default function Timesheets() {
       </div>
     );
   };
+// Compute today's logged hours for current employee
+  const todayStr = moment().format("YYYY-MM-DD");
+  const todayEntries = timeEntries.filter(e => e.userId === currentUser?.id && e.date === todayStr);
+  const todayLoggedHours = todayEntries.reduce((sum, e) => sum + (parseFloat(e.duration) || 0), 0);
+  const showUnderLogWarning = isEmployee && todayLoggedHours < 7;
 
   return (
     <div className="flex flex-col gap-4 w-full">
 
+      {/* ── Under-7h Warning Banner ── */}
+      {showUnderLogWarning && (
+        <div style={{
+          display: 'flex', gap: '12px', padding: '14px 16px',
+          background: 'rgba(234, 179, 8, 0.08)', border: '1px solid rgba(234, 179, 8, 0.35)',
+          borderRadius: '12px', color: '#92400e'
+        }}>
+          <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#d97706' }} />
+          <div style={{ fontSize: '0.8rem', lineHeight: '1.6' }}>
+            <span style={{ fontWeight: 700, display: 'block', marginBottom: '2px' }}>
+              You've only logged {todayLoggedHours.toFixed(1)}h today — minimum 7h required.
+            </span>
+            Make sure to log all your activities:
+            <span style={{ fontWeight: 600 }}> tasks</span>,
+            <span style={{ fontWeight: 600 }}> meetings</span>, and
+            <span style={{ fontWeight: 600 }}> breaks</span> must all be recorded.
+            Use <em>Add Time Log</em> above to fill in any gaps.
+          </div>
+        </div>
+      )}
       {/* ── Filter Bar ── */}
       <div className="rounded-2xl border p-4 shadow-sm flex flex-wrap items-center gap-3"
         style={{ background: "var(--card)", borderColor: "var(--border)" }}>

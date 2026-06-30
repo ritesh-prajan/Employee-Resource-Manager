@@ -87,7 +87,7 @@ function mapcategory(category){
   return map[category]||(category||'Story');
 }
 
-function tobackendcategory(cat){
+  function tobackendcategory(cat){
   const map={
     Story:'STORY',
     Bug:'BUG',
@@ -96,8 +96,11 @@ function tobackendcategory(cat){
     Meeting:'MEETING',
     Admin:'ADMIN',
     Break:'BREAK',
+    'R&D':'R&D',
+    Review:'REVIEW',
+    General:'GENERAL',
   }
-  return map[cat] ||'STORY';
+  return map[cat] || 'STORY';
 }
 
 export const timesheetService={

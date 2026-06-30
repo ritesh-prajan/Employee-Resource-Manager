@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Clock, AlertTriangle, Coffee, Briefcase, Calendar } from 'lucide-react';
+import { Clock, AlertTriangle, Coffee, Briefcase, Calendar, Users } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { useToast } from '../../../context/ToastContext';
 import SearchableSelect from '../../ui/SearchableSelect';
 import dayjs from 'dayjs';
 
 export default function ManualTimeEntryModal({ show, onClose, defaultDate, editingEntry }) {
-  const { currentUser, tasks, projects, addManualEntry, editTimeEntry, timeEntries } = useApp();
+  const { currentUser, tasks, projects, addManualEntry, editTimeEntry, timeEntries, meetings } = useApp();
   const toast = useToast();
-
-  const [entryType, setEntryType] = useState('work'); // 'work' or 'break'
+  const [entryType, setEntryType] = useState('work'); // 'work', 'break', or 'meeting'
+  const [meetingId, setMeetingId] = useState('');
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('09:00');
   const [duration, setDuration] = useState('1');
@@ -33,7 +33,9 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
         setTaskStatus(editingEntry.taskStatus || 'In Progress');
         setWorkCategory(editingEntry.workCategory || 'Story');
         setJustification(editingEntry.justification || '');
-      } else {
+        setMeetingId(editingEntry.meetingId || '');
+        if (editingEntry.workCategory === 'Meeting') setEntryType('meeting');
+        } else {
         const targetDate = date || defaultDate || new Date().toISOString().split('T')[0];
         setDate(targetDate);
         setEntryType('work');
@@ -43,7 +45,7 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
         setTaskStatus('In Progress');
         setWorkCategory('Story');
         setJustification('');
-
+        setMeetingId('');
         // Find last task on this date to set default start time
         const userEntriesOnDate = timeEntries.filter(
           e => e.userId === currentUser.id && e.date === targetDate
@@ -91,11 +93,16 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
 
   const isEtaExceeded = isHoursExceeded || isDateExceeded;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+      e.preventDefault();
 
     if (entryType === 'work' && !taskId) {
       toast.warning('Please select a task.');
+      return;
+    }
+
+    if (entryType === 'meeting' && !meetingId) {
+      toast.warning('Please select a meeting.');
       return;
     }
 
@@ -132,6 +139,8 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
     const calculatedEndTime = newEnd.format('HH:mm');
 
     let entryData = {
+      userId: currentUser?.id,
+      employeeId: currentUser?.id,
       date,
       startTime,
       endTime: calculatedEndTime,
@@ -145,17 +154,29 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
       entryData.taskId = taskId;
       entryData.projectId = selectedTask?.projectId || '';
       entryData.taskStatus = taskStatus;
+      entryData.workCategory = workCategory;
+    } else if (entryType === 'meeting') {
+      entryData.taskId = null;
+      entryData.projectId = null;
+      entryData.meetingId = meetingId;
+      entryData.workCategory = 'Meeting';
     } else {
       entryData.taskId = 'Break';
       entryData.projectId = 'Break';
+      entryData.workCategory = 'Break';
     }
 
-    if (editingEntry) {
-      editTimeEntry(editingEntry.id, entryData);
-    } else {
-      addManualEntry(entryData);
+    try {
+      if (editingEntry) {
+        await editTimeEntry(editingEntry.id, entryData);
+      } else {
+        await addManualEntry(entryData);
+      }
+      onClose();
+    } catch (err) {
+      console.error('Failed to save time entry:', err);
+      toast.error(err?.message || 'Failed to save entry. Check console for details.');
     }
-    onClose();
   };
 
   return (
@@ -190,23 +211,34 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               
               {/* Entry Type Toggle */}
+              {/* Entry Type Toggle */}
               <div style={{ display: 'flex', gap: '8px', padding: '2px', background: 'var(--secondary)', borderRadius: '10px' }}>
                 <button
                   type="button"
                   onClick={() => setEntryType('work')}
                   className="flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
-                  style={entryType === 'work' 
-                    ? { background: 'var(--card)', color: 'var(--foreground)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' } 
+                  style={entryType === 'work'
+                    ? { background: 'var(--card)', color: 'var(--foreground)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
                     : { color: 'var(--muted-foreground)', background: 'transparent' }}
                 >
                   <Briefcase size={13} /> Work Log
                 </button>
                 <button
                   type="button"
+                  onClick={() => setEntryType('meeting')}
+                  className="flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                  style={entryType === 'meeting'
+                    ? { background: 'var(--card)', color: 'var(--foreground)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                    : { color: 'var(--muted-foreground)', background: 'transparent' }}
+                >
+                  <Users size={13} /> Meeting
+                </button>
+                <button
+                  type="button"
                   onClick={() => setEntryType('break')}
                   className="flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
-                  style={entryType === 'break' 
-                    ? { background: 'var(--card)', color: 'var(--foreground)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' } 
+                  style={entryType === 'break'
+                    ? { background: 'var(--card)', color: 'var(--foreground)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
                     : { color: 'var(--muted-foreground)', background: 'transparent' }}
                 >
                   <Coffee size={13} /> Add Break
@@ -261,7 +293,40 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
                   style={{ width: '100%' }}
                 />
               </div>
-
+              {/* Meeting Selection */}
+              {entryType === 'meeting' && (() => {
+                const myMeetings = (meetings || []).filter(m =>
+                  m.attendees?.some(a => (a.id ?? a) === currentUser?.id)
+                );
+                return (
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                      Select Meeting <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    {myMeetings.length === 0 ? (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', padding: '8px 12px', background: 'var(--secondary)', borderRadius: '8px' }}>
+                        No meetings found where you are an attendee.
+                      </div>
+                    ) : (
+                      <select
+                        className="form-input"
+                        value={meetingId}
+                        onChange={e => setMeetingId(e.target.value)}
+                        style={{ width: '100%' }}
+                        required
+                      >
+                        <option value="">— Select a meeting —</option>
+                        {myMeetings.map(m => (
+                          <option key={m.id} value={m.id}>
+                            {m.title} {m.date ? `(${m.date})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                );
+              })()}
+              
               {entryType === 'work' && (
                 <>
                   {/* Task Selection */}

@@ -799,8 +799,8 @@ export default function Tasks({ setCurrentPage, initialScope }) {
             <Filter size={14} /> {isFiltersExpanded ? "Hide Filters" : "Show Filters"}
           </button>
           <div className={`tasks-filter-card ${isFiltersExpanded ? 'mobile-filters-open' : ''}`}>
-            <div className="tasks-filter-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem', width: '100%', marginBottom: '1rem' }}>
-              <div className="tasks-search-box" style={{ flex: '1 1 300px', maxWidth: '400px' }}>
+            <div className="tasks-filter-row" style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: '0.5rem', width: '100%', marginBottom: '1rem', overflowX: 'auto' }}>
+              <div className="tasks-search-box" style={{ width: '240px', flexShrink: 0 }}>
                 <Search size={14} className="tasks-search-icon" />
                 <input
                   type="text"
@@ -811,7 +811,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                 />
               </div>
 
-              <div className="flex items-center">
+              <div className="flex items-center" style={{ flexShrink: 0 }}>
                 <SearchableSelect
                   options={projectOptions}
                   value={selectedProject}
@@ -821,7 +821,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                 />
               </div>
 
-              <div className="flex items-center">
+              <div className="flex items-center" style={{ flexShrink: 0 }}>
                 <SearchableSelect
                   options={statusOptions}
                   value={selectedStatus}
@@ -831,7 +831,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                 />
               </div>
 
-              <div className="flex items-center">
+              <div className="flex items-center" style={{ flexShrink: 0 }}>
                 <SearchableSelect
                   options={priorityOptions}
                   value={selectedPriority}
@@ -848,12 +848,13 @@ export default function Tasks({ setCurrentPage, initialScope }) {
                     ? 'bg-red-50 text-red-600 border-red-200 shadow-sm'
                     : 'bg-transparent text-slate-500 border-slate-200 hover:bg-slate-50'
                 }`}
+                style={{ flexShrink: 0 }}
               >
                 <AlertTriangle size={13} className={showExceededETA ? 'text-red-500' : 'text-slate-400'} />
                 Exceeded ETA
               </button>
 
-              <div className="flex items-center gap-1 flex-wrap">
+              <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
                 <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Start:</span>
                 <input
                   type="date"
@@ -887,7 +888,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
               {(searchQuery || selectedProject || selectedStatus || selectedPriority || startDateFilter || endDateFilter) && (
                 <button
                   onClick={() => { setSearchQuery(''); setSelectedProject(''); setSelectedStatus(''); setSelectedPriority(''); setStartDateFilter(''); setEndDateFilter(''); }}
-                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', marginLeft: 'auto' }}
+                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', marginLeft: 'auto', flexShrink: 0 }}
                 >
                   Clear Filters
                 </button>

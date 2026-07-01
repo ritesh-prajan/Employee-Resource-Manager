@@ -800,7 +800,7 @@ export default function Tasks({ setCurrentPage, initialScope }) {
           </button>
           <div className={`tasks-filter-card ${isFiltersExpanded ? 'mobile-filters-open' : ''}`}>
             <div className="tasks-filter-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem', width: '100%', marginBottom: '1rem' }}>
-              <div className="tasks-search-box" style={{ width: '160px', flexShrink: 1 }}>
+              <div className="tasks-search-box" style={{ flex: '1 1 300px', maxWidth: '400px' }}>
                 <Search size={14} className="tasks-search-icon" />
                 <input
                   type="text"

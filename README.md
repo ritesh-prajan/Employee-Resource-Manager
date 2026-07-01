@@ -12,6 +12,54 @@
 
 ---
 
+## 📸 Interface Previews & Walkthroughs
+
+Below are visual layouts describing the key workspaces of the application. 
+
+### 1. Unified Employee Workspace
+This page provides employees with active tasks tracking, time logging actions, and a live metrics display.
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  💼 ERM Platform                  [🔔 Alerts (2)] [🙋 John Doe (Emp)]  │
+├────────────────────────────────────────────────────────────────────────┤
+│  🧭 Dashboard    📊 KPIs Scorecard:                                    │
+│  📋 Tasks        ┌──────────────────┐┌──────────────────┐┌───────────┐ │
+│  ⏱️ Timesheets   │  CLOCKED IN      ││  COMPLETED TASKS ││ EFFICIENCY│ │
+│  📅 Meetings     │  04:15h (Today)  ││  12 / 15         ││ 92%       │ │
+│                  └──────────────────┘└──────────────────┘└───────────┘ │
+│                  📝 Active Tasks:                                      │
+│                  ┌───────────────────────────────────────────────────┐ │
+│                  │ [TSK-008] Implement JWT Token Security Check      │ │
+│                  │ Project: Horizon Platform · Priority: Critical    │ │
+│                  │ Progress: [██████░░░░] 60%  Logged: 4.5h / 8h      │ │
+│                  │ [⏸️ Pause] [⏱️ Log Time] [✔️ Submit for Review]     │ │
+│                  └───────────────────────────────────────────────────┘ │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2. Administrator & Team Lead Approvals Center
+Allows administrators and managers to audit team resource utilization, authorize ETA extensions, and verify completed logs.
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  💼 ERM Platform                       [🔔 Alerts (5)] [👑 Admin (Lead)]│
+├────────────────────────────────────────────────────────────────────────┤
+│  🧭 Dashboard    📥 Pending Approvals Audit Log:                       │
+│  👥 Employees    ┌───────────────────────────────────────────────────┐ │
+│  📁 Projects     │ 👤 Employee: Jane Doe (Senior Engineer)           │ │
+│  🛡️ Approvals    │ 📋 Task: [TSK-006] Bug Fix Implementation         │ │
+│                  │ ⚠️ Reason: ETA Extension (Requested: 2026-07-05)    │ │
+│                  │ [✔️ Approve Extension]  [❌ Reject Extension]     │ │
+│                  └───────────────────────────────────────────────────┘ │
+│                  ┌───────────────────────────────────────────────────┐ │
+│                  │ ⏱️ Timesheet Submission: John Smith (Junior Dev)   │ │
+│                  │ 📂 Project: Horizon  ·  Category: Support (1.5 hrs)│ │
+│                  │ [✔️ Approve Entry]  [❌ Reject Entry]             │ │
+│                  └───────────────────────────────────────────────────┘ │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## ⚡ Main Modules & Feature Matrix
 
 The platform provides role-based access control (RBAC) across three primary authorization tiers: **Admin**, **Team Lead / Sub Lead**, and **Employee**.
@@ -29,7 +77,70 @@ The platform provides role-based access control (RBAC) across three primary auth
 
 ---
 
-## 🏗️ System Architecture
+## ⚙️ Core System Workflows
+
+### 1. Task Lifecycle & Execution
+The life of a task transitions through states dynamically managed by the backend database triggers and service layer:
+
+```text
+[OPEN] (Backlog / Unassigned)
+   │
+   ▼  (Assigned to Employee)
+[IN_PROGRESS] (Timer starts / Timesheets logged)
+   │
+   ├─► (Breaches Estimated Hours/Due Date) ──► [OVER_ETA] (Requires justification comment)
+   │
+   ▼  (Submitted by Employee)
+[PENDING_REVIEW] (Read-only status locked for Employee)
+   │
+   ├──► [Approved by Lead] ──► [COMPLETED]
+   │
+   └──► [Rejected by Lead] ──► [REJECTED] ──► Reverts to [IN_PROGRESS]
+```
+
+### 2. The Automated ETA Warning System
+To ensure projects stay within scope, the platform runs a real-time validation engine:
+*   When a user attempts to **log a time entry** or **submit a task for review**:
+    - The backend checks if the cumulative hours logged (`loggedHours`) exceed the task's estimate (`etaHours`).
+    - The backend checks if the current date has surpassed the task's due date (`etaDate`).
+*   If either condition is met, the UI displays a warning banner requiring the user to provide an **Over-ETA Justification** before the entry can be successfully saved.
+
+---
+
+## 📁 Database Schema Details
+
+The backend utilizes PostgreSQL with strict constraints and foreign keys to ensure data integrity:
+
+### 1. `tasks` Table
+Stores details of sprint tasks.
+*   `id` (PK, Serialized Identity)
+*   `task_number` (Unique String, indexed)
+*   `title` / `description` (Text)
+*   `task_type` (Enum: `FEATURE`, `BUG`, `STORY`, `RND`, `SUPPORT`, `TASK`, etc.)
+*   `priority` (Enum: `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`)
+*   `status` (Enum: `OPEN`, `IN_PROGRESS`, `PENDING_REVIEW`, `COMPLETED`, `OVER_ETA`, etc.)
+*   `eta_hours` (Decimal estimate)
+*   `logged_hours` (Decimal, automatically re-evaluated from timesheet logs)
+*   `eta_date` / `original_eta_date` (Dates)
+*   `assigned_to` (FK -> `employees.id`)
+*   `project_id` (FK -> `projects.id`)
+
+### 2. `timesheet_entries` Table
+Records hour logs for tasks or company events.
+*   `id` (PK, Serialized Identity)
+*   `employee_id` (FK -> `employees.id`)
+*   `task_id` (FK -> `tasks.id`, nullable for Meetings/Breaks)
+*   `project_id` (FK -> `projects.id`, nullable for Breaks)
+*   `work_date` (Date)
+*   `start_time` / `end_time` (Timestamps)
+*   `hours_spent` (Decimal)
+*   `work_category` (Enum: `STORY`, `BUG`, `FEATURE`, `SUPPORT`, `MEETING`, `BREAK`)
+*   `status` (Enum: `PENDING`, `APPROVED`, `REJECTED`)
+*   `description` / `justification` (Text)
+
+---
+
+## 🏗️ System Architecture & Client-Server Sync
 
 ERM utilizes a modern decoupled service-oriented architecture ensuring high scalability, data isolation, and smooth state updates:
 
@@ -126,31 +237,26 @@ npm run dev
 
 ```text
 Employee-Resource-Manager/
-├── src/                          # Vite Client Application
-│   ├── components/               # UI Modular Components
-│   │   ├── forms/                # Entry Forms (CreateTaskModal, ManualTimeEntryModal...)
-│   │   ├── timesheets/           # Classic, Tree, and Modern calendar panels
-│   │   └── ui/                   # Shared design components (SearchableSelect...)
-│   ├── context/                  # Context State Providers (AppContext, ToastContext...)
-│   ├── hooks/                    # TanStack Query custom hooks
-│   ├── pages/                    # Domain routing folders (Admin, Employee, Lead)
-│   ├── services/                 # REST API services (api.js, taskService, timesheetService)
-│   └── index.css                 # Core CSS design variables & Liquid styling
-│
-├── employeemanager-elite/        # Spring Boot Server Application
-│   ├── src/main/java/com/elite/employeemanager/
-│   │   ├── auth/                 # JWT Tokens, Security contexts & Filter Chains
-│   │   ├── employee/             # Employee resources, directory operations & credentials
-│   │   ├── team/                 # Dynamic team groups, scopes & lead mappings
-│   │   ├── project/              # Project constraints & allocations
-│   │   ├── task/                 # Tasks tracking, comments, attachments & history
-│   │   ├── timesheet/            # Daily timesheets, work category, status validations
-│   │   └── attendance/           # Clock-in/out tracking
-│   └── build.gradle              # Server dependencies & Gradle packaging scripts
-│
-├── API_CONTRACT.md               # Backend Swagger API contract details
-├── docker-compose.yml            # Docker orchestration configuration
-└── README.md                     # Project documentation overview
+├── src/                          # React frontend
+│   ├── components/               # Shared UI components + ErrorBoundary
+│   ├── context/                  # AuthContext, AppContext (global state)
+│   ├── hooks/                    # TanStack Query hooks (useEmployees, …)
+│   ├── pages/                    # admin/, employee/, lead/ pages
+│   ├── services/                 # API service layer (api.js + domain services)
+│   └── tests/                    # Vitest + MSW unit tests
+├── employeemanager-elite/        # Spring Boot backend
+│   └── src/main/java/com/elite/employeemanager/
+│       ├── auth/                 # JWT authentication
+│       ├── employee/             # Employee CRUD
+│       ├── team/                 # Team + membership
+│       ├── project/              # Project + membership
+│       ├── task/                 # Task + comments + progress
+│       ├── timesheet/            # Time log entries 🆕
+│       ├── attendance/           # Clock-in / clock-out 🆕
+│       └── meeting/              # Meeting scheduling 🆕
+├── API_CONTRACT.md               # Full REST API documentation
+├── docker-compose.yml            # One-command dev environment
+└── vitest.config.js              # Test configuration
 ```
 
 ---

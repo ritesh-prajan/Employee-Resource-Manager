@@ -799,138 +799,137 @@ export default function Tasks({ setCurrentPage, initialScope }) {
             <Filter size={14} /> {isFiltersExpanded ? "Hide Filters" : "Show Filters"}
           </button>
           <div className={`tasks-filter-card ${isFiltersExpanded ? 'mobile-filters-open' : ''}`}>
-            <div className="tasks-filter-row" style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', width: '100%' }}>
-              <div className="flex items-center gap-2 flex-shrink-1 min-w-0" style={{ flexWrap: 'nowrap' }}>
-                <div className="tasks-search-box" style={{ width: '160px', flexShrink: 1 }}>
-                  <Search size={14} className="tasks-search-icon" />
-                  <input
-                    type="text"
-                    placeholder="Search "
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="tasks-search-input"
-                  />
-                </div>
+            <div className="tasks-filter-row" style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: '0.5rem', width: '100%', marginBottom: '1rem', overflowX: 'auto' }}>
+              <div className="tasks-search-box" style={{ width: '240px', flexShrink: 0 }}>
+                <Search size={14} className="tasks-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search "
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="tasks-search-input"
+                />
+              </div>
 
-                <div className="flex items-center">
-                  <SearchableSelect
-                    options={projectOptions}
-                    value={selectedProject}
-                    onChange={setSelectedProject}
-                    placeholder="All Projects"
-                    style={{ width: '140px' }}
-                  />
-                </div>
+              <div className="flex items-center" style={{ flexShrink: 0 }}>
+                <SearchableSelect
+                  options={projectOptions}
+                  value={selectedProject}
+                  onChange={setSelectedProject}
+                  placeholder="All Projects"
+                  style={{ width: '140px' }}
+                />
+              </div>
 
-                <div className="flex items-center">
-                  <SearchableSelect
-                    options={statusOptions}
-                    value={selectedStatus}
-                    onChange={setSelectedStatus}
-                    placeholder="All Statuses"
-                    style={{ width: '130px' }}
-                  />
-                </div>
+              <div className="flex items-center" style={{ flexShrink: 0 }}>
+                <SearchableSelect
+                  options={statusOptions}
+                  value={selectedStatus}
+                  onChange={setSelectedStatus}
+                  placeholder="All Statuses"
+                  style={{ width: '130px' }}
+                />
+              </div>
 
-                <div className="flex items-center">
-                  <SearchableSelect
-                    options={priorityOptions}
-                    value={selectedPriority}
-                    onChange={setSelectedPriority}
-                    placeholder="All Priorities"
-                    style={{ width: '130px' }}
-                  />
-                </div>
+              <div className="flex items-center" style={{ flexShrink: 0 }}>
+                <SearchableSelect
+                  options={priorityOptions}
+                  value={selectedPriority}
+                  onChange={setSelectedPriority}
+                  placeholder="All Priorities"
+                  style={{ width: '130px' }}
+                />
+              </div>
 
+              <button
+                onClick={() => setShowExceededETA(!showExceededETA)}
+                className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-bold transition-all border whitespace-nowrap ${
+                  showExceededETA
+                    ? 'bg-red-50 text-red-600 border-red-200 shadow-sm'
+                    : 'bg-transparent text-slate-500 border-slate-200 hover:bg-slate-50'
+                }`}
+                style={{ flexShrink: 0 }}
+              >
+                <AlertTriangle size={13} className={showExceededETA ? 'text-red-500' : 'text-slate-400'} />
+                Exceeded ETA
+              </button>
+
+              <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Start:</span>
+                <input
+                  type="date"
+                  value={startDateFilter}
+                  onChange={(e) => setStartDateFilter(e.target.value)}
+                  style={{
+                    padding: '0.4rem 0.5rem',
+                    fontSize: '0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--card)',
+                    color: 'var(--foreground)'
+                  }}
+                />
+                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider ml-1">End:</span>
+                <input
+                  type="date"
+                  value={endDateFilter}
+                  onChange={(e) => setEndDateFilter(e.target.value)}
+                  style={{
+                    padding: '0.4rem 0.5rem',
+                    fontSize: '0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--card)',
+                    color: 'var(--foreground)'
+                  }}
+                />
+              </div>
+
+              {(searchQuery || selectedProject || selectedStatus || selectedPriority || startDateFilter || endDateFilter) && (
                 <button
-                  onClick={() => setShowExceededETA(!showExceededETA)}
-                  className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-bold transition-all border whitespace-nowrap ${
-                    showExceededETA
-                      ? 'bg-red-50 text-red-600 border-red-200 shadow-sm'
-                      : 'bg-transparent text-slate-500 border-slate-200 hover:bg-slate-50'
-                  }`}
+                  onClick={() => { setSearchQuery(''); setSelectedProject(''); setSelectedStatus(''); setSelectedPriority(''); setStartDateFilter(''); setEndDateFilter(''); }}
+                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', marginLeft: 'auto', flexShrink: 0 }}
                 >
-                  <AlertTriangle size={13} className={showExceededETA ? 'text-red-500' : 'text-slate-400'} />
-                  Exceeded ETA
+                  Clear Filters
                 </button>
-
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Start:</span>
-                  <input
-                    type="date"
-                    value={startDateFilter}
-                    onChange={(e) => setStartDateFilter(e.target.value)}
-                    style={{
-                      padding: '0.4rem 0.5rem',
-                      fontSize: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border)',
-                      backgroundColor: 'var(--card)',
-                      color: 'var(--foreground)'
-                    }}
-                  />
-                  <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider ml-1">End:</span>
-                  <input
-                    type="date"
-                    value={endDateFilter}
-                    onChange={(e) => setEndDateFilter(e.target.value)}
-                    style={{
-                      padding: '0.4rem 0.5rem',
-                      fontSize: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border)',
-                      backgroundColor: 'var(--card)',
-                      color: 'var(--foreground)'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 flex-shrink-0" style={{ marginLeft: 'auto', flexWrap: 'nowrap' }}>
-                <div className="tasks-scope-toggle" style={{ flexWrap: 'nowrap' }}>
-                  {isLeader && (
-                    <button onClick={() => setScope('all')} className={`tasks-scope-btn ${scope === 'all' ? 'active' : 'inactive'}`}>
-                      All Team Tasks
-                    </button>
-                  )}
-                  {!isAdmin && (
-                    <button onClick={() => setScope('my')} className={`tasks-scope-btn ${scope === 'my' ? 'active' : 'inactive'}`}>
-                      My Tasks
-                    </button>
-                  )}
-                  <button onClick={() => setScope('backlog')} className={`tasks-scope-btn ${scope === 'backlog' ? 'active' : 'inactive'}`}>
-                    Backlog Tasks
-                  </button>
-                </div>
-
-                {isLeader && (
-                  <>
-                    <button
-                      className="rounded-xl px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition border border-slate-200 bg-white whitespace-nowrap flex items-center gap-1.5"
-                      onClick={() => setShowTeamsDraftModal(true)}
-                    >
-                      <Send size={13} /> View Teams Draft
-                    </button>
-                    <button
-                      className="rounded-xl px-4 py-2 text-xs font-bold text-white transition tasks-create-btn whitespace-nowrap"
-                      style={{ backgroundColor: '#0010ae' }}
-                      onClick={() => setShowTaskModal(true)}
-                    >
-                      <Plus size={13} /> Create Task
-                    </button>
-                  </>
-                )}
-              </div>
+              )}
             </div>
 
-            {(searchQuery || selectedProject || selectedStatus || selectedPriority || startDateFilter || endDateFilter) && (
-              <button
-                onClick={() => { setSearchQuery(''); setSelectedProject(''); setSelectedStatus(''); setSelectedPriority(''); setStartDateFilter(''); setEndDateFilter(''); }}
-                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
-              >
-                Clear Filters
-              </button>
-            )}
+            <div className="tasks-filter-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', width: '100%', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+              <div className="tasks-scope-toggle" style={{ flexWrap: 'nowrap' }}>
+                {isLeader && (
+                  <button onClick={() => setScope('all')} className={`tasks-scope-btn ${scope === 'all' ? 'active' : 'inactive'}`}>
+                    All Team Tasks
+                  </button>
+                )}
+                {!isAdmin && (
+                  <button onClick={() => setScope('my')} className={`tasks-scope-btn ${scope === 'my' ? 'active' : 'inactive'}`}>
+                    My Tasks
+                  </button>
+                )}
+                <button onClick={() => setScope('backlog')} className={`tasks-scope-btn ${scope === 'backlog' ? 'active' : 'inactive'}`}>
+                  Backlog Tasks
+                </button>
+              </div>
+
+              {isLeader && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <button
+                    className="rounded-xl px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition border border-slate-200 bg-white whitespace-nowrap flex items-center gap-1.5"
+                    onClick={() => setShowTeamsDraftModal(true)}
+                  >
+                    <Send size={13} /> View Teams Draft
+                  </button>
+                  <button
+                    className="rounded-xl px-4 py-2 text-xs font-bold text-white transition tasks-create-btn whitespace-nowrap"
+                    style={{ backgroundColor: '#0010ae', marginLeft: '0' }}
+                    onClick={() => setShowTaskModal(true)}
+                  >
+                    <Plus size={13} /> Create Task
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

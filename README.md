@@ -1,192 +1,202 @@
-# Employee Resource Manager
+# 💼 Employee Resource Manager (ERM)
 
-> A full-stack, enterprise-grade HR platform for managing employees, projects, teams, tasks, and core HR operations. Built with modern React and Spring Boot.
-
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
-[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=black)](https://vitejs.dev)
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
-[![TanStack Query](https://img.shields.io/badge/TanStack_Query-5-FF4154?logo=reactquery&logoColor=white)](https://tanstack.com/query)
-
----
-
-## 📸 Screenshots
-
-*(Replace these placeholder links with actual screenshots of your application)*
+> **Empowering Enterprise Workforce Efficiency** – A high-performance, modern, and beautiful full-stack human capital and project resource management platform. Built on a container-first architecture using **React 19 + Vite**, **Spring Boot 3 (Java 21)**, **PostgreSQL 16**, and **TanStack Query 5**.
 
 <p align="center">
-  <img src="https://via.placeholder.com/800x450?text=Admin+Dashboard" alt="Admin Dashboard" width="48%">
-  <img src="https://via.placeholder.com/800x450?text=Team+Lead+View" alt="Team Lead View" width="48%">
-</p>
-<p align="center">
-  <img src="https://via.placeholder.com/800x450?text=Employee+Directory" alt="Employee Directory" width="48%">
-  <img src="https://via.placeholder.com/800x450?text=Task+Board" alt="Task Board" width="48%">
+  <img src="https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 19" />
+  <img src="https://img.shields.io/badge/Vite-6.0-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite 6" />
+  <img src="https://img.shields.io/badge/Spring_Boot-3.3-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot 3" />
+  <img src="https://img.shields.io/badge/PostgreSQL-16.0-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL 16" />
+  <img src="https://img.shields.io/badge/TanStack_Query-5.0-FF4154?style=for-the-badge&logo=reactquery&logoColor=white" alt="TanStack Query 5" />
 </p>
 
 ---
 
-## Features
+## ⚡ Main Modules & Feature Matrix
 
-| Domain | Status |
-|---|---|
-| Authentication (JWT cookie + refresh) | ✅ |
-| Employee management (CRUD) | ✅ |
-| Team management (CRUD + membership) | ✅ |
-| Project management (CRUD + membership) | ✅ |
-| Task management (CRUD + comments + progress) | ✅ |
-| Timesheets (log + approve / reject) | 🔧 Backend in progress |
-| Attendance (clock-in / clock-out) | 🔧 Backend in progress |
-| Meetings (schedule + attendees) | 🔧 Backend in progress |
-| Admin alerts & approvals | ✅ |
-| Role-based routing (Admin / Team Lead / Employee) | ✅ |
+The platform provides role-based access control (RBAC) across three primary authorization tiers: **Admin**, **Team Lead / Sub Lead**, and **Employee**.
+
+| Capability | Module Description | Status | Tiers |
+| :--- | :--- | :---: | :---: |
+| **Secure Authentication** | Stateless JWT authentication with secure httpOnly cookie-based refresh cycle. | 🔐 Active | All |
+| **Org Structure Management** | Complete CRUD operations for Employees, Teams, and departmental mappings. | 👥 Active | Admin |
+| **Project Tracking** | Project provisioning, owner/lead assignment, budget/color coding, and member allocation. | 📁 Active | Admin, Leads |
+| **Task Lifecycle (Sprint)** | Stage, assign, transfer, and review tasks with real-time ETA extension requests. | 📋 Active | All |
+| **Interactive Timesheets** | Log daily hours, categorize work (Story, Bug, Meeting, Break), and manage ETA warnings. | ⏱️ Active | All |
+| **Attendance & KPIs** | Live clock-in/out dashboard tracking daily hours, metrics, and KPI scorecards. | 📊 Active | All |
+| **Meeting Scheduler** | Schedule team meetings, map attendees, and link meeting logs directly to timesheets. | 📅 Active | All |
+| **Admin Alerts & Approvals** | Unified approval center for manager reviews, task handoffs, and ETA extensions. | 🔔 Active | Admin, Leads |
 
 ---
 
-## Architecture
+## 🏗️ System Architecture
+
+ERM utilizes a modern decoupled service-oriented architecture ensuring high scalability, data isolation, and smooth state updates:
 
 ```mermaid
-graph LR
-    subgraph Frontend ["Frontend (Vite + React 19)"]
-        UI["Pages & Components"]
-        TQ["TanStack Query"]
-        SVC["Service Layer (api.js)"]
-    end
-    subgraph Backend ["Backend (Spring Boot 4)"]
-        CTRL["REST Controllers /api/v1"]
-        SB["Service Layer"]
-        JPA["JPA Repositories"]
-    end
-    subgraph Infra
-        PG[(PostgreSQL 16)]
-        MAIL[Mailpit SMTP]
-        S3[AWS S3 / MinIO]
+graph TD
+    subgraph Client ["Frontend Client (React 19 + Vite)"]
+        UI["UI View Components (Tailwind & custom CSS)"]
+        State["State Management & Contexts (AppContext)"]
+        Query["TanStack Query (Cache & Mutators)"]
+        API["HTTP Client (Axios Service Wrapper)"]
     end
 
-    UI --> TQ --> SVC -->|HTTP + JWT cookie| CTRL --> SB --> JPA --> PG
-    SB --> MAIL
-    SB --> S3
+    subgraph Service ["Backend Core Service (Spring Boot 3)"]
+        Controller["REST Controllers (v1 APIs)"]
+        Security["JWT Security & RBAC Handler"]
+        BizLogic["Domain Service Layer"]
+        DataLayer["Spring Data JPA Repository"]
+    end
+
+    subgraph Infrastructure ["Data & Infrastructure Tiers"]
+        DB[(PostgreSQL Database)]
+        SMTP[SMTP Email Mailpit Server]
+        Storage[AWS S3 / MinIO File Repository]
+    end
+
+    UI --> State
+    State --> Query
+    Query --> API
+    API -->|Secure Cookies & HTTPS| Controller
+    Controller --> Security
+    Security --> BizLogic
+    BizLogic --> DataLayer
+    DataLayer --> DB
+    BizLogic --> SMTP
+    BizLogic --> Storage
 ```
 
 ---
 
-## Quick Start
+## 🚀 Quick Start & Development Environment
 
-### Option A — Docker Compose (recommended)
+### Method A: Single-Command Local Sandbox (Recommended)
+
+ERM comes pre-configured with a multi-container Docker Compose file bootstrapping the UI, Spring Boot API, PostgreSQL instance, and a Mailpit SMTP inbox.
 
 ```bash
-# Clone
+# 1. Clone the project files
 git clone https://github.com/ritesh-prajan/Employee-Resource-Manager.git
 cd Employee-Resource-Manager
 
-# Start everything (Postgres + Mailpit + Backend + Frontend)
-docker compose up
+# 2. Spin up the entire environment (builds image triggers and DB migrations)
+docker compose up --build
 ```
 
-| Service | URL |
-|---|---|
-| Frontend | http://localhost:5173 |
-| Backend API | http://localhost:8080/api/v1 |
-| Mailpit (email UI) | http://localhost:8025 |
+Once ready, access the services at their target URLs:
 
-### Option B — Run manually
+*   **Employee Resource Dashboard (UI):** [http://localhost:5173](http://localhost:5173)
+*   **Spring Backend REST Endpoint:** [http://localhost:8080/api/v1](http://localhost:8080/api/v1)
+*   **Mailpit SMTP Web Portal:** [http://localhost:8025](http://localhost:8025)
 
-**Prerequisites:** Node 20+, Java 17+, PostgreSQL 16
+---
+
+### Method B: Manual Local Setup
+
+If running without Docker, follow these steps:
+
+#### Backend Infrastructure Setup
+Ensure **Java 21 JDK** and **PostgreSQL 16** are active on your system.
 
 ```bash
-# 1. Start Postgres and create the database
-createdb employeemanager
+# 1. Access the database console and provision the target DB
+psql -U postgres -c "CREATE DATABASE employeemanager;"
 
-# 2. Start backend
+# 2. Navigate to the backend directory and launch the Boot task
 cd employeemanager-elite
 ./gradlew bootRun
+```
 
-# 3. Start frontend (in a new terminal)
+#### Frontend Client Setup
+Requires **Node.js 20+** environment.
+
+```bash
+# 1. Return to the root directory
 cd ..
+
+# 2. Install dependencies & launch Vite Development Server
 npm install
 npm run dev
 ```
 
-> The Vite dev server proxies `/api` → `http://localhost:8080` automatically.
-
 ---
 
-## Project Structure
+## 📂 Codebase Directory Blueprint
 
-```
+```text
 Employee-Resource-Manager/
-├── src/                          # React frontend
-│   ├── components/               # Shared UI components + ErrorBoundary
-│   ├── context/                  # AuthContext, AppContext (global state)
-│   ├── hooks/                    # TanStack Query hooks (useEmployees, …)
-│   ├── pages/                    # admin/, employee/, lead/ pages
-│   ├── services/                 # API service layer (api.js + domain services)
-│   └── tests/                    # Vitest + MSW unit tests
-├── employeemanager-elite/        # Spring Boot backend
-│   └── src/main/java/com/elite/employeemanager/
-│       ├── auth/                 # JWT authentication
-│       ├── employee/             # Employee CRUD
-│       ├── team/                 # Team + membership
-│       ├── project/              # Project + membership
-│       ├── task/                 # Task + comments + progress
-│       ├── timesheet/            # Time log entries 🆕
-│       ├── attendance/           # Clock-in / clock-out 🆕
-│       └── meeting/              # Meeting scheduling 🆕
-├── API_CONTRACT.md               # Full REST API documentation
-├── docker-compose.yml            # One-command dev environment
-└── vitest.config.js              # Test configuration
+├── src/                          # Vite Client Application
+│   ├── components/               # UI Modular Components
+│   │   ├── forms/                # Entry Forms (CreateTaskModal, ManualTimeEntryModal...)
+│   │   ├── timesheets/           # Classic, Tree, and Modern calendar panels
+│   │   └── ui/                   # Shared design components (SearchableSelect...)
+│   ├── context/                  # Context State Providers (AppContext, ToastContext...)
+│   ├── hooks/                    # TanStack Query custom hooks
+│   ├── pages/                    # Domain routing folders (Admin, Employee, Lead)
+│   ├── services/                 # REST API services (api.js, taskService, timesheetService)
+│   └── index.css                 # Core CSS design variables & Liquid styling
+│
+├── employeemanager-elite/        # Spring Boot Server Application
+│   ├── src/main/java/com/elite/employeemanager/
+│   │   ├── auth/                 # JWT Tokens, Security contexts & Filter Chains
+│   │   ├── employee/             # Employee resources, directory operations & credentials
+│   │   ├── team/                 # Dynamic team groups, scopes & lead mappings
+│   │   ├── project/              # Project constraints & allocations
+│   │   ├── task/                 # Tasks tracking, comments, attachments & history
+│   │   ├── timesheet/            # Daily timesheets, work category, status validations
+│   │   └── attendance/           # Clock-in/out tracking
+│   └── build.gradle              # Server dependencies & Gradle packaging scripts
+│
+├── API_CONTRACT.md               # Backend Swagger API contract details
+├── docker-compose.yml            # Docker orchestration configuration
+└── README.md                     # Project documentation overview
 ```
 
 ---
 
-## API Documentation
+## 🔧 Environment Configurations
 
-See [`API_CONTRACT.md`](./API_CONTRACT.md) for the full REST API reference including:
-- Auth flow (login, refresh, logout, password reset)
-- All endpoint shapes, status enums, and error envelope format
-- Planned endpoints for Timesheets, Attendance, and Meetings
+The application reads context variables dynamically. Override the defaults using a `.env` file in the root or set them directly in your shell environment:
+
+| Property Name | Purpose | Production Default / Recommended |
+| :--- | :--- | :--- |
+| `SPRING_DATASOURCE_URL` | PostgreSQL JDBC connection URL. | `jdbc:postgresql://localhost:5432/employeemanager` |
+| `SPRING_DATASOURCE_USERNAME` | Database username credentials. | `postgres` |
+| `SPRING_DATASOURCE_PASSWORD` | Database password credentials. | `postgres` |
+| `JWT_SECRET` | Cryptographic secret for signing tokens. | *Keep it minimum 256-bit hash* |
+| `JWT_EXPIRATION_MS` | Access token time-to-live. | `900000` (15 Minutes) |
+| `JWT_REFRESH_EXPIRATION_MS` | Refresh token time-to-live. | `604800000` (7 Days) |
+| `AWS_ACCESS_KEY_ID` | Object storage provider access key ID. | *Your AWS / MinIO Access ID* |
+| `AWS_SECRET_ACCESS_KEY` | Object storage provider secret key. | *Your AWS / MinIO Secret Key* |
 
 ---
 
-## Testing
+## 🧪 Testing Strategy
+
+The client features comprehensive unit and integration testing built using **Vitest** and **Mock Service Worker (MSW)**, ensuring network-level interception without real database hits:
 
 ```bash
-# Run all tests
+# Execute local unit-tests
 npm run test
 
-# Run with coverage report
+# Launch and view code coverage results
 npm run test:coverage
 ```
 
-Tests use **Vitest** + **MSW** (Mock Service Worker) to intercept `fetch` at the network level, exercising the real service layer without hitting the backend.
+---
+
+## 🤝 Contributing & Standards
+
+1. Create a descriptive Feature Branch: `git checkout -b feature/cool-new-feature`.
+2. Adhere to the established Linting & Prettier standard format.
+3. Write matching unit tests inside the `src/tests` directory.
+4. Ensure all test blocks pass successfully before opening a Pull Request (PR).
 
 ---
 
-## Environment Variables
+## 📝 License
 
-| Variable | Description | Default |
-|---|---|---|
-| `SPRING_DATASOURCE_URL` | PostgreSQL JDBC URL | `jdbc:postgresql://localhost:5432/employeemanager` |
-| `SPRING_DATASOURCE_USERNAME` | DB user | `erm_user` |
-| `SPRING_DATASOURCE_PASSWORD` | DB password | `erm_pass` |
-| `JWT_SECRET` | JWT signing secret (≥ 32 chars) | — |
-| `JWT_EXPIRATION_MS` | Access token TTL (ms) | `900000` (15 min) |
-| `JWT_REFRESH_EXPIRATION_MS` | Refresh token TTL (ms) | `604800000` (7 days) |
-| `AWS_ACCESS_KEY_ID` | S3 access key | — |
-| `AWS_SECRET_ACCESS_KEY` | S3 secret key | — |
-| `AWS_S3_BUCKET` | S3 bucket name | — |
+This project is licensed under the **MIT License** - see the LICENSE file for details.
 
----
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feat/my-feature`
-3. Commit your changes: `git commit -m "feat: add my feature"`
-4. Push to the branch: `git push origin feat/my-feature`
-5. Open a Pull Request
-
----
-
-## License
-
-MIT © Ritesh Prajan
+© 2026 **Ritesh Prajan** & Contributors. All rights reserved.

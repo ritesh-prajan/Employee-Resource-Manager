@@ -21,7 +21,7 @@ function maptask(task){
         assignedToObj:task.assignedTo||null,
         projectId:task.project?.id||null,
         projectObj:task.project||null,
-        logged:0,
+        logged:task.loggedHours||0,
         comments:[],
         progress:0,
         tags:[],

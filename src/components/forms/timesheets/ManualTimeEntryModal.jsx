@@ -207,6 +207,20 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
       return;
     }
 
+    let finalDescription = description.trim();
+    if (entryType === 'meeting') {
+      const selectedMeeting = (meetings || []).find(m => String(m.id) === String(meetingId));
+      const meetingTitle = selectedMeeting ? selectedMeeting.title : 'Meeting';
+      finalDescription = finalDescription || `Attended meeting: ${meetingTitle}`;
+    } else if (entryType === 'break') {
+      finalDescription = finalDescription || 'Break';
+    }
+
+    if (!finalDescription) {
+      toast.warning('Please enter a description of the work done.');
+      return;
+    }
+
     let entryData = {
       userId: currentUser?.id,
       employeeId: currentUser?.id,
@@ -214,7 +228,7 @@ export default function ManualTimeEntryModal({ show, onClose, defaultDate, editi
       startTime,
       endTime,
       duration: durationVal.toString(),
-      description: entryType === 'break' ? (description || 'Break') : description,
+      description: finalDescription,
       workCategory: entryType === 'break' ? 'Break' : workCategory,
       justification
     };

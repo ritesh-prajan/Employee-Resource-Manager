@@ -81,10 +81,13 @@ export default function CreateTaskModal({
   const generateNextTaskNumber = () => {
     const numbers = tasks
       .map(t => t.taskNumber)
-      .filter(n => n && /^TSK-\d+$/i.test(n))
-      .map(n => parseInt(n.split('-')[1], 10));
+      .filter(n => n && /^(TSK|TASK)-\d+$/i.test(n))
+      .map(n => {
+        const parts = n.split('-');
+        return parseInt(parts[parts.length - 1], 10);
+      });
     const next = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
-    return `TASK-${String(next).padStart(3, '0')}`;
+    return `TSK-${String(next).padStart(3, '0')}`;
   };
 
   useEffect(() => {

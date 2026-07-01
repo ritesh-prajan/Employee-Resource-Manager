@@ -56,7 +56,7 @@ export function useTasks(options={}){
 
             return{
               ...task,
-              logged:parseFloat(task.loggedHours||0),
+              logged:parseFloat(task.logged||0),
               progress:latestprogress,
               comments:comments||[],
               tags:tasktags,

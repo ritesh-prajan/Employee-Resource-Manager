@@ -276,12 +276,12 @@ export const AppProvider = ({ children }) => {
     color: getAdjustedProjectColor(proj.color, theme)
   })), [projects, theme]);
 
-  const tasksWithLoggedHours = useMemo(() => tasks.map(t => {
-    const taskEntries = timeEntriesHook.timeEntries.filter(e => String(e.taskId) === String(t.id));
-    const sessionLogged = taskEntries.filter(e => e.status !== 'Rejected').reduce((sum, e) => sum + parseFloat(e.duration || 0), 0);
-    const logged = (t.logged || 0) + sessionLogged;
-    return { ...t, logged: parseFloat(logged.toFixed(2)) };
-  }), [tasks, timeEntriesHook.timeEntries]);
+  const tasksWithLoggedHours = useMemo(() => {
+    return tasks.map(t => {
+      const logged = t.logged || 0;
+      return { ...t, logged: parseFloat(logged.toFixed(2)) };
+    });
+  }, [tasks]);
 
   const taskComments = useMemo(() => {
     if (!tasks) return [];
